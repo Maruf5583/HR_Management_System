@@ -1,0 +1,55 @@
+@model RoleDto
+@{
+    ViewData["Title"] = "Delete Role";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card-modern p-4 border-danger-subtle">
+            <div class="d-flex align-items-center gap-3 border-bottom pb-3 mb-4">
+                <div class="stat-icon bg-danger-subtle text-danger" style="width: 44px; height: 44px; font-size: 1.25rem;">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold mb-0 text-danger">Delete Role</h5>
+                    <p class="text-muted small mb-0">Confirm deletion of security role</p>
+                </div>
+            </div>
+
+            <p class="text-secondary small">Are you sure you want to permanently remove this custom role?</p>
+
+            <div class="bg-light p-3 rounded-3 border mb-3">
+                <div class="row g-2 small">
+                    <div class="col-4 text-muted">Role Name:</div>
+                    <div class="col-8 fw-bold">@Model.Name</div>
+                    <div class="col-4 text-muted">Description:</div>
+                    <div class="col-8">@(Model.Description ?? "None")</div>
+                    <div class="col-4 text-muted">Assigned Users:</div>
+                    <div class="col-8">
+                        <span class="badge @(Model.UserCount > 0 ? "bg-danger" : "bg-secondary")">
+                            @Model.UserCount users
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            @if (Model.UserCount > 0)
+            {
+                <div class="alert alert-danger border-0 small d-flex align-items-center gap-2 mb-4" style="border-radius: 10px; background-color: #fee2e2; color: #b91c1c;">
+                    <i class="bi bi-slash-circle-fill fs-5"></i>
+                    <div>Cannot delete this role while users are still assigned to it.</div>
+                </div>
+            }
+
+            <form asp-action="Delete" method="post">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                    <a asp-action="Index" class="btn btn-secondary-modern">Cancel</a>
+                    <button type="submit" class="btn btn-danger fw-semibold px-3" @(Model.UserCount > 0 ? "disabled" : "")>
+                        Confirm Delete
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

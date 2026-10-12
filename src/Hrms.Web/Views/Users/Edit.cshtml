@@ -1,0 +1,50 @@
+@model EditUserViewModel
+@{
+    ViewData["Title"] = "Edit User";
+    var roles = ViewBag.Roles as List<string> ?? new List<string>();
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card-modern p-4">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-4">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="bi bi-pencil me-2 text-primary"></i>Edit User</h5>
+                    <p class="text-muted small mb-0">Update email and assigned role</p>
+                </div>
+                <a asp-action="Index" class="btn btn-secondary-modern btn-sm">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+            </div>
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            <form asp-action="Edit" method="post">
+                <input type="hidden" asp-for="Id" />
+
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label">Email Address</label>
+                    <input asp-for="Email" class="form-control" />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="RoleName" class="form-label">Assigned Role</label>
+                    <select asp-for="RoleName" class="form-select">
+                        <option value="">-- Select Role --</option>
+                        @foreach (var role in roles)
+                        {
+                            <option value="@role">@role</option>
+                        }
+                    </select>
+                    <span asp-validation-for="RoleName" class="text-danger small"></span>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                    <a asp-action="Index" class="btn btn-secondary-modern">Cancel</a>
+                    <button type="submit" class="btn btn-primary-modern">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,62 @@
+## User specific requests: Exclude AGENTS instructions, docs, and tests folder
+AGENTS.md
+Agents.md
+Agents.md.txt
+agents.md
+agent.md
+docs/
+Docs/
+Readme.md.txt
+readme.md.txt
+Readme.md.text
+readme.md.text
+*.md.txt
+*.md.text
+tests/
+wwwroot/uploads/
+keys/
+
+## Visual Studio & IDE files
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.ide/
+
+## Build results & outputs
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+Generated\ Files/
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+## Test Results & Coverage
+TestResults/
+[Tt]est[Rr]esult*/
+*.trx
+coverage.cobertura.xml
+*.coverage
+*.coveragexml
+
+## User-specific files & local settings
+*.rsuser
+*.suo
+*.userprefs
+appsettings.Development.json
+appsettings.Local.json
+
+## Rider / JetBrains
+.idea/
+*.sln.iml
+
+## OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/

@@ -1,0 +1,111 @@
+@model EditRoleViewModel
+@{
+    ViewData["Title"] = "Edit Role";
+    var allPermissions = ViewBag.AllPermissions as IReadOnlyList<string> ?? new List<string>();
+
+    var categories = allPermissions
+        .GroupBy(p => p.Split('.')[0])
+        .ToDictionary(g => g.Key, g => g.ToList());
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card-modern p-4">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-4">
+                <div>
+                    <h4 class="fw-bold mb-1"><i class="bi bi-shield-check me-2 text-primary"></i>Edit Role: @Model.Name</h4>
+                    <p class="text-muted small mb-0">Modify description and granted permission sets</p>
+                </div>
+                <a asp-action="Index" class="btn btn-secondary-modern">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Roles
+                </a>
+            </div>
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            @if (Model.IsAdminRole)
+            {
+                <div class="alert alert-primary border-0 shadow-sm d-flex align-items-center gap-3 mb-4" style="border-radius: 12px; background-color: #e0e7ff; color: #3730a3;">
+                    <i class="bi bi-shield-lock-fill fs-3"></i>
+                    <div>
+                        <strong class="d-block">Administrator Role is Locked</strong>
+                        <small>The Admin system role automatically holds every permission in HRMS. Its permission claims cannot be modified.</small>
+                    </div>
+                </div>
+            }
+
+            <form asp-action="Edit" method="post">
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="Name" />
+                <input type="hidden" asp-for="IsSystem" />
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-5">
+                        <label class="form-label">Role Name</label>
+                        <input type="text" class="form-control" value="@Model.Name" disabled />
+                    </div>
+                    <div class="col-md-7">
+                        <label asp-for="Description" class="form-label">Description</label>
+                        <input asp-for="Description" class="form-control" placeholder="Role description" />
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">Assigned Permissions Matrix</h5>
+                    @if (!Model.IsAdminRole)
+                    {
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-secondary" onclick="toggleAll(true)">Select All</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="toggleAll(false)">Clear All</button>
+                        </div>
+                    }
+                </div>
+
+                <div class="row g-3 mb-4">
+                    @foreach (var category in categories)
+                    {
+                        <div class="col-md-6 col-xl-4">
+                            <div class="card h-100 border-light-subtle shadow-sm" style="border-radius: 10px;">
+                                <div class="card-header bg-light py-2 px-3 fw-bold text-capitalize text-muted small">
+                                    <i class="bi bi-folder2 me-1"></i> @category.Key
+                                </div>
+                                <div class="card-body p-3">
+                                    @foreach (var permission in category.Value)
+                                    {
+                                        var isChecked = Model.SelectedPermissions.Contains(permission);
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input perm-check" type="checkbox" name="SelectedPermissions" value="@permission" id="perm_@permission"
+                                                   @(isChecked ? "checked" : "")
+                                                   @(Model.IsAdminRole ? "disabled" : "") />
+                                            <label class="form-check-label font-monospace small" for="perm_@permission">
+                                                @permission
+                                            </label>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                    <a asp-action="Index" class="btn btn-secondary-modern">Cancel</a>
+                    @if (!Model.IsAdminRole)
+                    {
+                        <button type="submit" class="btn btn-primary-modern">Save Changes</button>
+                    }
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@if (!Model.IsAdminRole)
+{
+    <script>
+        function toggleAll(check) {
+            document.querySelectorAll('.perm-check').forEach(cb => cb.checked = check);
+        }
+    </script>
+}
