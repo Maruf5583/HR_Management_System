@@ -1,0 +1,129 @@
+@model IReadOnlyList<GradeDto>
+@{
+    ViewData["Title"] = "Grades";
+    var designations = ViewBag.Designations as List<SelectListItem> ?? new List<SelectListItem>();
+    var selectedDesig = ViewBag.SelectedDesignationId as Guid?;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-sort-numeric-up me-2 text-primary"></i>Grades & Salary Scales</h4>
+        <p class="text-muted small mb-0">Manage designation grade levels, codes, and base compensation</p>
+    </div>
+    <a asp-action="Create" asp-route-designationId="@selectedDesig" class="btn btn-primary d-flex align-items-center gap-2">
+        <i class="bi bi-plus-lg"></i> Add Grade
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <label class="form-label small text-muted mb-1">Filter by Designation</label>
+                <select name="designationId" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">-- All Designations --</option>
+                    @foreach (var desig in designations)
+                    {
+                        <option value="@desig.Value" selected="@desig.Selected">@desig.Text</option>
+                    }
+                </select>
+            </div>
+            @if (selectedDesig.HasValue)
+            {
+                <div class="col-md-2 mt-4">
+                    <a asp-action="Index" class="btn btn-sm btn-outline-secondary">Clear Filter</a>
+                </div>
+            }
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm" style="border-radius: 12px;">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Grade Code</th>
+                        <th>Level</th>
+                        <th>Designation & Department</th>
+                        <th>Base Salary</th>
+                        <th>Employees</th>
+                        <th>Status</th>
+                        <th>Created Date</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-cash-stack fs-1 d-block mb-2"></i>
+                                No grades found.
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="ps-4 fw-bold text-dark">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace px-2 py-1">
+                                    @item.Code
+                                </span>
+                            </td>
+                            <td class="fw-semibold">@item.Level</td>
+                            <td>
+                                <div>@item.DesignationTitle</div>
+                                <small class="text-muted">@item.DepartmentName</small>
+                            </td>
+                            <td class="fw-bold text-success font-monospace">
+                                @item.Salary.ToString("C2")
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">
+                                    <i class="bi bi-people me-1 text-primary"></i>@item.EmployeeCount
+                                </span>
+                            </td>
+                            <td>
+                                @if (item.Status == EntityStatus.Active)
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">Inactive</span>
+                                }
+                            </td>
+                            <td class="text-muted small">@item.CreatedAtUtc.ToString("dd MMM yyyy")</td>
+                            <td class="text-end pe-4">
+                                <div class="d-inline-flex gap-2">
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form asp-action="ToggleStatus" method="post" class="d-inline">
+                                        <input type="hidden" name="id" value="@item.Id" />
+                                        @if (item.Status == EntityStatus.Active)
+                                        {
+                                            <input type="hidden" name="status" value="@EntityStatus.Inactive" />
+                                            <button type="submit" class="btn btn-sm btn-outline-warning" title="Deactivate" onclick="return confirm('Deactivate grade \'@item.Code\'?');">
+                                                <i class="bi bi-slash-circle"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <input type="hidden" name="status" value="@EntityStatus.Active" />
+                                            <button type="submit" class="btn btn-sm btn-outline-success" title="Activate">
+                                                <i class="bi bi-check-circle"></i>
+                                            </button>
+                                        }
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

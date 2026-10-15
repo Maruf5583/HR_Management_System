@@ -22,7 +22,8 @@ public record CreateUserModel(
 public record UpdateUserModel(
     Guid Id,
     string Email,
-    string RoleName
+    string RoleName,
+    Guid? EmployeeId = null
 );
 
 public record RoleDto(

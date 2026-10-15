@@ -1,8 +1,11 @@
 using System.Security.Claims;
+using Hrms.Employees.Domain.Entities;
+using Hrms.Employees.Domain.Enums;
 using Hrms.Identity.Domain.Entities;
 using Hrms.Identity.Domain.Enums;
 using Hrms.Shared.Constants;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -14,17 +17,20 @@ public class IdentitySeeder
 
     private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly HrmsDbContext _dbContext;
     private readonly IConfiguration _configuration;
     private readonly ILogger<IdentitySeeder> _logger;
 
     public IdentitySeeder(
         RoleManager<ApplicationRole> roleManager,
         UserManager<ApplicationUser> userManager,
+        HrmsDbContext dbContext,
         IConfiguration configuration,
         ILogger<IdentitySeeder> logger)
     {
         _roleManager = roleManager;
         _userManager = userManager;
+        _dbContext = dbContext;
         _configuration = configuration;
         _logger = logger;
     }
@@ -33,6 +39,7 @@ public class IdentitySeeder
     {
         await SeedRolesAsync();
         await SeedUsersAsync();
+        await SeedEmployeesAndLinkUsersAsync();
     }
 
     private async Task SeedRolesAsync()
@@ -147,6 +154,180 @@ public class IdentitySeeder
             {
                 _logger.LogError("Failed to create seed user {Email}: {Errors}",
                     email, string.Join("; ", result.Errors.Select(e => e.Description)));
+            }
+        }
+    }
+
+    private async Task SeedEmployeesAndLinkUsersAsync()
+    {
+        // 1. Seed or retrieve organizational hierarchy
+        var adminDept = await _dbContext.Departments.FirstOrDefaultAsync(d => d.Name == "Executive Management");
+        if (adminDept == null)
+        {
+            adminDept = Department.Create("Executive Management");
+            await _dbContext.Departments.AddAsync(adminDept);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        var hrDept = await _dbContext.Departments.FirstOrDefaultAsync(d => d.Name == "Human Resources");
+        if (hrDept == null)
+        {
+            hrDept = Department.Create("Human Resources");
+            await _dbContext.Departments.AddAsync(hrDept);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        var engDept = await _dbContext.Departments.FirstOrDefaultAsync(d => d.Name == "Engineering");
+        if (engDept == null)
+        {
+            engDept = Department.Create("Engineering");
+            await _dbContext.Departments.AddAsync(engDept);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        var adminDesig = await _dbContext.Designations.FirstOrDefaultAsync(d => d.Title == "System Administrator" && d.DepartmentId == adminDept.DepartmentId);
+        if (adminDesig == null)
+        {
+            adminDesig = Designation.Create("System Administrator", adminDept.DepartmentId);
+            await _dbContext.Designations.AddAsync(adminDesig);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        var hrDesig = await _dbContext.Designations.FirstOrDefaultAsync(d => d.Title == "HR Manager" && d.DepartmentId == hrDept.DepartmentId);
+        if (hrDesig == null)
+        {
+            hrDesig = Designation.Create("HR Manager", hrDept.DepartmentId);
+            await _dbContext.Designations.AddAsync(hrDesig);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        var engDesig = await _dbContext.Designations.FirstOrDefaultAsync(d => d.Title == "Software Engineer" && d.DepartmentId == engDept.DepartmentId);
+        if (engDesig == null)
+        {
+            engDesig = Designation.Create("Software Engineer", engDept.DepartmentId);
+            await _dbContext.Designations.AddAsync(engDesig);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        var adminGrade = await _dbContext.Grades.FirstOrDefaultAsync(g => g.DesignationId == adminDesig.DesignationId && g.Level == "Executive");
+        if (adminGrade == null)
+        {
+            adminGrade = Grade.Create(adminDesig.DesignationId, "Executive", "EX-01", 12000m);
+            await _dbContext.Grades.AddAsync(adminGrade);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        var hrGrade = await _dbContext.Grades.FirstOrDefaultAsync(g => g.DesignationId == hrDesig.DesignationId && g.Level == "Management");
+        if (hrGrade == null)
+        {
+            hrGrade = Grade.Create(hrDesig.DesignationId, "Management", "HR-01", 8500m);
+            await _dbContext.Grades.AddAsync(hrGrade);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        var engGrade = await _dbContext.Grades.FirstOrDefaultAsync(g => g.DesignationId == engDesig.DesignationId && g.Level == "Senior");
+        if (engGrade == null)
+        {
+            engGrade = Grade.Create(engDesig.DesignationId, "Senior", "ENG-01", 7500m);
+            await _dbContext.Grades.AddAsync(engGrade);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        // 2. Seed Employees if none exist
+        if (!await _dbContext.Employees.AnyAsync())
+        {
+            var adminEmp = new Employee
+            {
+                EmployeeId = Guid.NewGuid(),
+                EmployeeCode = "EMP-0001",
+                FirstName = "Admin",
+                LastName = "User",
+                Email = _configuration["Seed:AdminEmail"] ?? "admin@hrms.local",
+                Phone = "+1 555-0100",
+                JoinDate = new DateOnly(2023, 1, 1),
+                EmploymentType = EmploymentType.Permanent,
+                DepartmentId = adminDept.DepartmentId,
+                DesignationId = adminDesig.DesignationId,
+                GradeId = adminGrade.GradeId,
+                Status = EmployeeStatus.Active
+            };
+
+            var hrEmp = new Employee
+            {
+                EmployeeId = Guid.NewGuid(),
+                EmployeeCode = "EMP-0002",
+                FirstName = "HR",
+                LastName = "Manager",
+                Email = _configuration["Seed:HrEmail"] ?? "hr@hrms.local",
+                Phone = "+1 555-0101",
+                JoinDate = new DateOnly(2023, 1, 1),
+                EmploymentType = EmploymentType.Permanent,
+                DepartmentId = hrDept.DepartmentId,
+                DesignationId = hrDesig.DesignationId,
+                GradeId = hrGrade.GradeId,
+                Status = EmployeeStatus.Active
+            };
+
+            var regularEmp = new Employee
+            {
+                EmployeeId = Guid.NewGuid(),
+                EmployeeCode = "EMP-0003",
+                FirstName = "John",
+                LastName = "Doe",
+                Email = _configuration["Seed:EmployeeEmail"] ?? "employee@hrms.local",
+                Phone = "+1 555-0102",
+                JoinDate = new DateOnly(2023, 2, 1),
+                EmploymentType = EmploymentType.Permanent,
+                DepartmentId = engDept.DepartmentId,
+                DesignationId = engDesig.DesignationId,
+                GradeId = engGrade.GradeId,
+                Status = EmployeeStatus.Active
+            };
+
+            await _dbContext.Employees.AddRangeAsync(adminEmp, hrEmp, regularEmp);
+            await _dbContext.SaveChangesAsync();
+
+            _logger.LogInformation("Initial organizational data and employees seeded successfully.");
+        }
+
+        // 3. Link Admin, HR, and Employee users to their employee records
+        var adminEmail = _configuration["Seed:AdminEmail"] ?? "admin@hrms.local";
+        var hrEmail = _configuration["Seed:HrEmail"] ?? "hr@hrms.local";
+        var empEmail = _configuration["Seed:EmployeeEmail"] ?? "employee@hrms.local";
+
+        var adminUser = await _userManager.FindByEmailAsync(adminEmail);
+        if (adminUser != null && !adminUser.EmployeeId.HasValue)
+        {
+            var emp = await _dbContext.Employees.FirstOrDefaultAsync(e => e.Email == adminEmail);
+            if (emp != null)
+            {
+                adminUser.EmployeeId = emp.EmployeeId;
+                await _userManager.UpdateAsync(adminUser);
+                _logger.LogInformation("Linked Admin user {Email} to employee {Code}", adminEmail, emp.EmployeeCode);
+            }
+        }
+
+        var hrUser = await _userManager.FindByEmailAsync(hrEmail);
+        if (hrUser != null && !hrUser.EmployeeId.HasValue)
+        {
+            var emp = await _dbContext.Employees.FirstOrDefaultAsync(e => e.Email == hrEmail);
+            if (emp != null)
+            {
+                hrUser.EmployeeId = emp.EmployeeId;
+                await _userManager.UpdateAsync(hrUser);
+                _logger.LogInformation("Linked HR user {Email} to employee {Code}", hrEmail, emp.EmployeeCode);
+            }
+        }
+
+        var empUser = await _userManager.FindByEmailAsync(empEmail);
+        if (empUser != null && !empUser.EmployeeId.HasValue)
+        {
+            var emp = await _dbContext.Employees.FirstOrDefaultAsync(e => e.Email == empEmail);
+            if (emp != null)
+            {
+                empUser.EmployeeId = emp.EmployeeId;
+                await _userManager.UpdateAsync(empUser);
+                _logger.LogInformation("Linked Employee user {Email} to employee {Code}", empEmail, emp.EmployeeCode);
             }
         }
     }

@@ -1,0 +1,348 @@
+@model EmployeeFormViewModel
+@{
+    ViewData["Title"] = "Add Employee";
+}
+
+<div class="d-flex align-items-center mb-3">
+    <a asp-action="Index" class="btn btn-sm btn-outline-secondary me-3">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+    <div>
+        <h4 class="fw-bold mb-0">Add Employee</h4>
+        <p class="text-muted small mb-0">Create a new company employee record and setup login credentials</p>
+    </div>
+</div>
+
+<form asp-action="Create" method="post" enctype="multipart/form-data" id="employeeForm">
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4"></div>
+
+    <div class="row g-4">
+        <!-- Personal Information & Photo -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-person me-2"></i>Personal Information</h6>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Photo Upload Preview -->
+                    <div class="d-flex align-items-center gap-3 mb-4 p-3 bg-light rounded-3">
+                        <div class="position-relative">
+                            <img id="photoPreview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' fill='%236c757d' class='bi bi-person-circle' viewBox='0 0 16 16'%3E%3Cpath d='M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z'/%3E%3Cpath fill-rule='evenodd' d='M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z'/%3E%3C/svg%3E" 
+                                 alt="Avatar Preview" class="rounded-circle border shadow-sm" style="width: 80px; height: 80px; object-fit: cover; background: #fff;" />
+                        </div>
+                        <div class="flex-grow-1">
+                            <label asp-for="Photo" class="form-label fw-semibold small mb-1">Profile Photo (Optional)</label>
+                            <input asp-for="Photo" type="file" class="form-control form-control-sm" accept=".jpg,.jpeg,.png" id="photoInput" />
+                            <span asp-validation-for="Photo" class="text-danger small"></span>
+                            <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">JPG, JPEG, PNG (Max 1 MB)</small>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FirstName" class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
+                            <input asp-for="FirstName" class="form-control" placeholder="John" autofocus />
+                            <span asp-validation-for="FirstName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="LastName" class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
+                            <input asp-for="LastName" class="form-control" placeholder="Doe" />
+                            <span asp-validation-for="LastName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="DateOfBirth" class="form-label fw-semibold">Date of Birth</label>
+                            <input asp-for="DateOfBirth" type="date" class="form-control" />
+                            <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Gender" class="form-label fw-semibold">Gender</label>
+                            <select asp-for="Gender" class="form-select">
+                                <option value="">-- Select --</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <span asp-validation-for="Gender" class="text-danger small"></span>
+                        </div>
+
+                        @if (Model.CanViewNid)
+                        {
+                            <div class="col-12">
+                                <label asp-for="NidNumber" class="form-label fw-semibold">
+                                    <i class="bi bi-shield-lock me-1 text-warning"></i>National ID (Encrypted)
+                                </label>
+                                <input asp-for="NidNumber" class="form-control font-monospace" placeholder="e.g. 1990123456789" />
+                                <span asp-validation-for="NidNumber" class="text-danger small"></span>
+                                <small class="text-muted d-block mt-1">This value is encrypted and restricted to authorized personnel.</small>
+                            </div>
+                        }
+
+                        <div class="col-12">
+                            <label asp-for="Address" class="form-label fw-semibold">Residential Address</label>
+                            <textarea asp-for="Address" rows="3" class="form-control" placeholder="Street, City, Postal Code"></textarea>
+                            <span asp-validation-for="Address" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Employment & Placement -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-briefcase me-2"></i>Employment & Hierarchy</h6>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="JoinDate" class="form-label fw-semibold">Join Date <span class="text-danger">*</span></label>
+                            <input asp-for="JoinDate" type="date" class="form-control" />
+                            <span asp-validation-for="JoinDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="EmploymentType" class="form-label fw-semibold">Employment Type <span class="text-danger">*</span></label>
+                            <select asp-for="EmploymentType" class="form-select">
+                                @foreach (var type in Enum.GetValues<EmploymentType>())
+                                {
+                                    <option value="@type">@type</option>
+                                }
+                            </select>
+                            <span asp-validation-for="EmploymentType" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Cascading Dropdowns: Department -> Designation -> Grade -->
+                        <div class="col-12">
+                            <label asp-for="DepartmentId" class="form-label fw-semibold">Department <span class="text-danger">*</span></label>
+                            <select asp-for="DepartmentId" asp-items="Model.DepartmentOptions" id="departmentSelect" class="form-select">
+                                <option value="">-- Select Department --</option>
+                            </select>
+                            <span asp-validation-for="DepartmentId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="DesignationId" class="form-label fw-semibold">Designation <span class="text-danger">*</span></label>
+                            <select asp-for="DesignationId" asp-items="Model.DesignationOptions" id="designationSelect" class="form-select">
+                                <option value="">-- Select Department First --</option>
+                            </select>
+                            <span asp-validation-for="DesignationId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="GradeId" class="form-label fw-semibold">Grade & Salary Scale <span class="text-danger">*</span></label>
+                            <select asp-for="GradeId" asp-items="Model.GradeOptions" id="gradeSelect" class="form-select">
+                                <option value="">-- Select Designation First --</option>
+                            </select>
+                            <span asp-validation-for="GradeId" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact & Emergency Details -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-telephone me-2"></i>Contact Information</h6>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="Email" class="form-label fw-semibold">Work Email <span class="text-danger">*</span></label>
+                            <input asp-for="Email" type="email" class="form-control" id="workEmailInput" placeholder="john.doe@company.com" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                            <small class="text-muted d-block mt-1">This email will be used as the employee's login username.</small>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Phone" class="form-label fw-semibold">Contact Phone</label>
+                            <input asp-for="Phone" class="form-control" placeholder="+1 234 567 890" />
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="EmergencyContactName" class="form-label fw-semibold">Emergency Contact Person</label>
+                            <input asp-for="EmergencyContactName" class="form-control" placeholder="e.g. Jane Doe (Spouse)" />
+                            <span asp-validation-for="EmergencyContactName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="EmergencyContactPhone" class="form-label fw-semibold">Emergency Contact Phone</label>
+                            <input asp-for="EmergencyContactPhone" class="form-control" placeholder="+1 234 567 890" />
+                            <span asp-validation-for="EmergencyContactPhone" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Login Account & Credentials -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100 border-start border-primary border-4" style="border-radius: 12px;">
+                <div class="card-header bg-white border-bottom py-3 d-flex align-items-center justify-content-between">
+                    <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-shield-lock-fill me-2"></i>User Login Account</h6>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" asp-for="CreateUserAccount" id="createUserAccountSwitch" />
+                        <label class="form-check-label small fw-semibold" for="createUserAccountSwitch">Create Login</label>
+                    </div>
+                </div>
+                <div class="card-body p-4" id="userAccountSection">
+                    <div class="alert alert-info py-2 small mb-3 border-0 bg-info-subtle text-info-emphasis">
+                        <i class="bi bi-info-circle me-1"></i> The employee will sign into HRMS using their <strong>Work Email</strong> and the password below.
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Password" class="form-label fw-semibold">Login Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input asp-for="Password" type="password" class="form-control" id="passwordInput" placeholder="Min 6 characters" />
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('passwordInput', this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="ConfirmPassword" class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input asp-for="ConfirmPassword" type="password" class="form-control" id="confirmPasswordInput" placeholder="Repeat password" />
+                                <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('confirmPasswordInput', this)">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="UserRole" class="form-label fw-semibold">System Role <span class="text-danger">*</span></label>
+                            <select asp-for="UserRole" asp-items="Model.RoleOptions" class="form-select" id="roleSelect"></select>
+                            <span asp-validation-for="UserRole" class="text-danger small"></span>
+                            <small class="text-muted d-block mt-1">Default is <strong>Employee</strong> (Self-service access only).</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 my-4">
+        <a asp-action="Index" class="btn btn-light px-4">Cancel</a>
+        <button type="submit" class="btn btn-primary px-5">
+            <i class="bi bi-check-lg me-1"></i> Save Employee & Create Account
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'bi bi-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'bi bi-eye';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Photo Preview
+            const photoInput = document.getElementById('photoInput');
+            const photoPreview = document.getElementById('photoPreview');
+            if (photoInput && photoPreview) {
+                photoInput.addEventListener('change', function () {
+                    const file = this.files && this.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            photoPreview.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+
+            // User Account Toggle
+            const userSwitch = document.getElementById('createUserAccountSwitch');
+            const userSection = document.getElementById('userAccountSection');
+            const pwdInput = document.getElementById('passwordInput');
+            const confirmPwdInput = document.getElementById('confirmPasswordInput');
+            const roleSelect = document.getElementById('roleSelect');
+
+            function syncUserAccountState() {
+                if (userSwitch.checked) {
+                    userSection.style.opacity = '1';
+                    pwdInput.disabled = false;
+                    confirmPwdInput.disabled = false;
+                    roleSelect.disabled = false;
+                } else {
+                    userSection.style.opacity = '0.4';
+                    pwdInput.disabled = true;
+                    confirmPwdInput.disabled = true;
+                    roleSelect.disabled = true;
+                }
+            }
+
+            if (userSwitch) {
+                userSwitch.addEventListener('change', syncUserAccountState);
+                syncUserAccountState();
+            }
+
+            // Cascading Dropdowns
+            const deptSelect = document.getElementById('departmentSelect');
+            const desigSelect = document.getElementById('designationSelect');
+            const gradeSelect = document.getElementById('gradeSelect');
+
+            deptSelect.addEventListener('change', function () {
+                const deptId = this.value;
+                desigSelect.innerHTML = '<option value="">-- Loading Designations... --</option>';
+                gradeSelect.innerHTML = '<option value="">-- Select Designation First --</option>';
+
+                if (!deptId) {
+                    desigSelect.innerHTML = '<option value="">-- Select Department First --</option>';
+                    return;
+                }
+
+                fetch('/Employees/Employees/GetDesignations?departmentId=' + encodeURIComponent(deptId))
+                    .then(res => res.json())
+                    .then(data => {
+                        desigSelect.innerHTML = '<option value="">-- Select Designation --</option>';
+                        data.forEach(item => {
+                            const opt = document.createElement('option');
+                            opt.value = item.id;
+                            opt.textContent = item.name;
+                            desigSelect.appendChild(opt);
+                        });
+                    })
+                    .catch(() => {
+                        desigSelect.innerHTML = '<option value="">-- Error Loading Designations --</option>';
+                    });
+            });
+
+            desigSelect.addEventListener('change', function () {
+                const desigId = this.value;
+                gradeSelect.innerHTML = '<option value="">-- Loading Grades... --</option>';
+
+                if (!desigId) {
+                    gradeSelect.innerHTML = '<option value="">-- Select Designation First --</option>';
+                    return;
+                }
+
+                fetch('/Employees/Employees/GetGrades?designationId=' + encodeURIComponent(desigId))
+                    .then(res => res.json())
+                    .then(data => {
+                        gradeSelect.innerHTML = '<option value="">-- Select Grade --</option>';
+                        data.forEach(item => {
+                            const opt = document.createElement('option');
+                            opt.value = item.id;
+                            opt.textContent = item.name;
+                            gradeSelect.appendChild(opt);
+                        });
+                    })
+                    .catch(() => {
+                        gradeSelect.innerHTML = '<option value="">-- Error Loading Grades --</option>';
+                    });
+            });
+        });
+    </script>
+}

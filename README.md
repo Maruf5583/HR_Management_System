@@ -1,16 +1,26 @@
 # HRMS V1
 
-A Human Resource Management System for one company, built with ASP.NET Core (.NET 8), Razor Pages and SQL Server.
+A Human Resource Management System for one company, built with **Modular Monolithic Architecture** using ASP.NET Core (.NET 8), ASP.NET Core MVC (Controllers & Views) and SQL Server.
 
 Admin and HR operate the system. Employees sign in only to view their own records (profile, attendance, leave, payslips, assets) and change their password.
 
+## Architecture
+
+This project is built using a **Modular Monolithic Architecture**:
+- **Single deployable application:** One deployable monolith host (`Hrms.Web`), eliminating distributed system and microservices complexity.
+- **Strict module boundaries:** Each business capability is encapsulated inside its own module folder under `src/Modules/` (e.g., `Identity`, `Employees`, etc.).
+- **Loose coupling via Contracts:** Modules communicate with each other exclusively through contract interfaces (`Hrms.<Module>.Contracts`), never by directly referencing another module's internal domain or persistence layer.
+- **Shared Kernel:** Reusable primitives, result types, and permission constants live in `Hrms.Shared`.
+- **Centralized Persistence:** Single database managed via `Hrms.Persistence` with Entity Framework Core 8 code-first migrations.
+
 ## Tech stack
 
-- .NET 8, ASP.NET Core Razor Pages
+- .NET 8, ASP.NET Core MVC (Controllers & Views)
+- Modular Monolith Architecture
 - SQL Server, EF Core 8 (code-first)
 - ASP.NET Core Identity (Guid keys), cookie auth, permission-based authorization
-- Modular monolith, CQRS, Repository pattern
-- FluentValidation, Mediator, Serilog, QuestPDF, ClosedXML
+- Pragmatic CQRS, Repository pattern
+- FluentValidation
 
 ## Modules
 

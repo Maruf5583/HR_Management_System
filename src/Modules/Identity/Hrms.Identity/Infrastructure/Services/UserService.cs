@@ -140,6 +140,7 @@ public class UserService : IUserService
 
         user.Email = model.Email;
         user.UserName = model.Email;
+        user.EmployeeId = model.EmployeeId;
 
         var updateResult = await _userManager.UpdateAsync(user);
         if (!updateResult.Succeeded)

@@ -50,6 +50,9 @@ public class CreateUserViewModel
 
     [Required(ErrorMessage = "Role selection is required.")]
     public string RoleName { get; set; } = string.Empty;
+
+    [Display(Name = "Linked Employee")]
+    public Guid? EmployeeId { get; set; }
 }
 
 public class EditUserViewModel
@@ -64,6 +67,9 @@ public class EditUserViewModel
     public string RoleName { get; set; } = string.Empty;
 
     public UserStatus Status { get; set; }
+
+    [Display(Name = "Linked Employee")]
+    public Guid? EmployeeId { get; set; }
 }
 
 public class ResetPasswordViewModel

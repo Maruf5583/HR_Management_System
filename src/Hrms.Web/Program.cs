@@ -1,11 +1,15 @@
+using Hrms.Employees;
+using Hrms.Employees.Application.Abstractions;
 using Hrms.Identity;
 using Hrms.Identity.Domain.Entities;
 using Hrms.Persistence;
 using Hrms.Persistence.Interceptors;
 using Hrms.Persistence.Seed;
 using Hrms.Shared.Abstractions;
+using Hrms.Shared.Infrastructure;
 using Hrms.Web.Infrastructure;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -68,9 +72,21 @@ builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddSingleton<IFileStore, LocalFileStore>();
+
+// Data Protection (persist keys to disk)
+var keysFolder = builder.Configuration["DataProtection:KeysFolder"] ?? "keys";
+var keysPath = Path.IsPathRooted(keysFolder) ? keysFolder : Path.Combine(builder.Environment.ContentRootPath, keysFolder);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
+    .SetApplicationName("HRMS");
 
 // Identity module services
 builder.Services.AddIdentityModule();
+
+// Employees module services
+builder.Services.AddScoped<IEmployeesDbContext>(sp => sp.GetRequiredService<HrmsDbContext>());
+builder.Services.AddEmployeesModule();
 
 // Seeder
 builder.Services.AddScoped<IdentitySeeder>();
@@ -115,6 +131,10 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "areas",
+    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
 
 app.MapControllerRoute(
     name: "default",
