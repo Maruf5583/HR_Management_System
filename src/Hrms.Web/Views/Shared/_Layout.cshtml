@@ -14,14 +14,16 @@
 <body class="d-flex flex-column min-vh-100">
     @if (CurrentUser.IsAuthenticated)
     {
+        var currentArea = ViewContext.RouteData.Values["area"]?.ToString();
         var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+        var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
         var userInitial = !string.IsNullOrEmpty(CurrentUser.Email) ? CurrentUser.Email.Substring(0, 1).ToUpper() : "U";
 
         <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
             <div class="container-fluid px-lg-4 px-3">
-                <a class="navbar-brand d-flex align-items-center gap-2" asp-controller="Home" asp-action="Index">
+                <a class="navbar-brand d-flex align-items-center gap-2" asp-area="" asp-controller="Home" asp-action="Index">
                     <span class="brand-icon"><i class="bi bi-layers-fill"></i></span>
-                    <span class="fw-bold tracking-tight">HRMS <span class="brand-badge ms-1">v1.0 • Identity</span></span>
+                    <span class="fw-bold tracking-tight">HRMS <span class="brand-badge ms-1">Enterprise Platform</span></span>
                 </a>
                 <button class="navbar-toggler border-0 shadow-none text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
                     <i class="bi bi-list fs-2"></i>
@@ -29,14 +31,60 @@
                 <div class="collapse navbar-collapse" id="navContent">
                     <ul class="navbar-nav me-auto ms-lg-3 gap-1">
                         <li class="nav-item">
-                            <a class="nav-link @(currentController == "Home" ? "active" : "")" asp-controller="Home" asp-action="Index">
+                            <a class="nav-link @(string.IsNullOrEmpty(currentArea) && currentController == "Home" ? "active" : "")" asp-area="" asp-controller="Home" asp-action="Index">
                                 <i class="bi bi-grid-1x2"></i> <span>Dashboard</span>
                             </a>
                         </li>
+                        @if (CurrentUser.HasPermission(Permissions.Employees.View) || CurrentUser.HasPermission(Permissions.Employees.Manage))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(currentArea == "Employees" && currentAction != "MyProfile" ? "active" : "")" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-people-fill"></i> <span>Employees</span>
+                                </a>
+                                <ul class="dropdown-menu shadow-lg border-0 mt-2 py-2" style="border-radius: 14px; min-width: 210px;">
+                                    <li>
+                                        <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Employees" asp-controller="Employees" asp-action="Index">
+                                            <i class="bi bi-people text-primary"></i>
+                                            <span>Employees Directory</span>
+                                        </a>
+                                    </li>
+                                    @if (CurrentUser.HasPermission(Permissions.Employees.Manage))
+                                    {
+                                        <li><hr class="dropdown-divider my-1"></li>
+                                        <li>
+                                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Employees" asp-controller="Departments" asp-action="Index">
+                                                <i class="bi bi-building text-primary"></i>
+                                                <span>Departments</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Employees" asp-controller="Designations" asp-action="Index">
+                                                <i class="bi bi-person-badge text-primary"></i>
+                                                <span>Designations</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Employees" asp-controller="Grades" asp-action="Index">
+                                                <i class="bi bi-sort-numeric-up text-primary"></i>
+                                                <span>Grades & Scales</span>
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                            </li>
+                        }
+                        @if (CurrentUser.HasPermission(Permissions.Employees.ViewOwn))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(currentArea == "Employees" && currentController == "Employees" && currentAction == "MyProfile" ? "active" : "")" asp-area="Employees" asp-controller="Employees" asp-action="MyProfile">
+                                    <i class="bi bi-person-circle"></i> <span>My Profile</span>
+                                </a>
+                            </li>
+                        }
                         @if (CurrentUser.HasPermission(Permissions.Users.Manage))
                         {
                             <li class="nav-item">
-                                <a class="nav-link @(currentController == "Users" ? "active" : "")" asp-controller="Users" asp-action="Index">
+                                <a class="nav-link @(string.IsNullOrEmpty(currentArea) && currentController == "Users" ? "active" : "")" asp-area="" asp-controller="Users" asp-action="Index">
                                     <i class="bi bi-people"></i> <span>Users</span>
                                 </a>
                             </li>
@@ -44,7 +92,7 @@
                         @if (CurrentUser.HasPermission(Permissions.Roles.Manage))
                         {
                             <li class="nav-item">
-                                <a class="nav-link @(currentController == "Roles" ? "active" : "")" asp-controller="Roles" asp-action="Index">
+                                <a class="nav-link @(string.IsNullOrEmpty(currentArea) && currentController == "Roles" ? "active" : "")" asp-area="" asp-controller="Roles" asp-action="Index">
                                     <i class="bi bi-shield-check"></i> <span>Roles & Permissions</span>
                                 </a>
                             </li>
@@ -79,15 +127,24 @@
                                     <small class="text-muted d-block font-monospace">Signed in as</small>
                                     <strong class="d-block text-truncate text-dark" style="max-width: 190px;">@CurrentUser.Email</strong>
                                 </li>
+                                @if (CurrentUser.HasPermission(Permissions.Employees.ViewOwn))
+                                {
+                                    <li>
+                                        <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Employees" asp-controller="Employees" asp-action="MyProfile">
+                                            <i class="bi bi-person-circle text-muted"></i>
+                                            <span>My Profile</span>
+                                        </a>
+                                    </li>
+                                }
                                 <li>
-                                    <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-controller="Account" asp-action="ChangePassword">
+                                    <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="" asp-controller="Account" asp-action="ChangePassword">
                                         <i class="bi bi-key text-muted"></i>
                                         <span>Change Password</span>
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider my-1"></li>
                                 <li>
-                                    <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                    <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
                                         <button type="submit" class="dropdown-item py-2 text-danger d-flex align-items-center gap-2">
                                             <i class="bi bi-box-arrow-right"></i>
                                             <span>Sign Out</span>
@@ -135,7 +192,7 @@
         <footer class="app-footer">
             <div class="container-fluid px-lg-4 px-3 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
                 <div>
-                    <span class="fw-semibold text-dark">HRMS Enterprise</span> &bull; Identity & Access Management Module
+                    <span class="fw-semibold text-dark">HRMS Enterprise</span> &bull; Organizational Workforce Management
                 </div>
                 <div class="text-muted small">
                     <span class="badge badge-soft-secondary font-monospace">ASP.NET Core 8 &bull; EF Core 8 &bull; Clean Architecture</span>
