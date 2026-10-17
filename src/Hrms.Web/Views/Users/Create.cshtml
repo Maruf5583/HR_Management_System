@@ -1,61 +1,89 @@
 @model CreateUserViewModel
 @{
-    ViewData["Title"] = "Add User";
+    ViewData["Title"] = "Add New User";
     var roles = ViewBag.Roles as List<string> ?? new List<string>();
 }
 
 <div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5">
-        <div class="card-modern p-4">
+    <div class="col-md-7 col-lg-6">
+        <div class="card-modern p-4 p-md-5">
+            <!-- Header -->
             <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-4">
-                <div>
-                    <h5 class="fw-bold mb-1"><i class="bi bi-person-plus me-2 text-primary"></i>Create User</h5>
-                    <p class="text-muted small mb-0">Register a new login account</p>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="brand-icon" style="width: 44px; height: 44px; font-size: 1.25rem;">
+                        <i class="bi bi-person-plus-fill"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark tracking-tight">Create User Account</h4>
+                        <p class="text-muted small mb-0">Register credentials and assign security role</p>
+                    </div>
                 </div>
-                <a asp-action="Index" class="btn btn-secondary-modern btn-sm">
+                <a asp-action="Index" class="btn btn-secondary-modern btn-sm" title="Back to user list">
                     <i class="bi bi-arrow-left"></i>
                 </a>
             </div>
 
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger border-0 shadow-sm small py-2 px-3 mb-4 d-flex align-items-center gap-2" style="border-radius: 10px; background-color: #fef2f2; color: #991b1b; border-left: 3px solid #ef4444 !important;">
+                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                    <div asp-validation-summary="ModelOnly" class="mb-0"></div>
+                </div>
+            }
 
             <form asp-action="Create" method="post">
                 <div class="mb-3">
-                    <label asp-for="Email" class="form-label">Email Address</label>
-                    <input asp-for="Email" class="form-control" placeholder="user@hrms.local" />
-                    <span asp-validation-for="Email" class="text-danger small"></span>
+                    <label asp-for="Email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white text-muted"><i class="bi bi-envelope"></i></span>
+                        <input asp-for="Email" class="form-control" placeholder="user@company.com" autofocus />
+                    </div>
+                    <span asp-validation-for="Email" class="text-danger small mt-1 d-block"></span>
                 </div>
 
                 <div class="mb-3">
-                    <label asp-for="Password" class="form-label">Initial Password</label>
-                    <input asp-for="Password" class="form-control" placeholder="••••••••" />
-                    <span asp-validation-for="Password" class="text-danger small"></span>
+                    <label asp-for="Password" class="form-label">Initial Password <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white text-muted"><i class="bi bi-lock"></i></span>
+                        <input asp-for="Password" class="form-control" placeholder="Minimum 6 characters" />
+                    </div>
+                    <span asp-validation-for="Password" class="text-danger small mt-1 d-block"></span>
+                    <small class="text-muted" style="font-size: 0.76rem;">User can change their password anytime after signing in.</small>
                 </div>
 
                 <div class="mb-4">
-                    <label asp-for="RoleName" class="form-label">Role Assignment</label>
-                    <select asp-for="RoleName" class="form-select">
-                        <option value="">-- Select Role --</option>
-                        @foreach (var role in roles)
-                        {
-                            <option value="@role">@role</option>
-                        }
-                    </select>
-                    <span asp-validation-for="RoleName" class="text-danger small"></span>
+                    <label asp-for="RoleName" class="form-label">Role Assignment <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white text-muted"><i class="bi bi-shield-check"></i></span>
+                        <select asp-for="RoleName" class="form-select">
+                            <option value="">-- Choose Security Role --</option>
+                            @foreach (var role in roles)
+                            {
+                                <option value="@role">@role</option>
+                            }
+                        </select>
+                    </div>
+                    <span asp-validation-for="RoleName" class="text-danger small mt-1 d-block"></span>
                 </div>
 
                 <div class="mb-4">
                     <label asp-for="EmployeeId" class="form-label">Linked Employee (Optional)</label>
-                    <select asp-for="EmployeeId" asp-items="ViewBag.Employees" class="form-select">
-                        <option value="">-- None (No Employee Linked) --</option>
-                    </select>
-                    <span asp-validation-for="EmployeeId" class="text-danger small"></span>
-                    <small class="text-muted d-block mt-1">Select an active employee to associate with this login account.</small>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white text-muted"><i class="bi bi-person-badge"></i></span>
+                        <select asp-for="EmployeeId" asp-items="ViewBag.Employees" class="form-select">
+                            <option value="">-- None (No Employee Linked) --</option>
+                        </select>
+                    </div>
+                    <span asp-validation-for="EmployeeId" class="text-danger small mt-1 d-block"></span>
+                    <small class="text-muted" style="font-size: 0.76rem;">Select an active employee to associate with this login account.</small>
                 </div>
 
-                <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                <div class="d-flex justify-content-end gap-2 border-top pt-4">
                     <a asp-action="Index" class="btn btn-secondary-modern">Cancel</a>
-                    <button type="submit" class="btn btn-primary-modern">Create User</button>
+                    <button type="submit" class="btn btn-primary-modern">
+                        <i class="bi bi-check-lg"></i>
+                        <span>Create Account</span>
+                    </button>
                 </div>
             </form>
         </div>

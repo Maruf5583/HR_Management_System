@@ -3,18 +3,19 @@
 }
 
 <div class="row justify-content-center mt-5">
-    <div class="col-md-6 text-center">
+    <div class="col-md-7 col-lg-5 text-center">
         <div class="card-modern p-5">
-            <div class="stat-icon bg-danger-subtle text-danger mx-auto mb-3" style="width: 64px; height: 64px; font-size: 2rem;">
+            <div class="kpi-icon-box bg-danger-subtle text-danger mx-auto mb-3" style="width: 72px; height: 72px; font-size: 2.2rem; border-radius: 20px;">
                 <i class="bi bi-shield-x"></i>
             </div>
-            <h3 class="fw-bold text-dark">Access Denied</h3>
-            <p class="text-muted mt-2 mb-4">
-                You do not have the required role or permission claim to access this resource. Please contact your system administrator if you believe this is an error.
+            <h3 class="fw-bold text-dark tracking-tight">Access Denied</h3>
+            <p class="text-muted mt-2 mb-4 small" style="line-height: 1.6;">
+                You do not have the required permission claims or security role to access this resource. If you believe this is in error, please reach out to your HRMS administrator.
             </p>
-            <div>
+            <div class="d-flex justify-content-center gap-2">
                 <a asp-controller="Home" asp-action="Index" class="btn btn-primary-modern">
-                    <i class="bi bi-house me-1"></i> Return to Dashboard
+                    <i class="bi bi-house-door-fill"></i>
+                    <span>Return to Dashboard</span>
                 </a>
             </div>
         </div>
