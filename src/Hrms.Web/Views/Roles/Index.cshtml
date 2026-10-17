@@ -1,26 +1,103 @@
 @model IReadOnlyList<RoleDto>
 @{
-    ViewData["Title"] = "Roles Management";
+    ViewData["Title"] = "Roles & Permissions";
+    var totalRoles = Model.Count;
+    var systemRoles = Model.Count(r => r.IsSystem);
+    var customRoles = Model.Count(r => !r.IsSystem);
+    var totalAvailablePermissions = Permissions.All.Count;
 }
 
+<!-- Page Header -->
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
     <div>
-        <h3 class="fw-bold mb-1">Roles & Permissions</h3>
-        <p class="text-muted mb-0">System and custom security roles with their assigned claim permissions</p>
+        <h3 class="fw-bold text-dark mb-1 tracking-tight">Roles & Permissions</h3>
+        <p class="text-muted mb-0 small">Control security policies, assign claim permissions, and manage access boundaries</p>
     </div>
-    <a asp-action="Create" class="btn btn-primary-modern">
-        <i class="bi bi-shield-plus me-1"></i> Create Custom Role
-    </a>
+    <div class="d-flex align-items-center gap-2">
+        <a asp-action="Create" class="btn btn-primary-modern">
+            <i class="bi bi-shield-plus"></i>
+            <span>Create Custom Role</span>
+        </a>
+    </div>
 </div>
 
+<!-- KPI Metric Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="kpi-label">Defined Roles</span>
+                    <div class="kpi-value mt-1">@totalRoles</div>
+                </div>
+                <div class="kpi-icon-box bg-primary-subtle text-primary">
+                    <i class="bi bi-shield-shaded"></i>
+                </div>
+            </div>
+            <div class="small text-muted mt-2 pt-2 border-top">
+                <i class="bi bi-shield-check text-primary me-1"></i> Security role profiles
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="kpi-label">System Roles</span>
+                    <div class="kpi-value mt-1 text-primary">@systemRoles</div>
+                </div>
+                <div class="kpi-icon-box bg-indigo-subtle text-indigo" style="background-color: #e0e7ff; color: #4338ca;">
+                    <i class="bi bi-lock-fill"></i>
+                </div>
+            </div>
+            <div class="small text-muted mt-2 pt-2 border-top">
+                <i class="bi bi-info-circle me-1"></i> Protected core roles
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="kpi-label">Custom Roles</span>
+                    <div class="kpi-value mt-1 text-info">@customRoles</div>
+                </div>
+                <div class="kpi-icon-box bg-info-subtle text-info">
+                    <i class="bi bi-sliders"></i>
+                </div>
+            </div>
+            <div class="small text-muted mt-2 pt-2 border-top">
+                <i class="bi bi-person-gear me-1"></i> Tenant-defined profiles
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="kpi-label">Claim Catalog</span>
+                    <div class="kpi-value mt-1 text-success">@totalAvailablePermissions</div>
+                </div>
+                <div class="kpi-icon-box bg-success-subtle text-success">
+                    <i class="bi bi-key-fill"></i>
+                </div>
+            </div>
+            <div class="small text-muted mt-2 pt-2 border-top">
+                <i class="bi bi-check2-circle text-success me-1"></i> Granular system permissions
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Roles Table Card -->
 <div class="card-modern overflow-hidden">
     <div class="table-responsive">
-        <table class="table table-modern">
+        <table class="table table-modern align-middle">
             <thead>
                 <tr>
                     <th class="ps-4">Role Name</th>
                     <th>Description</th>
-                    <th>Type</th>
+                    <th>Role Classification</th>
                     <th>Assigned Users</th>
                     <th>Granted Permissions</th>
                     <th class="text-end pe-4">Actions</th>
@@ -31,42 +108,53 @@
                 {
                     <tr>
                         <td class="ps-4">
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="rounded bg-light border text-primary d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                                    <i class="bi bi-shield-lock"></i>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="table-avatar" style="@(role.IsSystem ? "background: #eef2ff; color: #4338ca;" : "background: #f1f5f9; color: #475569;")">
+                                    <i class="bi @(role.IsSystem ? "bi-shield-lock-fill" : "bi-shield-check") fs-5"></i>
                                 </div>
-                                <span class="fw-bold text-dark">@role.Name</span>
+                                <div>
+                                    <div class="fw-bold text-dark">@role.Name</div>
+                                    <small class="text-muted font-monospace" style="font-size: 0.72rem;">@role.Id.ToString().Substring(0, 8)...</small>
+                                </div>
                             </div>
                         </td>
-                        <td class="text-muted">@(role.Description ?? "No description provided")</td>
+                        <td class="text-muted" style="max-width: 280px;">
+                            @(role.Description ?? "No description provided")
+                        </td>
                         <td>
                             @if (role.IsSystem)
                             {
-                                <span class="badge badge-soft-primary"><i class="bi bi-lock-fill me-1"></i>System Role</span>
+                                <span class="badge badge-soft-primary">
+                                    <i class="bi bi-lock-fill"></i> System Role
+                                </span>
                             }
                             else
                             {
-                                <span class="badge badge-soft-secondary">Custom Role</span>
+                                <span class="badge badge-soft-secondary">
+                                    <i class="bi bi-sliders"></i> Custom Role
+                                </span>
                             }
                         </td>
                         <td>
                             <span class="badge bg-light text-dark border">
-                                <i class="bi bi-people me-1"></i>@role.UserCount users
+                                <i class="bi bi-people me-1 text-muted"></i>@role.UserCount users
                             </span>
                         </td>
                         <td>
-                            <span class="badge bg-light text-dark border">
-                                <i class="bi bi-check2-circle text-success me-1"></i>@role.Permissions.Count / @Permissions.All.Count
-                            </span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge badge-soft-success">
+                                    <i class="bi bi-check2-circle"></i> @role.Permissions.Count / @totalAvailablePermissions
+                                </span>
+                            </div>
                         </td>
                         <td class="text-end pe-4">
                             <div class="d-inline-flex gap-1">
-                                <a asp-action="Edit" asp-route-id="@role.Id" class="btn btn-sm btn-outline-secondary" title="Edit Role & Permissions">
+                                <a asp-action="Edit" asp-route-id="@role.Id" class="btn btn-sm btn-outline-secondary btn-action-icon" title="Edit Permissions">
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 @if (!role.IsSystem)
                                 {
-                                    <a asp-action="Delete" asp-route-id="@role.Id" class="btn btn-sm btn-outline-danger" title="Delete Role">
+                                    <a asp-action="Delete" asp-route-id="@role.Id" class="btn btn-sm btn-outline-danger btn-action-icon" title="Delete Custom Role">
                                         <i class="bi bi-trash"></i>
                                     </a>
                                 }

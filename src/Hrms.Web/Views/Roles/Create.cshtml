@@ -1,67 +1,129 @@
 @model CreateRoleViewModel
 @{
-    ViewData["Title"] = "Create Role";
+    ViewData["Title"] = "Create Custom Role";
     var allPermissions = ViewBag.AllPermissions as IReadOnlyList<string> ?? new List<string>();
 
     var categories = allPermissions
         .GroupBy(p => p.Split('.')[0])
         .ToDictionary(g => g.Key, g => g.ToList());
+
+    string GetCategoryIcon(string cat) => cat.ToLowerInvariant() switch
+    {
+        "users" => "bi-people-fill",
+        "roles" => "bi-shield-check",
+        "employees" => "bi-person-vcard",
+        "attendance" => "bi-calendar-check",
+        "shifts" => "bi-clock-history",
+        "holidays" => "bi-calendar2-heart",
+        "leave" => "bi-briefcase",
+        "payroll" => "bi-cash-coin",
+        "assets" => "bi-laptop",
+        "reports" => "bi-file-earmark-bar-graph",
+        "settings" => "bi-gear-wide-connected",
+        "audit" => "bi-journal-text",
+        _ => "bi-folder2"
+    };
 }
 
 <div class="row justify-content-center">
-    <div class="col-lg-10">
-        <div class="card-modern p-4">
-            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-4">
-                <div>
-                    <h4 class="fw-bold mb-1"><i class="bi bi-shield-plus me-2 text-primary"></i>Create Custom Role</h4>
-                    <p class="text-muted small mb-0">Define role details and select permitted operation claims</p>
+    <div class="col-xl-11">
+        <div class="card-modern p-4 p-md-5">
+            <!-- Header -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 border-bottom pb-4 mb-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="brand-icon" style="width: 48px; height: 48px; font-size: 1.4rem;">
+                        <i class="bi bi-shield-plus"></i>
+                    </div>
+                    <div>
+                        <h3 class="fw-bold mb-0 text-dark tracking-tight">Create Custom Role</h3>
+                        <p class="text-muted small mb-0 mt-1">Define role name, description, and assign granted permission claims</p>
+                    </div>
                 </div>
                 <a asp-action="Index" class="btn btn-secondary-modern">
-                    <i class="bi bi-arrow-left me-1"></i> Back to Roles
+                    <i class="bi bi-arrow-left"></i>
+                    <span>Back to Roles</span>
                 </a>
             </div>
 
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert alert-danger border-0 shadow-sm small py-2 px-3 mb-4 d-flex align-items-center gap-2" style="border-radius: 10px; background-color: #fef2f2; color: #991b1b; border-left: 3px solid #ef4444 !important;">
+                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                    <div asp-validation-summary="ModelOnly" class="mb-0"></div>
+                </div>
+            }
 
             <form asp-action="Create" method="post">
-                <div class="row g-3 mb-4">
+                <!-- Role Details Form -->
+                <div class="row g-3 mb-4 p-3 bg-light rounded-3 border">
                     <div class="col-md-5">
-                        <label asp-for="Name" class="form-label">Role Name</label>
-                        <input asp-for="Name" class="form-control" placeholder="e.g. FinanceManager" />
-                        <span asp-validation-for="Name" class="text-danger small"></span>
+                        <label asp-for="Name" class="form-label">Role Identifier <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-muted"><i class="bi bi-shield"></i></span>
+                            <input asp-for="Name" class="form-control" placeholder="e.g. FinanceManager" autofocus />
+                        </div>
+                        <span asp-validation-for="Name" class="text-danger small mt-1 d-block"></span>
                     </div>
                     <div class="col-md-7">
-                        <label asp-for="Description" class="form-label">Description</label>
-                        <input asp-for="Description" class="form-control" placeholder="Role responsibilities and scope" />
-                        <span asp-validation-for="Description" class="text-danger small"></span>
+                        <label asp-for="Description" class="form-label">Role Description</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white text-muted"><i class="bi bi-card-text"></i></span>
+                            <input asp-for="Description" class="form-control" placeholder="Describe role authority and responsibilities..." />
+                        </div>
+                        <span asp-validation-for="Description" class="text-danger small mt-1 d-block"></span>
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold mb-0">Permissions Matrix</h5>
-                    <div class="btn-group btn-group-sm">
-                        <button type="button" class="btn btn-outline-secondary" onclick="toggleAll(true)">Select All</button>
-                        <button type="button" class="btn btn-outline-secondary" onclick="toggleAll(false)">Clear All</button>
+                <!-- Matrix Control Bar -->
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-2 border-bottom">
+                    <div>
+                        <h5 class="fw-bold text-dark mb-1">Select Claim Permissions</h5>
+                        <p class="text-muted small mb-0">Total <span id="selectedCountBadge" class="fw-bold text-primary">@Model.SelectedPermissions.Count</span> of @allPermissions.Count claims selected</p>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="search-box-container" style="max-width: 240px;">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="permSearchInput" class="form-control search-input" placeholder="Filter permissions..." onkeyup="filterPermissions()" />
+                        </div>
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-outline-primary" onclick="toggleAll(true)">Select All</button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="toggleAll(false)">Clear All</button>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Category Cards Grid -->
                 <div class="row g-3 mb-4">
                     @foreach (var category in categories)
                     {
-                        <div class="col-md-6 col-xl-4">
-                            <div class="card h-100 border-light-subtle shadow-sm" style="border-radius: 10px;">
-                                <div class="card-header bg-light py-2 px-3 fw-bold text-capitalize text-muted small">
-                                    <i class="bi bi-folder2 me-1"></i> @category.Key
+                        var categoryIcon = GetCategoryIcon(category.Key);
+
+                        <div class="col-md-6 col-xl-4 perm-category-column">
+                            <div class="perm-category-card h-100">
+                                <div class="perm-category-header">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi @categoryIcon text-primary fs-5"></i>
+                                        <span class="fw-bold text-dark text-capitalize">@category.Key</span>
+                                        <span class="badge bg-light text-muted border font-monospace" style="font-size: 0.7rem;">@category.Value.Count</span>
+                                    </div>
+                                    <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 text-muted" style="font-size: 0.76rem;" onclick="toggleCategory('@category.Key')">
+                                        Toggle
+                                    </button>
                                 </div>
-                                <div class="card-body p-3">
+                                <div class="p-3">
                                     @foreach (var permission in category.Value)
                                     {
-                                        <div class="form-check mb-2">
-                                            <input class="form-check-input perm-check" type="checkbox" name="SelectedPermissions" value="@permission" id="perm_@permission"
-                                                   @(Model.SelectedPermissions.Contains(permission) ? "checked" : "") />
-                                            <label class="form-check-label font-monospace small" for="perm_@permission">
-                                                @permission
-                                            </label>
+                                        var isChecked = Model.SelectedPermissions.Contains(permission);
+                                        <div class="perm-item-row perm-item-wrapper @(isChecked ? "active" : "")">
+                                            <div class="form-check form-switch mb-0 d-flex align-items-center gap-2">
+                                                <input class="form-check-input perm-check cat-@category.Key" type="checkbox" name="SelectedPermissions" value="@permission" id="perm_@permission"
+                                                       @(isChecked ? "checked" : "")
+                                                       onchange="onPermChange(this)" />
+                                                <label class="form-check-label font-monospace small user-select-none text-dark" for="perm_@permission" style="font-size: 0.8rem;">
+                                                    @permission
+                                                </label>
+                                            </div>
                                         </div>
                                     }
                                 </div>
@@ -70,17 +132,68 @@
                     }
                 </div>
 
-                <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                <div class="d-flex justify-content-end gap-2 border-top pt-4">
                     <a asp-action="Index" class="btn btn-secondary-modern">Cancel</a>
-                    <button type="submit" class="btn btn-primary-modern">Create Role</button>
+                    <button type="submit" class="btn btn-primary-modern">
+                        <i class="bi bi-check-lg"></i>
+                        <span>Create Role</span>
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<script>
-    function toggleAll(check) {
-        document.querySelectorAll('.perm-check').forEach(cb => cb.checked = check);
-    }
-</script>
+@section Scripts {
+    <script>
+        function updateSelectedCount() {
+            const count = document.querySelectorAll('.perm-check:checked').length;
+            const badge = document.getElementById('selectedCountBadge');
+            if (badge) badge.textContent = count;
+        }
+
+        function onPermChange(checkbox) {
+            const row = checkbox.closest('.perm-item-row');
+            if (checkbox.checked) {
+                row.classList.add('active');
+            } else {
+                row.classList.remove('active');
+            }
+            updateSelectedCount();
+        }
+
+        function toggleAll(check) {
+            document.querySelectorAll('.perm-check').forEach(cb => {
+                cb.checked = check;
+                const row = cb.closest('.perm-item-row');
+                if (check) row.classList.add('active');
+                else row.classList.remove('active');
+            });
+            updateSelectedCount();
+        }
+
+        function toggleCategory(catKey) {
+            const checkboxes = document.querySelectorAll(`.cat-${catKey}`);
+            const anyUnchecked = Array.from(checkboxes).some(cb => !cb.checked);
+            checkboxes.forEach(cb => {
+                cb.checked = anyUnchecked;
+                const row = cb.closest('.perm-item-row');
+                if (anyUnchecked) row.classList.add('active');
+                else row.classList.remove('active');
+            });
+            updateSelectedCount();
+        }
+
+        function filterPermissions() {
+            const query = document.getElementById('permSearchInput').value.toLowerCase().trim();
+            document.querySelectorAll('.perm-item-wrapper').forEach(wrapper => {
+                const text = wrapper.textContent.toLowerCase();
+                if (text.includes(query)) {
+                    wrapper.style.display = '';
+                } else {
+                    wrapper.style.display = 'none';
+                }
+            });
+        }
+    </script>
+}

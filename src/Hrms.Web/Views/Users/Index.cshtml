@@ -1,27 +1,127 @@
 @model IReadOnlyList<UserDto>
 @{
     ViewData["Title"] = "Users Management";
+    var totalUsers = Model.Count;
+    var activeUsers = Model.Count(u => u.Status == UserStatus.Active);
+    var inactiveUsers = Model.Count(u => u.Status == UserStatus.Inactive);
+    var uniqueRolesCount = Model.SelectMany(u => u.Roles).Distinct().Count();
 }
 
+<!-- Page Header -->
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
     <div>
-        <h3 class="fw-bold mb-1">User Accounts</h3>
-        <p class="text-muted mb-0">Total active & inactive user accounts registered in HRMS</p>
+        <h3 class="fw-bold text-dark mb-1 tracking-tight">User Accounts</h3>
+        <p class="text-muted mb-0 small">Manage authenticated access, assign roles, and monitor account activity</p>
     </div>
-    <a asp-action="Create" class="btn btn-primary-modern">
-        <i class="bi bi-person-plus me-1"></i> Add New User
-    </a>
+    <div class="d-flex align-items-center gap-2">
+        <a asp-action="Create" class="btn btn-primary-modern">
+            <i class="bi bi-person-plus-fill"></i>
+            <span>Add New User</span>
+        </a>
+    </div>
 </div>
 
+<!-- KPI Metric Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="kpi-label">Total Accounts</span>
+                    <div class="kpi-value mt-1">@totalUsers</div>
+                </div>
+                <div class="kpi-icon-box bg-primary-subtle text-primary">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+            </div>
+            <div class="small text-muted mt-2 pt-2 border-top">
+                <i class="bi bi-person-badge text-primary me-1"></i> Registered credentials
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="kpi-label">Active Users</span>
+                    <div class="kpi-value mt-1 text-success">@activeUsers</div>
+                </div>
+                <div class="kpi-icon-box bg-success-subtle text-success">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+            </div>
+            <div class="small text-muted mt-2 pt-2 border-top">
+                <span class="status-dot status-dot-active me-1"></span> Enabled login access
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="kpi-label">Inactive Users</span>
+                    <div class="kpi-value mt-1 text-danger">@inactiveUsers</div>
+                </div>
+                <div class="kpi-icon-box bg-danger-subtle text-danger">
+                    <i class="bi bi-slash-circle-fill"></i>
+                </div>
+            </div>
+            <div class="small text-muted mt-2 pt-2 border-top">
+                <span class="status-dot status-dot-inactive me-1"></span> Deactivated / Suspended
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="kpi-card">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="kpi-label">Roles Assigned</span>
+                    <div class="kpi-value mt-1 text-primary">@uniqueRolesCount</div>
+                </div>
+                <div class="kpi-icon-box bg-indigo-subtle text-indigo" style="background-color: #e0e7ff; color: #4338ca;">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+            </div>
+            <div class="small text-muted mt-2 pt-2 border-top">
+                <i class="bi bi-shield-lock me-1"></i> Across active directory
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Table Card -->
 <div class="card-modern overflow-hidden">
+    <!-- Table Controls Header -->
+    <div class="p-3 border-bottom d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 bg-white">
+        <!-- Search -->
+        <div class="search-box-container">
+            <i class="bi bi-search"></i>
+            <input type="text" id="userSearchInput" class="form-control search-input" placeholder="Search by email or role..." onkeyup="filterUserTable()" />
+        </div>
+
+        <!-- Filter Status Pills -->
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary active" id="filterAllBtn" onclick="setStatusFilter('all')">
+                All (@totalUsers)
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="filterActiveBtn" onclick="setStatusFilter('active')">
+                Active (@activeUsers)
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="filterInactiveBtn" onclick="setStatusFilter('inactive')">
+                Inactive (@inactiveUsers)
+            </button>
+        </div>
+    </div>
+
+    <!-- Users Table -->
     <div class="table-responsive">
-        <table class="table table-modern">
+        <table class="table table-modern align-middle" id="usersTable">
             <thead>
                 <tr>
                     <th class="ps-4">User Details</th>
                     <th>Role</th>
-                    <th>Account Status</th>
-                    <th>Last Active (UTC)</th>
+                    <th>Status</th>
+                    <th>Last Active</th>
                     <th>Created</th>
                     <th class="text-end pe-4">Actions</th>
                 </tr>
@@ -29,52 +129,81 @@
             <tbody>
                 @foreach (var user in Model)
                 {
-                    <tr>
+                    var userInitial = user.Email.Length > 0 ? user.Email[0].ToString().ToUpper() : "U";
+                    var statusClass = user.Status == UserStatus.Active ? "status-active" : "status-inactive";
+
+                    <tr class="user-row @statusClass">
                         <td class="ps-4">
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="rounded-circle bg-light border text-primary d-flex align-items-center justify-content-center fw-bold" style="width: 36px; height: 36px; font-size: 0.9rem;">
-                                    @(user.Email.Length > 0 ? user.Email[0].ToString().ToUpper() : "U")
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="table-avatar text-white" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);">
+                                    @userInitial
                                 </div>
                                 <div>
-                                    <div class="fw-bold text-dark">@user.Email</div>
-                                    <small class="text-muted font-monospace">@user.Id.ToString().Substring(0, 8)...</small>
+                                    <div class="fw-bold text-dark user-email">@user.Email</div>
+                                    <small class="text-muted font-monospace" style="font-size: 0.75rem;">@user.Id.ToString().Substring(0, 8)...</small>
                                 </div>
                             </div>
                         </td>
-                        <td>
-                            @foreach (var role in user.Roles)
+                        <td class="user-roles">
+                            @if (user.Roles.Any())
                             {
-                                <span class="badge badge-soft-primary me-1">@role</span>
+                                @foreach (var role in user.Roles)
+                                {
+                                    <span class="badge badge-soft-primary me-1">
+                                        <i class="bi bi-shield-fill-check"></i> @role
+                                    </span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="badge badge-soft-secondary">No role</span>
                             }
                         </td>
                         <td>
                             @if (user.Status == UserStatus.Active)
                             {
-                                <span class="badge badge-soft-success"><i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Active</span>
+                                <span class="badge badge-soft-success">
+                                    <span class="status-dot status-dot-active"></span> Active
+                                </span>
                             }
                             else
                             {
-                                <span class="badge badge-soft-danger"><i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>Inactive</span>
+                                <span class="badge badge-soft-danger">
+                                    <span class="status-dot status-dot-inactive"></span> Inactive
+                                </span>
                             }
                         </td>
-                        <td class="text-muted">
-                            @(user.LastLoginAtUtc?.ToString("MMM dd, yyyy HH:mm") ?? "Never logged in")
+                        <td class="text-muted small">
+                            @if (user.LastLoginAtUtc.HasValue)
+                            {
+                                <div class="d-flex align-items-center gap-1">
+                                    <i class="bi bi-clock-history text-muted"></i>
+                                    <span>@user.LastLoginAtUtc.Value.ToString("MMM dd, yyyy HH:mm")</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="badge badge-soft-secondary">Never logged in</span>
+                            }
                         </td>
-                        <td class="text-muted">
-                            @user.CreatedAtUtc.ToString("MMM dd, yyyy")
+                        <td class="text-muted small">
+                            <div class="d-flex align-items-center gap-1">
+                                <i class="bi bi-calendar-event text-muted"></i>
+                                <span>@user.CreatedAtUtc.ToString("MMM dd, yyyy")</span>
+                            </div>
                         </td>
                         <td class="text-end pe-4">
                             <div class="d-inline-flex gap-1">
-                                <a asp-action="Edit" asp-route-id="@user.Id" class="btn btn-sm btn-outline-secondary" title="Edit User">
+                                <a asp-action="Edit" asp-route-id="@user.Id" class="btn btn-sm btn-outline-secondary btn-action-icon" title="Edit User">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <a asp-action="ResetPassword" asp-route-id="@user.Id" class="btn btn-sm btn-outline-warning" title="Reset Password">
+                                <a asp-action="ResetPassword" asp-route-id="@user.Id" class="btn btn-sm btn-outline-warning btn-action-icon" title="Reset Password">
                                     <i class="bi bi-key"></i>
                                 </a>
                                 @if (user.Status == UserStatus.Active)
                                 {
-                                    <form asp-action="SetStatus" asp-route-id="@user.Id" asp-route-status="@UserStatus.Inactive" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to deactivate @user.Email?');">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Deactivate User">
+                                    <form asp-action="SetStatus" asp-route-id="@user.Id" asp-route-status="@UserStatus.Inactive" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to deactivate @user.Email? Their existing sessions will be invalidated.');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger btn-action-icon" title="Deactivate User">
                                             <i class="bi bi-person-x"></i>
                                         </button>
                                     </form>
@@ -82,7 +211,7 @@
                                 else
                                 {
                                     <form asp-action="SetStatus" asp-route-id="@user.Id" asp-route-status="@UserStatus.Active" method="post" class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Activate User">
+                                        <button type="submit" class="btn btn-sm btn-outline-success btn-action-icon" title="Activate User">
                                             <i class="bi bi-person-check"></i>
                                         </button>
                                     </form>
@@ -94,4 +223,59 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Empty State for Search Filter -->
+    <div id="noMatchRow" class="text-center py-5 d-none">
+        <i class="bi bi-person-x text-muted" style="font-size: 2.5rem;"></i>
+        <h6 class="fw-bold mt-2 text-dark">No matching accounts found</h6>
+        <p class="text-muted small mb-0">Try clearing or modifying your search keyword</p>
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        let currentStatusFilter = 'all';
+
+        function filterUserTable() {
+            const query = document.getElementById('userSearchInput').value.toLowerCase().trim();
+            const rows = document.querySelectorAll('.user-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const email = row.querySelector('.user-email')?.textContent.toLowerCase() || '';
+                const roles = row.querySelector('.user-roles')?.textContent.toLowerCase() || '';
+                const matchesSearch = email.includes(query) || roles.includes(query);
+
+                let matchesStatus = true;
+                if (currentStatusFilter === 'active') {
+                    matchesStatus = row.classList.contains('status-active');
+                } else if (currentStatusFilter === 'inactive') {
+                    matchesStatus = row.classList.contains('status-inactive');
+                }
+
+                if (matchesSearch && matchesStatus) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const noMatch = document.getElementById('noMatchRow');
+            if (visibleCount === 0) {
+                noMatch.classList.remove('d-none');
+            } else {
+                noMatch.classList.add('d-none');
+            }
+        }
+
+        function setStatusFilter(status) {
+            currentStatusFilter = status;
+            document.querySelectorAll('#filterAllBtn, #filterActiveBtn, #filterInactiveBtn').forEach(b => b.classList.remove('active'));
+            if (status === 'all') document.getElementById('filterAllBtn').classList.add('active');
+            if (status === 'active') document.getElementById('filterActiveBtn').classList.add('active');
+            if (status === 'inactive') document.getElementById('filterInactiveBtn').classList.add('active');
+            filterUserTable();
+        }
+    </script>
+}

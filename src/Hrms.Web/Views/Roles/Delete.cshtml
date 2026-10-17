@@ -4,30 +4,52 @@
 }
 
 <div class="row justify-content-center">
-    <div class="col-md-6 col-lg-5">
-        <div class="card-modern p-4 border-danger-subtle">
+    <div class="col-md-7 col-lg-5">
+        <div class="card-modern p-4 p-md-5 border-danger-subtle">
+            <!-- Header -->
             <div class="d-flex align-items-center gap-3 border-bottom pb-3 mb-4">
-                <div class="stat-icon bg-danger-subtle text-danger" style="width: 44px; height: 44px; font-size: 1.25rem;">
+                <div class="kpi-icon-box bg-danger-subtle text-danger" style="width: 48px; height: 48px; font-size: 1.35rem;">
                     <i class="bi bi-exclamation-triangle-fill"></i>
                 </div>
                 <div>
-                    <h5 class="fw-bold mb-0 text-danger">Delete Role</h5>
-                    <p class="text-muted small mb-0">Confirm deletion of security role</p>
+                    <h4 class="fw-bold mb-0 text-danger tracking-tight">Delete Role</h4>
+                    <p class="text-muted small mb-0">Confirm permanent removal of custom role</p>
                 </div>
             </div>
 
-            <p class="text-secondary small">Are you sure you want to permanently remove this custom role?</p>
+            <p class="text-secondary small mb-3">
+                Are you sure you want to permanently delete this role? This operation cannot be reversed.
+            </p>
 
-            <div class="bg-light p-3 rounded-3 border mb-3">
+            <!-- Role Summary Card -->
+            <div class="bg-light p-3 rounded-3 border mb-4">
                 <div class="row g-2 small">
-                    <div class="col-4 text-muted">Role Name:</div>
-                    <div class="col-8 fw-bold">@Model.Name</div>
-                    <div class="col-4 text-muted">Description:</div>
-                    <div class="col-8">@(Model.Description ?? "None")</div>
-                    <div class="col-4 text-muted">Assigned Users:</div>
+                    <div class="col-4 text-muted fw-semibold">Role Name:</div>
+                    <div class="col-8 fw-bold text-dark">@Model.Name</div>
+
+                    <div class="col-4 text-muted fw-semibold">Description:</div>
+                    <div class="col-8 text-secondary">@(Model.Description ?? "None provided")</div>
+
+                    <div class="col-4 text-muted fw-semibold">Assigned Users:</div>
                     <div class="col-8">
-                        <span class="badge @(Model.UserCount > 0 ? "bg-danger" : "bg-secondary")">
-                            @Model.UserCount users
+                        @if (Model.UserCount > 0)
+                        {
+                            <span class="badge badge-soft-danger">
+                                <i class="bi bi-people-fill"></i> @Model.UserCount active users
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-soft-secondary">
+                                0 users assigned
+                            </span>
+                        }
+                    </div>
+
+                    <div class="col-4 text-muted fw-semibold">Permissions:</div>
+                    <div class="col-8">
+                        <span class="badge badge-soft-primary">
+                            @Model.Permissions.Count claims attached
                         </span>
                     </div>
                 </div>
@@ -35,18 +57,19 @@
 
             @if (Model.UserCount > 0)
             {
-                <div class="alert alert-danger border-0 small d-flex align-items-center gap-2 mb-4" style="border-radius: 10px; background-color: #fee2e2; color: #b91c1c;">
+                <div class="alert alert-danger border-0 small d-flex align-items-center gap-2 mb-4" style="border-radius: 10px; background-color: #fef2f2; color: #991b1b; border-left: 3px solid #ef4444 !important;">
                     <i class="bi bi-slash-circle-fill fs-5"></i>
-                    <div>Cannot delete this role while users are still assigned to it.</div>
+                    <div>Cannot delete this role while users are actively assigned. Reassign them first.</div>
                 </div>
             }
 
             <form asp-action="Delete" method="post">
                 <input type="hidden" name="id" value="@Model.Id" />
-                <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                <div class="d-flex justify-content-end gap-2 border-top pt-4">
                     <a asp-action="Index" class="btn btn-secondary-modern">Cancel</a>
-                    <button type="submit" class="btn btn-danger fw-semibold px-3" @(Model.UserCount > 0 ? "disabled" : "")>
-                        Confirm Delete
+                    <button type="submit" class="btn btn-danger fw-semibold px-4 shadow-sm" @(Model.UserCount > 0 ? "disabled" : "")>
+                        <i class="bi bi-trash-fill me-1"></i>
+                        <span>Confirm Delete</span>
                     </button>
                 </div>
             </form>
