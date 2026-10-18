@@ -466,6 +466,45 @@ namespace Hrms.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Hrms.Settings.Domain.Entities.Setting", b =>
+                {
+                    b.Property<Guid>("SettingId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("SettingKey")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ValueText")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("SettingId")
+                        .HasName("PK_Settings");
+
+                    b.HasIndex("SettingKey")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_Settings_Key");
+
+                    b.ToTable("Settings", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.Property<int>("Id")
@@ -574,7 +613,7 @@ namespace Hrms.Persistence.Migrations
             modelBuilder.Entity("Hrms.Employees.Domain.Entities.Designation", b =>
                 {
                     b.HasOne("Hrms.Employees.Domain.Entities.Department", "Department")
-                        .WithMany()
+                        .WithMany("Designations")
                         .HasForeignKey("DepartmentId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
@@ -609,7 +648,7 @@ namespace Hrms.Persistence.Migrations
             modelBuilder.Entity("Hrms.Employees.Domain.Entities.Grade", b =>
                 {
                     b.HasOne("Hrms.Employees.Domain.Entities.Designation", "Designation")
-                        .WithMany()
+                        .WithMany("Grades")
                         .HasForeignKey("DesignationId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired()
@@ -676,6 +715,16 @@ namespace Hrms.Persistence.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Hrms.Employees.Domain.Entities.Department", b =>
+                {
+                    b.Navigation("Designations");
+                });
+
+            modelBuilder.Entity("Hrms.Employees.Domain.Entities.Designation", b =>
+                {
+                    b.Navigation("Grades");
                 });
 #pragma warning restore 612, 618
         }

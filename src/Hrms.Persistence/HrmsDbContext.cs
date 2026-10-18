@@ -2,12 +2,14 @@ using Hrms.Employees.Application.Abstractions;
 using Hrms.Employees.Domain.Entities;
 using Hrms.Identity.Domain.Entities;
 using Hrms.Persistence.Interceptors;
+using Hrms.Settings.Application.Abstractions;
+using Hrms.Settings.Domain.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hrms.Persistence;
 
-public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>, IEmployeesDbContext
+public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>, IEmployeesDbContext, ISettingsDbContext
 {
     private readonly AuditableEntityInterceptor? _auditableEntityInterceptor;
 
@@ -33,6 +35,7 @@ public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
     public DbSet<Designation> Designations => Set<Designation>();
     public DbSet<Grade> Grades => Set<Grade>();
     public DbSet<Employee> Employees => Set<Employee>();
+    public DbSet<Setting> Settings => Set<Setting>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

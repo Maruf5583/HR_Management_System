@@ -1,7 +1,22 @@
 @model LoginViewModel
+@inject Hrms.Settings.Contracts.ISettingsReader SettingsReader
 @{
     ViewData["Title"] = "Sign In";
     Layout = null;
+
+    string companyName = "HRMS Enterprise";
+    try
+    {
+        var configuredName = await SettingsReader.GetStringAsync(Hrms.Settings.Contracts.SettingKeys.CompanyName);
+        if (!string.IsNullOrWhiteSpace(configuredName))
+        {
+            companyName = configuredName;
+        }
+    }
+    catch
+    {
+        // Fallback default
+    }
 }
 
 <!DOCTYPE html>
@@ -9,7 +24,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sign In - HRMS Enterprise</title>
+    <title>Sign In - @companyName</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -23,7 +38,7 @@
             <div class="brand-icon mx-auto mb-3" style="width: 52px; height: 52px; font-size: 1.6rem; border-radius: 14px;">
                 <i class="bi bi-layers-fill"></i>
             </div>
-            <h3 class="fw-bold text-dark mb-1 tracking-tight">HRMS Enterprise</h3>
+            <h3 class="fw-bold text-dark mb-1 tracking-tight">@companyName</h3>
             <p class="text-muted small mb-0">Sign in to manage and view organizational records</p>
         </div>
 

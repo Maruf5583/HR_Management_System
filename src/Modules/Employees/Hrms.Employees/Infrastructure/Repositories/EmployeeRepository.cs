@@ -1,17 +1,20 @@
+using System.Globalization;
 using Hrms.Employees.Application.Abstractions;
 using Hrms.Employees.Domain.Entities;
+using Hrms.Settings.Contracts;
 using Microsoft.EntityFrameworkCore;
 
 namespace Hrms.Employees.Infrastructure.Repositories;
 
 public class EmployeeRepository : IEmployeeRepository
 {
-    private const string CodePrefix = "EMP-";
     private readonly IEmployeesDbContext _context;
+    private readonly ISettingsReader _settingsReader;
 
-    public EmployeeRepository(IEmployeesDbContext context)
+    public EmployeeRepository(IEmployeesDbContext context, ISettingsReader settingsReader)
     {
         _context = context;
+        _settingsReader = settingsReader;
     }
 
     public async Task<Employee?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -35,6 +38,9 @@ public class EmployeeRepository : IEmployeeRepository
 
     public async Task<string> GetNextEmployeeCodeAsync(CancellationToken cancellationToken = default)
     {
+        var format = await _settingsReader.GetStringAsync(SettingKeys.EmployeeCodeFormat, cancellationToken);
+        var prefix = format.Contains('{') ? format.Substring(0, format.IndexOf('{')) : string.Empty;
+
         var existingCodes = await _context.Employees
             .Select(e => e.EmployeeCode)
             .ToListAsync(cancellationToken);
@@ -42,10 +48,17 @@ public class EmployeeRepository : IEmployeeRepository
         int maxNumber = 0;
         foreach (var code in existingCodes)
         {
-            if (code.StartsWith(CodePrefix, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrEmpty(prefix) && code.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             {
-                var numPart = code.Substring(CodePrefix.Length);
+                var numPart = code.Substring(prefix.Length);
                 if (int.TryParse(numPart, out int num) && num > maxNumber)
+                {
+                    maxNumber = num;
+                }
+            }
+            else if (string.IsNullOrEmpty(prefix))
+            {
+                if (int.TryParse(code, out int num) && num > maxNumber)
                 {
                     maxNumber = num;
                 }
@@ -53,7 +66,7 @@ public class EmployeeRepository : IEmployeeRepository
         }
 
         int next = maxNumber + 1;
-        return $"{CodePrefix}{next:D4}";
+        return string.Format(CultureInfo.InvariantCulture, format, next);
     }
 
     public async Task AddAsync(Employee employee, CancellationToken cancellationToken = default)

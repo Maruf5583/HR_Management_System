@@ -1,9 +1,25 @@
+@inject Hrms.Settings.Contracts.ISettingsReader SettingsReader
+@{
+    string companyName = "HRMS";
+    try
+    {
+        var configuredName = await SettingsReader.GetStringAsync(Hrms.Settings.Contracts.SettingKeys.CompanyName);
+        if (!string.IsNullOrWhiteSpace(configuredName))
+        {
+            companyName = configuredName;
+        }
+    }
+    catch
+    {
+        // Fallback to default
+    }
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - HRMS Enterprise</title>
+    <title>@ViewData["Title"] - @companyName</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -23,7 +39,7 @@
             <div class="container-fluid px-lg-4 px-3">
                 <a class="navbar-brand d-flex align-items-center gap-2" asp-area="" asp-controller="Home" asp-action="Index">
                     <span class="brand-icon"><i class="bi bi-layers-fill"></i></span>
-                    <span class="fw-bold tracking-tight">HRMS <span class="brand-badge ms-1">Enterprise Platform</span></span>
+                    <span class="fw-bold tracking-tight">@companyName <span class="brand-badge ms-1">Enterprise Platform</span></span>
                 </a>
                 <button class="navbar-toggler border-0 shadow-none text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
                     <i class="bi bi-list fs-2"></i>
@@ -94,6 +110,14 @@
                             <li class="nav-item">
                                 <a class="nav-link @(string.IsNullOrEmpty(currentArea) && currentController == "Roles" ? "active" : "")" asp-area="" asp-controller="Roles" asp-action="Index">
                                     <i class="bi bi-shield-check"></i> <span>Roles & Permissions</span>
+                                </a>
+                            </li>
+                        }
+                        @if (CurrentUser.HasPermission(Permissions.Settings.Manage))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(currentArea == "Settings" && currentController == "Settings" ? "active" : "")" asp-area="Settings" asp-controller="Settings" asp-action="Index">
+                                    <i class="bi bi-gear"></i> <span>Settings</span>
                                 </a>
                             </li>
                         }
@@ -192,10 +216,7 @@
         <footer class="app-footer">
             <div class="container-fluid px-lg-4 px-3 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
                 <div>
-                    <span class="fw-semibold text-dark">HRMS Enterprise</span> &bull; Organizational Workforce Management
-                </div>
-                <div class="text-muted small">
-                    <span class="badge badge-soft-secondary font-monospace">ASP.NET Core 8 &bull; EF Core 8 &bull; Clean Architecture</span>
+                    <span class="fw-semibold text-dark">@companyName</span> &bull; Organizational Workforce Management
                 </div>
             </div>
         </footer>
