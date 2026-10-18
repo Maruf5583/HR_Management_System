@@ -1,0 +1,172 @@
+@model SettingsViewModel
+@{
+    ViewData["Title"] = "System Settings";
+}
+
+<div class="container-fluid max-w-4xl px-0">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h3 class="fw-bold tracking-tight mb-1">
+                <i class="bi bi-gear-wide-connected text-primary me-2"></i>System Settings
+            </h3>
+            <p class="text-muted small mb-0">Manage global operational rules, attendance policies, leave parameters, and numbering conventions.</p>
+        </div>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger border-0 shadow-sm mb-4" role="alert" style="border-radius: 12px; background-color: #fef2f2; color: #991b1b; border-left: 4px solid #ef4444 !important;">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
+                <span class="fw-semibold">Please correct the following errors:</span>
+            </div>
+            <div asp-validation-summary="All" class="small mb-0"></div>
+        </div>
+    }
+
+    <form asp-area="Settings" asp-controller="Settings" asp-action="Save" method="post" id="settingsForm" novalidate>
+        @Html.AntiForgeryToken()
+
+        <input type="hidden" asp-for="CompanyNameDescription" />
+        <input type="hidden" asp-for="CompanyTimezoneDescription" />
+        <input type="hidden" asp-for="AttendanceHalfDayHoursDescription" />
+        <input type="hidden" asp-for="AttendanceHolidayPriorityDescription" />
+        <input type="hidden" asp-for="LeaveYearStartDescription" />
+        <input type="hidden" asp-for="PayrollPerDayDivisorDescription" />
+        <input type="hidden" asp-for="EmployeeCodeFormatDescription" />
+
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 14px;">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary-subtle text-primary p-2 rounded-3"><i class="bi bi-building"></i></span>
+                    <h5 class="fw-bold mb-0 text-dark">Company Information</h5>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="CompanyName" class="form-label fw-semibold">Company Name <span class="text-danger">*</span></label>
+                        <input asp-for="CompanyName" class="form-control" placeholder="Company Name" />
+                        <span asp-validation-for="CompanyName" class="text-danger small d-block mt-1"></span>
+                        <div class="form-text text-muted small mt-1">
+                            @(Model.CompanyNameDescription ?? "Company name")
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="CompanyTimezone" class="form-label fw-semibold">Company Timezone <span class="text-danger">*</span></label>
+                        <input asp-for="CompanyTimezone" class="form-control font-monospace" placeholder="Asia/Dhaka" />
+                        <span asp-validation-for="CompanyTimezone" class="text-danger small d-block mt-1"></span>
+                        <div class="form-text text-muted small mt-1">
+                            @(Model.CompanyTimezoneDescription ?? "Time zone for WorkDate")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 14px;">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success-subtle text-success p-2 rounded-3"><i class="bi bi-calendar-check"></i></span>
+                    <h5 class="fw-bold mb-0 text-dark">Attendance Rules</h5>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="AttendanceHalfDayHours" class="form-label fw-semibold">Half Day Hours <span class="text-danger">*</span></label>
+                        <input asp-for="AttendanceHalfDayHours" class="form-control" type="number" step="any" min="0.1" max="12" placeholder="4" />
+                        <span asp-validation-for="AttendanceHalfDayHours" class="text-danger small d-block mt-1"></span>
+                        <div class="form-text text-muted small mt-1">
+                            @(Model.AttendanceHalfDayHoursDescription ?? "Fewer worked hours count as half day")
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="AttendanceHolidayPriority" class="form-label fw-semibold">Holiday Priority <span class="text-danger">*</span></label>
+                        <select asp-for="AttendanceHolidayPriority" class="form-select">
+                            <option value="Holiday">Holiday</option>
+                            <option value="Weekend">Weekend</option>
+                        </select>
+                        <span asp-validation-for="AttendanceHolidayPriority" class="text-danger small d-block mt-1"></span>
+                        <div class="form-text text-muted small mt-1">
+                            @(Model.AttendanceHolidayPriorityDescription ?? "Status when a holiday falls on a weekly off day (Holiday or Weekend)")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 14px;">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-warning-subtle text-warning p-2 rounded-3"><i class="bi bi-calendar-range"></i></span>
+                    <h5 class="fw-bold mb-0 text-dark">Leave Management</h5>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="LeaveYearStart" class="form-label fw-semibold">Leave Year Start (MM-dd) <span class="text-danger">*</span></label>
+                        <input asp-for="LeaveYearStart" class="form-control font-monospace" placeholder="01-01" maxlength="5" />
+                        <span asp-validation-for="LeaveYearStart" class="text-danger small d-block mt-1"></span>
+                        <div class="form-text text-muted small mt-1">
+                            @(Model.LeaveYearStartDescription ?? "Leave year start (MM-dd)")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 14px;">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-info-subtle text-info p-2 rounded-3"><i class="bi bi-cash-stack"></i></span>
+                    <h5 class="fw-bold mb-0 text-dark">Payroll Configuration</h5>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="PayrollPerDayDivisor" class="form-label fw-semibold">Payroll Per-Day Divisor <span class="text-danger">*</span></label>
+                        <input asp-for="PayrollPerDayDivisor" class="form-control" type="number" min="1" max="31" placeholder="30" />
+                        <span asp-validation-for="PayrollPerDayDivisor" class="text-danger small d-block mt-1"></span>
+                        <div class="form-text text-muted small mt-1">
+                            @(Model.PayrollPerDayDivisorDescription ?? "Divisor for per-day rate")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 14px;">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-secondary-subtle text-secondary p-2 rounded-3"><i class="bi bi-person-badge"></i></span>
+                    <h5 class="fw-bold mb-0 text-dark">Employee Numbering</h5>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="EmployeeCodeFormat" class="form-label fw-semibold">Employee Code Format <span class="text-danger">*</span></label>
+                        <input asp-for="EmployeeCodeFormat" class="form-control font-monospace" placeholder="EMP-{0:0000}" />
+                        <span asp-validation-for="EmployeeCodeFormat" class="text-danger small d-block mt-1"></span>
+                        <div class="form-text text-muted small mt-1">
+                            @(Model.EmployeeCodeFormatDescription ?? "Employee code format")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mb-5">
+            <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold shadow-sm" style="border-radius: 10px;">
+                <i class="bi bi-check-circle-fill me-1"></i> Save Changes
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

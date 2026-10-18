@@ -20,5 +20,6 @@
     <ProjectReference Include="..\Hrms.Shared\Hrms.Shared.csproj" />
     <ProjectReference Include="..\Modules\Identity\Hrms.Identity\Hrms.Identity.csproj" />
     <ProjectReference Include="..\Modules\Employees\Hrms.Employees\Hrms.Employees.csproj" />
+    <ProjectReference Include="..\Modules\Settings\Hrms.Settings\Hrms.Settings.csproj" />
   </ItemGroup>
 </Project>

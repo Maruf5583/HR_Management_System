@@ -2,6 +2,8 @@ using Hrms.Employees;
 using Hrms.Employees.Application.Abstractions;
 using Hrms.Identity;
 using Hrms.Identity.Domain.Entities;
+using Hrms.Settings;
+using Hrms.Settings.Application.Abstractions;
 using Hrms.Persistence;
 using Hrms.Persistence.Interceptors;
 using Hrms.Persistence.Seed;
@@ -87,6 +89,10 @@ builder.Services.AddIdentityModule();
 // Employees module services
 builder.Services.AddScoped<IEmployeesDbContext>(sp => sp.GetRequiredService<HrmsDbContext>());
 builder.Services.AddEmployeesModule();
+
+// Settings module services
+builder.Services.AddScoped<ISettingsDbContext>(sp => sp.GetRequiredService<HrmsDbContext>());
+builder.Services.AddSettingsModule();
 
 // Seeder
 builder.Services.AddScoped<IdentitySeeder>();

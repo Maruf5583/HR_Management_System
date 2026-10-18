@@ -17,6 +17,8 @@
     <ProjectReference Include="..\Modules\Identity\Hrms.Identity\Hrms.Identity.csproj" />
     <ProjectReference Include="..\Modules\Employees\Hrms.Employees.Contracts\Hrms.Employees.Contracts.csproj" />
     <ProjectReference Include="..\Modules\Employees\Hrms.Employees\Hrms.Employees.csproj" />
+    <ProjectReference Include="..\Modules\Settings\Hrms.Settings.Contracts\Hrms.Settings.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Settings\Hrms.Settings\Hrms.Settings.csproj" />
     <ProjectReference Include="..\Hrms.Persistence\Hrms.Persistence.csproj" />
   </ItemGroup>
 </Project>

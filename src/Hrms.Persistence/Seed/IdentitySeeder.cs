@@ -3,6 +3,8 @@ using Hrms.Employees.Domain.Entities;
 using Hrms.Employees.Domain.Enums;
 using Hrms.Identity.Domain.Entities;
 using Hrms.Identity.Domain.Enums;
+using Hrms.Settings.Contracts;
+using Hrms.Settings.Domain.Entities;
 using Hrms.Shared.Constants;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +39,7 @@ public class IdentitySeeder
 
     public async Task SeedAsync()
     {
+        await SeedSettingsAsync();
         await SeedRolesAsync();
         await SeedUsersAsync();
         await SeedEmployeesAndLinkUsersAsync();
@@ -329,6 +332,49 @@ public class IdentitySeeder
                 await _userManager.UpdateAsync(empUser);
                 _logger.LogInformation("Linked Employee user {Email} to employee {Code}", empEmail, emp.EmployeeCode);
             }
+        }
+    }
+
+    private async Task SeedSettingsAsync()
+    {
+        var defaultSettings = new[]
+        {
+            (Key: SettingKeys.CompanyName, Value: "Company Name", Description: "Company name"),
+            (Key: SettingKeys.CompanyTimezone, Value: "Asia/Dhaka", Description: "Time zone for WorkDate"),
+            (Key: SettingKeys.AttendanceHalfDayHours, Value: "4", Description: "Fewer worked hours count as half day"),
+            (Key: SettingKeys.AttendanceHolidayPriority, Value: "Holiday", Description: "Status when a holiday falls on a weekly off day (Holiday or Weekend)"),
+            (Key: SettingKeys.LeaveYearStart, Value: "01-01", Description: "Leave year start (MM-dd)"),
+            (Key: SettingKeys.PayrollPerDayDivisor, Value: "30", Description: "Divisor for per-day rate"),
+            (Key: SettingKeys.EmployeeCodeFormat, Value: "EMP-{0:0000}", Description: "Employee code format")
+        };
+
+        var existingKeys = (await _dbContext.Settings
+            .Select(s => s.SettingKey)
+            .ToListAsync())
+            .ToHashSet();
+
+        var toAdd = new List<Setting>();
+        foreach (var (key, value, description) in defaultSettings)
+        {
+            if (!existingKeys.Contains(key))
+            {
+                toAdd.Add(new Setting
+                {
+                    SettingId = Guid.NewGuid(),
+                    SettingKey = key,
+                    ValueText = value,
+                    Description = description,
+                    UpdatedAtUtc = DateTime.UtcNow,
+                    UpdatedByUserId = null
+                });
+            }
+        }
+
+        if (toAdd.Count > 0)
+        {
+            await _dbContext.Settings.AddRangeAsync(toAdd);
+            await _dbContext.SaveChangesAsync();
+            _logger.LogInformation("Seeded {Count} missing system settings.", toAdd.Count);
         }
     }
 }
