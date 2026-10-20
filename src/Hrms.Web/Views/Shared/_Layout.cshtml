@@ -121,6 +121,14 @@
                                 </a>
                             </li>
                         }
+                        @if (CurrentUser.HasPermission(Permissions.Audit.View))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link @(currentArea == "Audit" && currentController == "Audit" ? "active" : "")" asp-area="Audit" asp-controller="Audit" asp-action="Index">
+                                    <i class="bi bi-clock-history"></i> <span>Audit Logs</span>
+                                </a>
+                            </li>
+                        }
                     </ul>
                     <ul class="navbar-nav ms-auto align-items-center gap-2">
                         <li class="nav-item dropdown">

@@ -19,6 +19,8 @@
     <ProjectReference Include="..\Modules\Employees\Hrms.Employees\Hrms.Employees.csproj" />
     <ProjectReference Include="..\Modules\Settings\Hrms.Settings.Contracts\Hrms.Settings.Contracts.csproj" />
     <ProjectReference Include="..\Modules\Settings\Hrms.Settings\Hrms.Settings.csproj" />
+    <ProjectReference Include="..\Modules\Audit\Hrms.Audit.Contracts\Hrms.Audit.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Audit\Hrms.Audit\Hrms.Audit.csproj" />
     <ProjectReference Include="..\Hrms.Persistence\Hrms.Persistence.csproj" />
   </ItemGroup>
 </Project>

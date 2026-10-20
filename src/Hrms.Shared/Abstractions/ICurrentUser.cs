@@ -8,4 +8,5 @@ public interface ICurrentUser
     bool IsAuthenticated { get; }
     bool HasPermission(string permission);
     bool IsInRole(string role);
+    string? IpAddress => null;
 }

@@ -1,3 +1,6 @@
+using System.Text.Json;
+using Hrms.Audit.Contracts;
+using Hrms.Audit.Contracts.Models;
 using Hrms.Identity.Application.Models;
 using Hrms.Identity.Application.Services;
 using Hrms.Identity.Domain.Entities;
@@ -13,13 +16,16 @@ public class UserService : IUserService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<ApplicationRole> _roleManager;
+    private readonly IAuditWriter? _auditWriter;
 
     public UserService(
         UserManager<ApplicationUser> userManager,
-        RoleManager<ApplicationRole> roleManager)
+        RoleManager<ApplicationRole> roleManager,
+        IAuditWriter? auditWriter = null)
     {
         _userManager = userManager;
         _roleManager = roleManager;
+        _auditWriter = auditWriter;
     }
 
     public async Task<IReadOnlyList<UserDto>> GetUsersAsync(CancellationToken cancellationToken = default)
@@ -104,6 +110,25 @@ public class UserService : IUserService
             return Result<Guid>.Failure($"User created but role assignment failed: {errors}");
         }
 
+        if (_auditWriter != null)
+        {
+            var newValues = new
+            {
+                user.Email,
+                user.EmployeeId,
+                Status = user.Status.ToString(),
+                Role = model.RoleName
+            };
+
+            await _auditWriter.WriteAsync(new AuditLogEntry(
+                Action: "CREATE",
+                EntityName: "User",
+                EntityId: user.Id.ToString(),
+                OldValues: null,
+                NewValues: JsonSerializer.Serialize(newValues)
+            ), cancellationToken);
+        }
+
         return Result<Guid>.Success(user.Id);
     }
 
@@ -138,6 +163,13 @@ public class UserService : IUserService
             }
         }
 
+        var oldValues = new
+        {
+            user.Email,
+            user.EmployeeId,
+            Roles = currentRoles.ToList()
+        };
+
         user.Email = model.Email;
         user.UserName = model.Email;
         user.EmployeeId = model.EmployeeId;
@@ -164,6 +196,24 @@ public class UserService : IUserService
                 var errors = string.Join("; ", addResult.Errors.Select(e => e.Description));
                 return Result.Failure(errors);
             }
+        }
+
+        if (_auditWriter != null)
+        {
+            var newValues = new
+            {
+                user.Email,
+                user.EmployeeId,
+                Roles = new[] { model.RoleName }
+            };
+
+            await _auditWriter.WriteAsync(new AuditLogEntry(
+                Action: "UPDATE",
+                EntityName: "User",
+                EntityId: user.Id.ToString(),
+                OldValues: JsonSerializer.Serialize(oldValues),
+                NewValues: JsonSerializer.Serialize(newValues)
+            ), cancellationToken);
         }
 
         return Result.Success();
@@ -196,6 +246,7 @@ public class UserService : IUserService
             }
         }
 
+        var oldStatus = user.Status.ToString();
         user.Status = newStatus;
 
         if (newStatus == UserStatus.Inactive)
@@ -208,6 +259,17 @@ public class UserService : IUserService
         {
             var errors = string.Join("; ", result.Errors.Select(e => e.Description));
             return Result.Failure(errors);
+        }
+
+        if (_auditWriter != null)
+        {
+            await _auditWriter.WriteAsync(new AuditLogEntry(
+                Action: "STATUS_CHANGE",
+                EntityName: "User",
+                EntityId: user.Id.ToString(),
+                OldValues: JsonSerializer.Serialize(new { Status = oldStatus }),
+                NewValues: JsonSerializer.Serialize(new { Status = newStatus.ToString() })
+            ), cancellationToken);
         }
 
         return Result.Success();
@@ -230,6 +292,18 @@ public class UserService : IUserService
         }
 
         await _userManager.UpdateSecurityStampAsync(user);
+
+        if (_auditWriter != null)
+        {
+            await _auditWriter.WriteAsync(new AuditLogEntry(
+                Action: "PASSWORD_RESET",
+                EntityName: "User",
+                EntityId: user.Id.ToString(),
+                OldValues: null,
+                NewValues: JsonSerializer.Serialize(new { Status = "PasswordResetSuccessfully" })
+            ), cancellationToken);
+        }
+
         return Result.Success();
     }
 
