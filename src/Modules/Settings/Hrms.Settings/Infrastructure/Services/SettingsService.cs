@@ -1,4 +1,7 @@
+using System.Text.Json;
 using FluentValidation;
+using Hrms.Audit.Contracts;
+using Hrms.Audit.Contracts.Models;
 using Hrms.Settings.Application.Abstractions;
 using Hrms.Settings.Application.Models;
 using Hrms.Settings.Application.Services;
@@ -15,17 +18,20 @@ public class SettingsService : ISettingsService
     private readonly ICurrentUser _currentUser;
     private readonly IClock _clock;
     private readonly IValidator<UpdateSettingsCommand> _validator;
+    private readonly IAuditWriter? _auditWriter;
 
     public SettingsService(
         ISettingsDbContext context,
         ICurrentUser currentUser,
         IClock clock,
-        IValidator<UpdateSettingsCommand> validator)
+        IValidator<UpdateSettingsCommand> validator,
+        IAuditWriter? auditWriter = null)
     {
         _context = context;
         _currentUser = currentUser;
         _clock = clock;
         _validator = validator;
+        _auditWriter = auditWriter;
     }
 
     public async Task<IReadOnlyList<SettingDto>> GetAllSettingsAsync(CancellationToken cancellationToken = default)
@@ -68,12 +74,18 @@ public class SettingsService : ISettingsService
         var now = _clock.UtcNow;
         var currentUserId = _currentUser.UserId;
 
+        var oldValuesDict = new Dictionary<string, string>();
+        var newValuesDict = new Dictionary<string, string>();
+
         foreach (var setting in existingSettings)
         {
             if (newValues.TryGetValue(setting.SettingKey, out var newValue))
             {
                 if (setting.ValueText != newValue)
                 {
+                    oldValuesDict[setting.SettingKey] = setting.ValueText;
+                    newValuesDict[setting.SettingKey] = newValue;
+
                     setting.ValueText = newValue;
                     setting.UpdatedAtUtc = now;
                     setting.UpdatedByUserId = currentUserId;
@@ -83,6 +95,18 @@ public class SettingsService : ISettingsService
 
         await _context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+
+        if (oldValuesDict.Count > 0 && _auditWriter != null)
+        {
+            await _auditWriter.WriteAsync(new AuditLogEntry(
+                Action: "UPDATE",
+                EntityName: "Settings",
+                EntityId: "Global",
+                OldValues: JsonSerializer.Serialize(oldValuesDict),
+                NewValues: JsonSerializer.Serialize(newValuesDict),
+                UserId: currentUserId
+            ), cancellationToken);
+        }
 
         return Result.Success();
     }

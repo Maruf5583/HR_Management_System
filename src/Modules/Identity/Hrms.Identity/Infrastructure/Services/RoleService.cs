@@ -1,4 +1,7 @@
 using System.Security.Claims;
+using System.Text.Json;
+using Hrms.Audit.Contracts;
+using Hrms.Audit.Contracts.Models;
 using Hrms.Identity.Application.Models;
 using Hrms.Identity.Application.Services;
 using Hrms.Identity.Domain.Entities;
@@ -15,13 +18,16 @@ public class RoleService : IRoleService
 
     private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IAuditWriter? _auditWriter;
 
     public RoleService(
         RoleManager<ApplicationRole> roleManager,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        IAuditWriter? auditWriter = null)
     {
         _roleManager = roleManager;
         _userManager = userManager;
+        _auditWriter = auditWriter;
     }
 
     public async Task<IReadOnlyList<RoleDto>> GetRolesAsync(CancellationToken cancellationToken = default)
@@ -113,6 +119,24 @@ public class RoleService : IRoleService
             }
         }
 
+        if (_auditWriter != null)
+        {
+            var newValues = new
+            {
+                role.Name,
+                role.Description,
+                Permissions = model.Permissions?.Distinct().ToList()
+            };
+
+            await _auditWriter.WriteAsync(new AuditLogEntry(
+                Action: "CREATE",
+                EntityName: "Role",
+                EntityId: role.Id.ToString(),
+                OldValues: null,
+                NewValues: JsonSerializer.Serialize(newValues)
+            ), cancellationToken);
+        }
+
         return Result<Guid>.Success(role.Id);
     }
 
@@ -130,6 +154,18 @@ public class RoleService : IRoleService
             return permissionModValidation;
         }
 
+        var existingClaims = await _roleManager.GetClaimsAsync(role);
+        var currentPermissionClaims = existingClaims
+            .Where(c => c.Type == PermissionClaimType)
+            .ToList();
+
+        var oldValues = new
+        {
+            role.Name,
+            Description = role.Description,
+            Permissions = currentPermissionClaims.Select(c => c.Value).ToList()
+        };
+
         role.Description = model.Description;
         var updateResult = await _roleManager.UpdateAsync(role);
         if (!updateResult.Succeeded)
@@ -137,11 +173,6 @@ public class RoleService : IRoleService
             var errors = string.Join("; ", updateResult.Errors.Select(e => e.Description));
             return Result.Failure(errors);
         }
-
-        var existingClaims = await _roleManager.GetClaimsAsync(role);
-        var currentPermissionClaims = existingClaims
-            .Where(c => c.Type == PermissionClaimType)
-            .ToList();
 
         var newPermissions = model.Permissions.Distinct().ToHashSet();
 
@@ -164,6 +195,24 @@ public class RoleService : IRoleService
             }
         }
 
+        if (_auditWriter != null)
+        {
+            var newValues = new
+            {
+                role.Name,
+                Description = model.Description,
+                Permissions = model.Permissions.Distinct().ToList()
+            };
+
+            await _auditWriter.WriteAsync(new AuditLogEntry(
+                Action: "UPDATE",
+                EntityName: "Role",
+                EntityId: role.Id.ToString(),
+                OldValues: JsonSerializer.Serialize(oldValues),
+                NewValues: JsonSerializer.Serialize(newValues)
+            ), cancellationToken);
+        }
+
         return Result.Success();
     }
 
@@ -182,11 +231,28 @@ public class RoleService : IRoleService
             return validation;
         }
 
+        var oldValues = new
+        {
+            role.Name,
+            role.Description
+        };
+
         var result = await _roleManager.DeleteAsync(role);
         if (!result.Succeeded)
         {
             var errors = string.Join("; ", result.Errors.Select(e => e.Description));
             return Result.Failure(errors);
+        }
+
+        if (_auditWriter != null)
+        {
+            await _auditWriter.WriteAsync(new AuditLogEntry(
+                Action: "DELETE",
+                EntityName: "Role",
+                EntityId: role.Id.ToString(),
+                OldValues: JsonSerializer.Serialize(oldValues),
+                NewValues: null
+            ), cancellationToken);
         }
 
         return Result.Success();

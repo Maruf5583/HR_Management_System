@@ -22,6 +22,63 @@ namespace Hrms.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("Hrms.Audit.Domain.Entities.AuditLog", b =>
+                {
+                    b.Property<long>("AuditLogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("AuditLogId"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("EntityId")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<string>("NewValues")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OldValues")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("AuditLogId")
+                        .HasName("PK_AuditLogs");
+
+                    b.HasIndex("EntityName", "EntityId")
+                        .HasDatabaseName("IX_AuditLogs_Entity");
+
+                    b.HasIndex("UserId", "CreatedAtUtc")
+                        .HasDatabaseName("IX_AuditLogs_User_Date");
+
+                    b.ToTable("AuditLogs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AuditLogs_NewJson", "[NewValues] IS NULL OR ISJSON([NewValues]) = 1");
+
+                            t.HasCheckConstraint("CK_AuditLogs_OldJson", "[OldValues] IS NULL OR ISJSON([OldValues]) = 1");
+                        });
+                });
+
             modelBuilder.Entity("Hrms.Employees.Domain.Entities.Department", b =>
                 {
                     b.Property<Guid>("DepartmentId")

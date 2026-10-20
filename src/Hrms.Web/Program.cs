@@ -1,3 +1,5 @@
+using Hrms.Audit;
+using Hrms.Audit.Application.Abstractions;
 using Hrms.Employees;
 using Hrms.Employees.Application.Abstractions;
 using Hrms.Identity;
@@ -22,12 +24,11 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 builder.Services.AddScoped<AuditableEntityInterceptor>();
+builder.Services.AddScoped<AuditLogInterceptor>();
 
-builder.Services.AddDbContext<HrmsDbContext>((sp, options) =>
+builder.Services.AddDbContext<HrmsDbContext>(options =>
 {
-    var interceptor = sp.GetRequiredService<AuditableEntityInterceptor>();
-    options.UseSqlServer(connectionString)
-           .AddInterceptors(interceptor);
+    options.UseSqlServer(connectionString);
 });
 
 // Identity Core & Cookie Auth
@@ -93,6 +94,10 @@ builder.Services.AddEmployeesModule();
 // Settings module services
 builder.Services.AddScoped<ISettingsDbContext>(sp => sp.GetRequiredService<HrmsDbContext>());
 builder.Services.AddSettingsModule();
+
+// Audit module services
+builder.Services.AddScoped<IAuditDbContext>(sp => sp.GetRequiredService<HrmsDbContext>());
+builder.Services.AddAuditModule();
 
 // Seeder
 builder.Services.AddScoped<IdentitySeeder>();

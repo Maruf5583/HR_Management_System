@@ -1,0 +1,411 @@
+@model AuditLogIndexViewModel
+@{
+    ViewData["Title"] = "Audit Logs";
+}
+@functions {
+    public static string DisplayIp(string? ip)
+    {
+        if (string.IsNullOrWhiteSpace(ip)) return "N/A";
+        if (ip == "::1" || ip == "0:0:0:0:0:0:0:1") return "127.0.0.1";
+        if (ip.StartsWith("::ffff:")) return ip[7..];
+        return ip;
+    }
+}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-2">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-clock-history me-2 text-primary"></i>Audit Trail</h4>
+        <p class="text-muted small mb-0">Append-only compliance log tracking security events, entity mutations, and operational activities.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">
+            <i class="bi bi-shield-lock-fill me-1"></i> Total Records: @Model.Logs.TotalCount
+        </span>
+    </div>
+</div>
+
+<!-- Search and Filter Form -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">From Date</label>
+                <input type="date" name="DateFrom" value="@(Model.Filter.DateFrom?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">To Date</label>
+                <input type="date" name="DateTo" value="@(Model.Filter.DateTo?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Entity</label>
+                <select name="EntityName" asp-items="Model.AvailableEntities" class="form-select form-select-sm">
+                    <option value="">-- All Entities --</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Action</label>
+                <select name="Action" asp-items="Model.AvailableActions" class="form-select form-select-sm">
+                    <option value="">-- All Actions --</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Search</label>
+                <input type="text" name="SearchTerm" value="@Model.Filter.SearchTerm" class="form-control form-control-sm" placeholder="ID, IP, keyword..." />
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary w-100">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                    Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Audit Log Table -->
+<div class="card border-0 shadow-sm" style="border-radius: 12px;">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Timestamp (UTC)</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Entity</th>
+                        <th>Entity ID</th>
+                        <th>IP Address</th>
+                        <th class="text-end pe-4">Payload & Diff</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Logs.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                No audit log records found matching criteria.
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var log in Model.Logs.Items)
+                    {
+                        var userEmail = log.UserId.HasValue && Model.UserDisplayNames.TryGetValue(log.UserId.Value, out var email)
+                            ? email
+                            : (log.UserId.HasValue ? log.UserId.Value.ToString() : "System / Anonymous");
+
+                        <tr>
+                            <td class="ps-4 font-monospace small text-dark">
+                                @log.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm:ss")
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-person-circle text-muted"></i>
+                                    <span class="small fw-medium text-dark text-truncate" style="max-width: 200px;" title="@userEmail">
+                                        @userEmail
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                @switch (log.Action.ToUpperInvariant())
+                                {
+                                    case "CREATE":
+                                    case "INSERT":
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">@log.Action</span>
+                                        break;
+                                    case "UPDATE":
+                                    case "MODIFY":
+                                    case "UPDATE_PHOTO":
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle">@log.Action</span>
+                                        break;
+                                    case "DELETE":
+                                    case "REMOVE_PHOTO":
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">@log.Action</span>
+                                        break;
+                                    case "STATUS_CHANGE":
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">@log.Action</span>
+                                        break;
+                                    case "LOGIN":
+                                    case "LOGOUT":
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">@log.Action</span>
+                                        break;
+                                    default:
+                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">@log.Action</span>
+                                        break;
+                                }
+                            </td>
+                            <td>
+                                <span class="fw-semibold text-dark">@log.EntityName</span>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(log.EntityId))
+                                {
+                                    <span class="badge bg-light text-dark font-monospace border">@log.EntityId</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">&mdash;</span>
+                                }
+                            </td>
+                            <td class="font-monospace small text-muted">
+                                @DisplayIp(log.IpAddress)
+                            </td>
+                            <td class="text-end pe-4">
+                                <button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
+                                        onclick="openAuditDetails(@log.AuditLogId)">
+                                    <i class="bi bi-file-earmark-diff"></i> Details
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        @if (Model.Logs.TotalPages > 1)
+        {
+            <div class="d-flex justify-content-between align-items-center p-3 border-top">
+                <small class="text-muted">
+                    Showing @(((Model.Logs.PageNumber - 1) * Model.Logs.PageSize) + (Model.Logs.Items.Count > 0 ? 1 : 0)) to
+                    @(((Model.Logs.PageNumber - 1) * Model.Logs.PageSize) + Model.Logs.Items.Count) of @Model.Logs.TotalCount records
+                </small>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(!Model.Logs.HasPreviousPage ? "disabled" : "")">
+                            <a class="page-link" asp-action="Index"
+                               asp-route-PageNumber="@(Model.Logs.PageNumber - 1)"
+                               asp-route-PageSize="@Model.Filter.PageSize"
+                               asp-route-DateFrom="@(Model.Filter.DateFrom?.ToString("yyyy-MM-dd"))"
+                               asp-route-DateTo="@(Model.Filter.DateTo?.ToString("yyyy-MM-dd"))"
+                               asp-route-EntityName="@Model.Filter.EntityName"
+                               asp-route-Action="@Model.Filter.Action"
+                               asp-route-SearchTerm="@Model.Filter.SearchTerm">Previous</a>
+                        </li>
+                        <li class="page-item disabled">
+                            <span class="page-link">Page @Model.Logs.PageNumber of @Model.Logs.TotalPages</span>
+                        </li>
+                        <li class="page-item @(!Model.Logs.HasNextPage ? "disabled" : "")">
+                            <a class="page-link" asp-action="Index"
+                               asp-route-PageNumber="@(Model.Logs.PageNumber + 1)"
+                               asp-route-PageSize="@Model.Filter.PageSize"
+                               asp-route-DateFrom="@(Model.Filter.DateFrom?.ToString("yyyy-MM-dd"))"
+                               asp-route-DateTo="@(Model.Filter.DateTo?.ToString("yyyy-MM-dd"))"
+                               asp-route-EntityName="@Model.Filter.EntityName"
+                               asp-route-Action="@Model.Filter.Action"
+                               asp-route-SearchTerm="@Model.Filter.SearchTerm">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Audit Details & Diff Modal -->
+<div class="modal fade" id="auditDetailsModal" tabindex="-1" aria-labelledby="auditDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 14px;">
+            <div class="modal-header border-bottom py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary text-white p-2 rounded-3"><i class="bi bi-shield-check"></i></span>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="auditDetailsModalLabel">Audit Log Record #<span id="modalAuditLogId"></span></h5>
+                        <small class="text-muted" id="modalSubTitle">Loading record details...</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Loading Spinner -->
+                <div id="modalLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted small mt-2">Loading audit payload...</p>
+                </div>
+
+                <!-- Modal Content -->
+                <div id="modalContent" class="d-none">
+                    <!-- Metadata Strip -->
+                    <div class="row g-3 p-3 bg-light rounded-3 mb-4 border">
+                        <div class="col-md-3">
+                            <span class="text-muted small d-block">Entity & ID</span>
+                            <strong class="text-dark" id="modalEntity"></strong>
+                            <span class="badge bg-white text-dark border font-monospace ms-1" id="modalEntityId"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted small d-block">Action</span>
+                            <span id="modalActionBadge"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted small d-block">Performed By</span>
+                            <span class="text-dark fw-medium" id="modalUserEmail"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted small d-block">Timestamp (UTC) / IP</span>
+                            <span class="font-monospace small text-dark d-block" id="modalTimestamp"></span>
+                            <small class="text-muted font-monospace" id="modalIpAddress"></small>
+                        </div>
+                    </div>
+
+                    <!-- Changes Table (Clean Single View) -->
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-table me-1 text-primary"></i> Changes Table</h6>
+                    </div>
+                    <div class="table-responsive border rounded-3">
+                        <table class="table table-hover align-middle mb-0" id="diffTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 25%;">Property / Field</th>
+                                    <th style="width: 37.5%;" class="text-danger">Previous Value (Old)</th>
+                                    <th style="width: 37.5%;" class="text-success">Current Value (New)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="diffTableBody">
+                                <!-- Dynamically generated rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let auditModalInstance = null;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalEl = document.getElementById('auditDetailsModal');
+        if (modalEl) {
+            auditModalInstance = new bootstrap.Modal(modalEl);
+        }
+    });
+
+    function formatJson(val) {
+        if (!val) return 'None';
+        try {
+            const parsed = typeof val === 'string' ? JSON.parse(val) : val;
+            return JSON.stringify(parsed, null, 2);
+        } catch {
+            return val;
+        }
+    }
+
+    function safeParseJson(val) {
+        if (!val) return null;
+        try {
+            return typeof val === 'string' ? JSON.parse(val) : val;
+        } catch {
+            return null;
+        }
+    }
+
+    function openAuditDetails(id) {
+        if (!auditModalInstance) return;
+
+        document.getElementById('modalLoading').classList.remove('d-none');
+        document.getElementById('modalContent').classList.add('d-none');
+        document.getElementById('modalAuditLogId').innerText = id;
+        document.getElementById('modalSubTitle').innerText = 'Loading record details...';
+
+        auditModalInstance.show();
+
+        fetch(`/Audit/Audit/Details/${id}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Failed to load audit details.');
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('modalAuditLogId').innerText = data.auditLogId;
+            document.getElementById('modalSubTitle').innerText = `${data.entityName} &bull; ${data.action} by ${data.userEmail}`;
+            document.getElementById('modalEntity').innerText = data.entityName;
+            document.getElementById('modalEntityId').innerText = data.entityId || 'N/A';
+            document.getElementById('modalUserEmail').innerText = data.userEmail;
+            document.getElementById('modalTimestamp').innerText = data.createdAtUtc;
+            document.getElementById('modalIpAddress').innerText = `IP: ${data.ipAddress}`;
+
+            // Action Badge
+            const actionUpper = (data.action || '').toUpperCase();
+            let badgeClass = 'bg-secondary-subtle text-secondary';
+            if (actionUpper === 'CREATE' || actionUpper === 'INSERT') badgeClass = 'bg-success-subtle text-success';
+            else if (actionUpper === 'UPDATE' || actionUpper === 'MODIFY' || actionUpper === 'UPDATE_PHOTO') badgeClass = 'bg-info-subtle text-info';
+            else if (actionUpper === 'DELETE' || actionUpper === 'REMOVE_PHOTO') badgeClass = 'bg-danger-subtle text-danger';
+            else if (actionUpper === 'STATUS_CHANGE') badgeClass = 'bg-warning-subtle text-warning';
+            else if (actionUpper === 'LOGIN' || actionUpper === 'LOGOUT') badgeClass = 'bg-primary-subtle text-primary';
+            document.getElementById('modalActionBadge').innerHTML = `<span class="badge ${badgeClass} border">${data.action}</span>`;
+
+            // Populate Changes Table
+            const oldObj = safeParseJson(data.oldValues) || {};
+            const newObj = safeParseJson(data.newValues) || {};
+            const resolvedNames = data.resolvedNames || {};
+
+            function renderFormattedCell(rawVal) {
+                if (rawVal === undefined || rawVal === null) {
+                    return '<span class="text-muted fst-italic">None</span>';
+                }
+                if (typeof rawVal === 'string') {
+                    const cleanKey = rawVal.trim();
+                    if (resolvedNames[cleanKey]) {
+                        return `<span class="fw-bold text-dark">${resolvedNames[cleanKey]}</span> <small class="text-muted font-monospace d-block">(${cleanKey})</small>`;
+                    }
+                    return rawVal;
+                }
+                return JSON.stringify(rawVal);
+            }
+
+            const allKeys = Array.from(new Set([...Object.keys(oldObj), ...Object.keys(newObj)])).sort();
+            const tbody = document.getElementById('diffTableBody');
+            tbody.innerHTML = '';
+
+            if (allKeys.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="text-center py-4 text-muted">No structured JSON payload attached to this record.</td></tr>`;
+            } else {
+                allKeys.forEach(key => {
+                    const hasOld = oldObj.hasOwnProperty(key);
+                    const hasNew = newObj.hasOwnProperty(key);
+                    const oldVal = hasOld ? renderFormattedCell(oldObj[key]) : '<span class="text-muted fst-italic">None</span>';
+                    const newVal = hasNew ? renderFormattedCell(newObj[key]) : '<span class="text-muted fst-italic">None</span>';
+                    const isChanged = hasOld && hasNew && JSON.stringify(oldObj[key]) !== JSON.stringify(newObj[key]);
+                    const isAdded = !hasOld && hasNew;
+                    const isRemoved = hasOld && !hasNew;
+
+                    let rowClass = '';
+                    if (isChanged) rowClass = 'table-warning';
+                    else if (isAdded) rowClass = 'table-success';
+                    else if (isRemoved) rowClass = 'table-danger';
+
+                    const row = document.createElement('tr');
+                    if (rowClass) row.className = rowClass;
+                    row.innerHTML = `
+                        <td class="font-monospace fw-semibold">${key}</td>
+                        <td class="font-monospace small ${isRemoved ? 'text-danger fw-bold' : ''}">${oldVal}</td>
+                        <td class="font-monospace small ${isAdded ? 'text-success fw-bold' : ''}">${newVal}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            document.getElementById('modalLoading').classList.add('d-none');
+            document.getElementById('modalContent').classList.remove('d-none');
+        })
+        .catch(err => {
+            document.getElementById('modalLoading').innerHTML = `
+                <div class="text-danger py-4">
+                    <i class="bi bi-exclamation-triangle fs-2 d-block mb-2"></i>
+                    <span>Failed to retrieve audit log details. Please try again.</span>
+                </div>
+            `;
+        });
+    }
+</script>
+}

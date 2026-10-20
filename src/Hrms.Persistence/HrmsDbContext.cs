@@ -1,3 +1,5 @@
+using Hrms.Audit.Application.Abstractions;
+using Hrms.Audit.Domain.Entities;
 using Hrms.Employees.Application.Abstractions;
 using Hrms.Employees.Domain.Entities;
 using Hrms.Identity.Domain.Entities;
@@ -9,16 +11,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Hrms.Persistence;
 
-public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>, IEmployeesDbContext, ISettingsDbContext
+public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>, IEmployeesDbContext, ISettingsDbContext, IAuditDbContext
 {
     private readonly AuditableEntityInterceptor? _auditableEntityInterceptor;
+    private readonly AuditLogInterceptor? _auditLogInterceptor;
 
     public HrmsDbContext(
         DbContextOptions<HrmsDbContext> options,
-        AuditableEntityInterceptor? auditableEntityInterceptor = null)
+        AuditableEntityInterceptor? auditableEntityInterceptor = null,
+        AuditLogInterceptor? auditLogInterceptor = null)
         : base(options)
     {
         _auditableEntityInterceptor = auditableEntityInterceptor;
+        _auditLogInterceptor = auditLogInterceptor;
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -26,6 +31,11 @@ public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
         if (_auditableEntityInterceptor != null)
         {
             optionsBuilder.AddInterceptors(_auditableEntityInterceptor);
+        }
+
+        if (_auditLogInterceptor != null)
+        {
+            optionsBuilder.AddInterceptors(_auditLogInterceptor);
         }
 
         base.OnConfiguring(optionsBuilder);
@@ -36,6 +46,7 @@ public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
     public DbSet<Grade> Grades => Set<Grade>();
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<Setting> Settings => Set<Setting>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

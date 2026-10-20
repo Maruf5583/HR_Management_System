@@ -12,5 +12,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\Hrms.Shared\Hrms.Shared.csproj" />
     <ProjectReference Include="..\Hrms.Settings.Contracts\Hrms.Settings.Contracts.csproj" />
+    <ProjectReference Include="..\..\Audit\Hrms.Audit.Contracts\Hrms.Audit.Contracts.csproj" />
   </ItemGroup>
 </Project>
