@@ -1,5 +1,7 @@
 using Hrms.Audit;
 using Hrms.Audit.Application.Abstractions;
+using Hrms.Calendar;
+using Hrms.Calendar.Application.Abstractions;
 using Hrms.Employees;
 using Hrms.Employees.Application.Abstractions;
 using Hrms.Identity;
@@ -99,6 +101,10 @@ builder.Services.AddSettingsModule();
 builder.Services.AddScoped<IAuditDbContext>(sp => sp.GetRequiredService<HrmsDbContext>());
 builder.Services.AddAuditModule();
 
+// Calendar module services
+builder.Services.AddScoped<ICalendarDbContext>(sp => sp.GetRequiredService<HrmsDbContext>());
+builder.Services.AddCalendarModule();
+
 // Seeder
 builder.Services.AddScoped<IdentitySeeder>();
 
@@ -107,19 +113,22 @@ builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-// Seeding on startup
+// Migration & Seeding on startup
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var logger = services.GetRequiredService<ILogger<Program>>();
     try
     {
+        var dbContext = services.GetRequiredService<HrmsDbContext>();
+        await dbContext.Database.MigrateAsync();
+
         var seeder = services.GetRequiredService<IdentitySeeder>();
         await seeder.SeedAsync();
     }
     catch (Exception ex)
     {
-        logger.LogWarning(ex, "Database seeding was skipped or database is not reachable at startup.");
+        logger.LogWarning(ex, "Database migration/seeding was skipped or database is not reachable at startup.");
     }
 }
 
@@ -143,6 +152,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Route configuration
 app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
@@ -152,6 +162,3 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
-
-// For integration testing support
-public partial class Program { }

@@ -1,0 +1,77 @@
+@model ShiftCreateViewModel
+@{
+    ViewData["Title"] = "Create Shift";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="d-flex align-items-center mb-4">
+            <a asp-action="Index" class="btn btn-light btn-sm border me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h4 class="fw-bold mb-0"><i class="bi bi-clock me-2 text-primary"></i>Create New Shift</h4>
+                <p class="text-muted small mb-0">Define shift details and initial operational schedule timings</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+            <div class="card-body p-4">
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 small mb-3"></div>
+
+                    <div class="mb-4">
+                        <label asp-for="Name" class="form-label fw-semibold small">Shift Name <span class="text-danger">*</span></label>
+                        <input asp-for="Name" class="form-control form-control-lg" placeholder="e.g. Regular Day Shift, Night Operational Shift" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                        <div class="form-text">Choose a unique, descriptive identifier for this shift schedule.</div>
+                    </div>
+
+                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                        <i class="bi bi-stopwatch text-primary me-2"></i>Timing Version Configuration
+                    </h6>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="StartTime" class="form-label fw-semibold small">Start Time <span class="text-danger">*</span></label>
+                            <input asp-for="StartTime" type="time" class="form-control" />
+                            <span asp-validation-for="StartTime" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="EndTime" class="form-label fw-semibold small">End Time <span class="text-danger">*</span></label>
+                            <input asp-for="EndTime" type="time" class="form-control" />
+                            <span asp-validation-for="EndTime" class="text-danger small"></span>
+                            <div class="form-text" style="font-size: 0.75rem;">Setting End Time earlier than Start Time defines an overnight / cross-midnight shift.</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label asp-for="GraceMinutes" class="form-label fw-semibold small">Grace Period (Minutes)</label>
+                            <input asp-for="GraceMinutes" type="number" min="0" max="360" class="form-control" />
+                            <span asp-validation-for="GraceMinutes" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="BreakMinutes" class="form-label fw-semibold small">Break Duration (Minutes)</label>
+                            <input asp-for="BreakMinutes" type="number" min="0" max="360" class="form-control" />
+                            <span asp-validation-for="BreakMinutes" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="EffectiveFrom" class="form-label fw-semibold small">Effective From <span class="text-danger">*</span></label>
+                            <input asp-for="EffectiveFrom" type="date" class="form-control" />
+                            <span asp-validation-for="EffectiveFrom" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <a asp-action="Index" class="btn btn-light px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold shadow-sm">
+                            <i class="bi bi-save me-1"></i>Create Shift
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Hrms.Audit.Domain.Entities;
 using Hrms.Audit.Infrastructure.Common;
+using Hrms.Calendar.Domain.Entities;
 using Hrms.Employees.Domain.Entities;
 using Hrms.Shared.Abstractions;
 using Microsoft.EntityFrameworkCore;
@@ -173,7 +174,8 @@ public class AuditLogInterceptor : SaveChangesInterceptor
 
     private static bool IsAuditableDomainEntity(object entity)
     {
-        return entity is Employee or Department or Designation or Grade;
+        return entity is Employee or Department or Designation or Grade
+            or Shift or ShiftVersion or ShiftAssignment or Holiday or CompanyWorkingDay;
     }
 
     private static string GetEntityName(object entity) => entity switch
@@ -182,6 +184,11 @@ public class AuditLogInterceptor : SaveChangesInterceptor
         Designation => "Designation",
         Grade => "Grade",
         Employee => "Employee",
+        Shift => "Shift",
+        ShiftVersion => "ShiftVersion",
+        ShiftAssignment => "ShiftAssignment",
+        Holiday => "Holiday",
+        CompanyWorkingDay => "CompanyWorkingDay",
         _ => entity.GetType().Name
     };
 
@@ -191,6 +198,11 @@ public class AuditLogInterceptor : SaveChangesInterceptor
         Designation des => des.DesignationId.ToString(),
         Grade g => g.GradeId.ToString(),
         Employee e => e.EmployeeId.ToString(),
+        Shift s => s.ShiftId.ToString(),
+        ShiftVersion sv => sv.ShiftVersionId.ToString(),
+        ShiftAssignment sa => sa.ShiftAssignmentId.ToString(),
+        Holiday h => h.HolidayId.ToString(),
+        CompanyWorkingDay cwd => cwd.CompanyWorkingDayId.ToString(),
         _ => null
     };
 
