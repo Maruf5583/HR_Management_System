@@ -1,0 +1,65 @@
+@model ShiftEditViewModel
+@{
+    ViewData["Title"] = $"Edit Shift - {Model.Name}";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="d-flex align-items-center mb-4">
+            <a asp-action="Index" class="btn btn-light btn-sm border me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h4 class="fw-bold mb-0"><i class="bi bi-pencil-square me-2 text-primary"></i>Edit Work Shift</h4>
+                <p class="text-muted small mb-0">Update organizational work shift details</p>
+            </div>
+        </div>
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+            <div class="card-body p-4">
+                <form asp-action="Edit" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="ShiftId" />
+
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 small mb-3"></div>
+
+                    <div class="mb-4">
+                        <label asp-for="Name" class="form-label fw-semibold small">Shift Name <span class="text-danger">*</span></label>
+                        <input asp-for="Name" class="form-control form-control-lg fs-6" placeholder="e.g. Day Shift, Night Shift, Morning Roster" required />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                        <div class="form-text small">Use a clear, descriptive shift name for your organization.</div>
+                    </div>
+
+                    <div class="p-3 bg-light rounded mb-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="fw-semibold small d-block">Current Status</span>
+                                <span class="badge @(Model.Status == ShiftStatus.Active ? "bg-success-subtle text-success border border-success-subtle" : "bg-secondary-subtle text-secondary border") px-2 py-1">
+                                    @Model.Status
+                                </span>
+                            </div>
+                            <a asp-action="Details" asp-route-id="@Model.ShiftId" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-layers me-1"></i>Manage Timings & Versions
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                        <a asp-action="Index" class="btn btn-light px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold shadow-sm">
+                            <i class="bi bi-check-lg me-1"></i>Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,332 @@
+@model AssignShiftViewModel
+@{
+    ViewData["Title"] = "Assign Employee to Shift";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="d-flex align-items-center mb-4">
+            <a asp-action="Index" class="btn btn-light btn-sm border me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h4 class="fw-bold mb-0"><i class="bi bi-person-plus me-2 text-primary"></i>Assign Shift</h4>
+                <p class="text-muted small mb-0">Assign an employee to a scheduled organizational work shift</p>
+            </div>
+        </div>
+
+        @if (!Model.AvailableShifts.Any())
+        {
+            <div class="alert alert-warning border-0 shadow-sm p-4 mb-4" style="border-radius: 12px;">
+                <div class="d-flex gap-3">
+                    <i class="bi bi-exclamation-triangle-fill fs-2 text-warning"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">No Active Work Shifts Available</h6>
+                        <p class="small text-muted mb-3">To assign employees, you need at least one Active shift. Existing shifts may currently be Inactive or no shifts have been created yet.</p>
+                        <a asp-controller="Shifts" asp-action="Index" class="btn btn-sm btn-primary">
+                            <i class="bi bi-clock-history me-1"></i>Manage & Activate Shifts
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+            <div class="card-body p-4">
+                <form asp-action="Assign" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 small mb-3"></div>
+
+                    <!-- Department Dropdown Menu -->
+                    <div class="mb-3">
+                        <label for="departmentSelect" class="form-label fw-semibold small">
+                            <i class="bi bi-building me-1 text-primary"></i>Department <span class="text-danger">*</span>
+                        </label>
+                        <select id="departmentSelect" class="form-select">
+                            <option value="">-- All Departments (@Model.AvailableEmployees.Count Total Employees) --</option>
+                            @foreach (var dept in Model.AvailableDepartments)
+                            {
+                                var deptEmpCount = Model.AvailableEmployees.Count(e => e.DepartmentId == dept.DepartmentId);
+                                <option value="@dept.DepartmentId" selected="@(dept.DepartmentId == Model.SelectedDepartmentId)">
+                                    @dept.Name (@deptEmpCount Employees)
+                                </option>
+                            }
+                        </select>
+                        <div class="form-text text-muted" style="font-size: 0.75rem;">
+                            Select a department to view and choose its employees.
+                        </div>
+                    </div>
+
+                    <!-- Department Overview Banner when All Departments is active -->
+                    <div id="allDeptNotice" class="alert alert-light border shadow-sm p-3 mb-3" style="border-radius: 10px;">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-people fs-4 text-primary"></i>
+                            <div class="small">
+                                <span class="fw-semibold text-dark">All Departments:</span>
+                                Total <span class="badge bg-primary text-white">@Model.AvailableEmployees.Count</span> active employees across @Model.AvailableDepartments.Count departments.
+                                <div class="text-muted" style="font-size: 0.75rem;">Please select a department above to show its employees, or search by Name / ID.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Employee Search by Name or ID -->
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label for="employeeSearchInput" class="form-label fw-semibold small mb-0">
+                                <i class="bi bi-search me-1 text-primary"></i>Search Employee
+                            </label>
+                            <span id="employeeMatchBadge" class="badge bg-light text-muted border fw-normal" style="font-size: 0.72rem;">
+                                <span id="filteredCount">0</span> available
+                            </span>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                            <input type="text" id="employeeSearchInput" class="form-control border-start-0"
+                                   placeholder="Search by Employee Name or ID (e.g. EMP-001)..." autocomplete="off" />
+                            <button type="button" class="btn btn-outline-secondary" id="clearSearchBtn" title="Clear Search" style="display: none;">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Employee Selection Dropdown -->
+                    <div class="mb-3">
+                        <label asp-for="EmployeeId" class="form-label fw-semibold small">
+                            <i class="bi bi-person-check me-1 text-primary"></i>Employee <span class="text-danger">*</span>
+                        </label>
+                        <select asp-for="EmployeeId" id="employeeSelect" class="form-select">
+                            <option value="">-- Please select a Department first --</option>
+                            @foreach (var e in Model.AvailableEmployees)
+                            {
+                                <option value="@e.EmployeeId"
+                                        data-department-id="@e.DepartmentId"
+                                        data-department-name="@e.DepartmentName"
+                                        data-code="@e.EmployeeCode"
+                                        data-name="@e.FullName"
+                                        selected="@(e.EmployeeId == Model.EmployeeId)">
+                                    @e.FullName — ID: @e.EmployeeCode [@e.DepartmentName]
+                                </option>
+                            }
+                        </select>
+                        <span asp-validation-for="EmployeeId" class="text-danger small"></span>
+
+                        <div id="noEmployeesWarning" class="alert alert-warning py-2 px-3 small border-0 mt-2 d-none">
+                            <i class="bi bi-info-circle me-1"></i>No employees found for this department or search query.
+                        </div>
+                    </div>
+
+                    <!-- Selected Employee Confirmation Card -->
+                    <div id="selectedEmployeeCard" class="p-3 rounded bg-primary-subtle border border-primary-subtle mb-3 @(Model.EmployeeId != Guid.Empty ? "" : "d-none")">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                                    <i class="bi bi-person-check fs-4"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark fs-6" id="cardEmpName">@Model.SelectedEmployeeName</div>
+                                    <div class="small text-muted">
+                                        <span>Employee ID: <strong class="text-primary font-monospace" id="cardEmpCode">@Model.SelectedEmployeeCode</strong></span>
+                                        <span class="mx-2">•</span>
+                                        <span>Department: <span id="cardEmpDept" class="fw-semibold text-dark">@Model.SelectedEmployeeDept</span></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="badge bg-success text-white px-2 py-1 small">
+                                <i class="bi bi-check-circle me-1"></i>Selected
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="ShiftId" class="form-label fw-semibold small">Target Work Shift <span class="text-danger">*</span></label>
+                        <select asp-for="ShiftId" class="form-select">
+                            <option value="">-- Select Shift --</option>
+                            @foreach (var s in Model.AvailableShifts)
+                            {
+                                var v = s.CurrentVersion;
+                                var timing = v != null ? $"{DateTime.Today.Add(v.StartTime):hh:mm tt} - {DateTime.Today.Add(v.EndTime):hh:mm tt}" : "";
+                                <option value="@s.ShiftId" selected="@(s.ShiftId == Model.ShiftId)">@s.Name (@timing)</option>
+                            }
+                        </select>
+                        <span asp-validation-for="ShiftId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label asp-for="EffectiveFrom" class="form-label fw-semibold small">Effective From <span class="text-danger">*</span></label>
+                            <input asp-for="EffectiveFrom" type="date" class="form-control" />
+                            <span asp-validation-for="EffectiveFrom" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="EffectiveTo" class="form-label fw-semibold small">Effective To (Optional)</label>
+                            <input asp-for="EffectiveTo" type="date" class="form-control" />
+                            <span asp-validation-for="EffectiveTo" class="text-danger small"></span>
+                            <div class="form-text" style="font-size: 0.75rem;">Leave empty for ongoing/open assignment.</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                        <a asp-action="Index" class="btn btn-light px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold shadow-sm" @(!Model.AvailableShifts.Any() ? "disabled" : "")>
+                            <i class="bi bi-check-lg me-1"></i>Save Assignment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var deptSelect = document.getElementById('departmentSelect');
+        var allDeptNotice = document.getElementById('allDeptNotice');
+        var searchInput = document.getElementById('employeeSearchInput');
+        var clearBtn = document.getElementById('clearSearchBtn');
+        var empSelect = document.getElementById('employeeSelect');
+        var countSpan = document.getElementById('filteredCount');
+        var noWarning = document.getElementById('noEmployeesWarning');
+        var card = document.getElementById('selectedEmployeeCard');
+        var cardName = document.getElementById('cardEmpName');
+        var cardCode = document.getElementById('cardEmpCode');
+        var cardDept = document.getElementById('cardEmpDept');
+
+        // Extract employee data list
+        var allEmployees = [];
+        Array.from(empSelect.options).forEach(function (opt) {
+            if (opt.value) {
+                allEmployees.push({
+                    id: opt.value,
+                    deptId: opt.getAttribute('data-department-id') || '',
+                    deptName: opt.getAttribute('data-department-name') || '',
+                    code: opt.getAttribute('data-code') || '',
+                    name: opt.getAttribute('data-name') || '',
+                    text: opt.textContent.trim(),
+                    selected: opt.selected
+                });
+            }
+        });
+
+        var preSelectedEmployeeId = '@(Model.EmployeeId != Guid.Empty ? Model.EmployeeId.ToString() : "")';
+
+        function updateView() {
+            var selectedDept = deptSelect.value;
+            var selectedDeptName = deptSelect.options[deptSelect.selectedIndex]?.text || '';
+            var query = searchInput.value.trim().toLowerCase();
+            clearBtn.style.display = query.length > 0 ? 'inline-block' : 'none';
+
+            var currentSelectedId = empSelect.value || preSelectedEmployeeId;
+
+            // If All Departments is chosen AND no search term is entered:
+            // Do NOT dump all employee names. Show summary notice and prompt.
+            if (!selectedDept && !query) {
+                allDeptNotice.classList.remove('d-none');
+                countSpan.textContent = '0';
+                empSelect.innerHTML = '<option value="">-- Please select a Department first (Total ' + allEmployees.length + ' Employees in organization) --</option>';
+                noWarning.classList.add('d-none');
+
+                if (!currentSelectedId) {
+                    card.classList.add('d-none');
+                }
+                return;
+            }
+
+            // A department is selected OR user is actively searching
+            allDeptNotice.classList.add('d-none');
+
+            var promptText = selectedDept
+                ? '-- Select Employee from ' + selectedDeptName.split('(')[0].trim() + ' --'
+                : '-- Select Matching Employee (' + allEmployees.length + ' Total) --';
+
+            empSelect.innerHTML = '<option value="">' + promptText + '</option>';
+
+            var matchCount = 0;
+            var matchSelected = false;
+
+            allEmployees.forEach(function (emp) {
+                var matchDept = !selectedDept || emp.deptId.toLowerCase() === selectedDept.toLowerCase();
+                var matchQuery = !query || emp.name.toLowerCase().includes(query) || emp.code.toLowerCase().includes(query);
+
+                if (matchDept && matchQuery) {
+                    matchCount++;
+                    var opt = document.createElement('option');
+                    opt.value = emp.id;
+                    opt.setAttribute('data-department-id', emp.deptId);
+                    opt.setAttribute('data-department-name', emp.deptName);
+                    opt.setAttribute('data-code', emp.code);
+                    opt.setAttribute('data-name', emp.name);
+                    opt.textContent = emp.name + ' — ID: ' + emp.code + ' [' + emp.deptName + ']';
+
+                    if (emp.id.toLowerCase() === currentSelectedId.toLowerCase()) {
+                        opt.selected = true;
+                        matchSelected = true;
+                    }
+
+                    empSelect.appendChild(opt);
+                }
+            });
+
+            countSpan.textContent = matchCount;
+
+            if (matchCount === 0) {
+                noWarning.classList.remove('d-none');
+            } else {
+                noWarning.classList.add('d-none');
+            }
+
+            if (matchSelected) {
+                var sel = allEmployees.find(function (e) { return e.id.toLowerCase() === currentSelectedId.toLowerCase(); });
+                if (sel) {
+                    cardName.textContent = sel.name;
+                    cardCode.textContent = sel.code;
+                    cardDept.textContent = sel.deptName;
+                    card.classList.remove('d-none');
+                }
+            } else if (!currentSelectedId) {
+                card.classList.add('d-none');
+            }
+        }
+
+        // On Department change
+        deptSelect.addEventListener('change', function () {
+            updateView();
+        });
+
+        // On Search input
+        searchInput.addEventListener('input', function () {
+            updateView();
+        });
+
+        // Clear Search button
+        clearBtn.addEventListener('click', function () {
+            searchInput.value = '';
+            updateView();
+            searchInput.focus();
+        });
+
+        // On Employee select change
+        empSelect.addEventListener('change', function () {
+            var selectedOpt = empSelect.options[empSelect.selectedIndex];
+            if (selectedOpt && selectedOpt.value) {
+                preSelectedEmployeeId = selectedOpt.value;
+                cardName.textContent = selectedOpt.getAttribute('data-name');
+                cardCode.textContent = selectedOpt.getAttribute('data-code');
+                cardDept.textContent = selectedOpt.getAttribute('data-department-name');
+                card.classList.remove('d-none');
+
+                var empDeptId = selectedOpt.getAttribute('data-department-id');
+                if (!deptSelect.value && empDeptId) {
+                    deptSelect.value = empDeptId;
+                }
+            } else {
+                preSelectedEmployeeId = '';
+                card.classList.add('d-none');
+            }
+        });
+
+        // Initial setup
+        updateView();
+    });
+</script>
+}

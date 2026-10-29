@@ -1,0 +1,38 @@
+@{
+    var currentCtrl = ViewContext.RouteData.Values["controller"]?.ToString();
+}
+
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 14px; background: #ffffff;">
+    <div class="card-body p-2">
+        <ul class="nav nav-pills nav-fill gap-2">
+            <li class="nav-item">
+                <a class="nav-link py-2 px-3 fw-semibold d-flex align-items-center justify-content-center gap-2 @(currentCtrl == "Holidays" ? "active shadow-sm" : "text-muted")"
+                   asp-area="Calendar" asp-controller="Holidays" asp-action="Index" style="border-radius: 10px;">
+                    <i class="bi bi-calendar-event fs-5"></i>
+                    <span>Holidays Calendar</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link py-2 px-3 fw-semibold d-flex align-items-center justify-content-center gap-2 @(currentCtrl == "Shifts" ? "active shadow-sm" : "text-muted")"
+                   asp-area="Calendar" asp-controller="Shifts" asp-action="Index" style="border-radius: 10px;">
+                    <i class="bi bi-clock-history fs-5"></i>
+                    <span>Work Shifts</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link py-2 px-3 fw-semibold d-flex align-items-center justify-content-center gap-2 @(currentCtrl == "ShiftAssignments" ? "active shadow-sm" : "text-muted")"
+                   asp-area="Calendar" asp-controller="ShiftAssignments" asp-action="Index" style="border-radius: 10px;">
+                    <i class="bi bi-person-lines-fill fs-5"></i>
+                    <span>Shift Assignments</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link py-2 px-3 fw-semibold d-flex align-items-center justify-content-center gap-2 @(currentCtrl == "WorkingDays" ? "active shadow-sm" : "text-muted")"
+                   asp-area="Calendar" asp-controller="WorkingDays" asp-action="Index" style="border-radius: 10px;">
+                    <i class="bi bi-calendar2-week fs-5"></i>
+                    <span>Working Days & Weekend</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>

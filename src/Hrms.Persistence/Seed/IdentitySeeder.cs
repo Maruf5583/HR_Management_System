@@ -1,3 +1,4 @@
+using Hrms.Calendar.Domain.Entities;
 using System.Security.Claims;
 using Hrms.Employees.Domain.Entities;
 using Hrms.Employees.Domain.Enums;
@@ -43,6 +44,7 @@ public class IdentitySeeder
         await SeedRolesAsync();
         await SeedUsersAsync();
         await SeedEmployeesAndLinkUsersAsync();
+        await SeedWorkingDaysAsync();
     }
 
     private async Task SeedRolesAsync()
@@ -376,5 +378,37 @@ public class IdentitySeeder
             await _dbContext.SaveChangesAsync();
             _logger.LogInformation("Seeded {Count} missing system settings.", toAdd.Count);
         }
+    }
+
+    private async Task SeedWorkingDaysAsync()
+    {
+        if (await _dbContext.CompanyWorkingDays.AnyAsync())
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        var defaultDays = new (byte DayOfWeek, bool IsWorkingDay)[]
+        {
+            (0, true),  // Sunday - Working
+            (1, true),  // Monday - Working
+            (2, true),  // Tuesday - Working
+            (3, true),  // Wednesday - Working
+            (4, true),  // Thursday - Working
+            (5, false), // Friday - Weekend off
+            (6, false)  // Saturday - Weekend off
+        };
+
+        var workingDays = defaultDays.Select(d => new CompanyWorkingDay
+        {
+            CompanyWorkingDayId = Guid.NewGuid(),
+            DayOfWeek = d.DayOfWeek,
+            IsWorkingDay = d.IsWorkingDay,
+            UpdatedAtUtc = now
+        }).ToList();
+
+        await _dbContext.CompanyWorkingDays.AddRangeAsync(workingDays);
+        await _dbContext.SaveChangesAsync();
+        _logger.LogInformation("Seeded 7 default CompanyWorkingDays (Friday and Saturday weekly off).");
     }
 }

@@ -1,0 +1,72 @@
+@model ShiftVersionCreateViewModel
+@{
+    ViewData["Title"] = $"New Timing Version - {Model.ShiftName}";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="d-flex align-items-center mb-4">
+            <a asp-action="Details" asp-route-id="@Model.ShiftId" class="btn btn-light btn-sm border me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h4 class="fw-bold mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Schedule New Timing Version</h4>
+                <p class="text-muted small mb-0">Shift: <strong>@Model.ShiftName</strong></p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+            <div class="card-body p-4">
+                <form asp-action="CreateVersion" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="ShiftId" />
+                    <input type="hidden" asp-for="ShiftName" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 small mb-3"></div>
+
+                    <div class="alert alert-primary py-2 px-3 small border-0 mb-4">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Saving this new timing version will automatically set the previous version's end date to the day before this new version's effective date, ensuring a seamless historical record.
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="StartTime" class="form-label fw-semibold small">Start Time <span class="text-danger">*</span></label>
+                            <input asp-for="StartTime" type="time" class="form-control" />
+                            <span asp-validation-for="StartTime" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="EndTime" class="form-label fw-semibold small">End Time <span class="text-danger">*</span></label>
+                            <input asp-for="EndTime" type="time" class="form-control" />
+                            <span asp-validation-for="EndTime" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label asp-for="GraceMinutes" class="form-label fw-semibold small">Grace Period (Minutes)</label>
+                            <input asp-for="GraceMinutes" type="number" min="0" max="360" class="form-control" />
+                            <span asp-validation-for="GraceMinutes" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="BreakMinutes" class="form-label fw-semibold small">Break Duration (Minutes)</label>
+                            <input asp-for="BreakMinutes" type="number" min="0" max="360" class="form-control" />
+                            <span asp-validation-for="BreakMinutes" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="EffectiveFrom" class="form-label fw-semibold small">Effective From <span class="text-danger">*</span></label>
+                            <input asp-for="EffectiveFrom" type="date" class="form-control" />
+                            <span asp-validation-for="EffectiveFrom" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <a asp-action="Details" asp-route-id="@Model.ShiftId" class="btn btn-light px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold shadow-sm">
+                            <i class="bi bi-save me-1"></i>Save Version
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

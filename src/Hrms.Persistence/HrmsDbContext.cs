@@ -1,5 +1,7 @@
 using Hrms.Audit.Application.Abstractions;
 using Hrms.Audit.Domain.Entities;
+using Hrms.Calendar.Application.Abstractions;
+using Hrms.Calendar.Domain.Entities;
 using Hrms.Employees.Application.Abstractions;
 using Hrms.Employees.Domain.Entities;
 using Hrms.Identity.Domain.Entities;
@@ -11,7 +13,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Hrms.Persistence;
 
-public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>, IEmployeesDbContext, ISettingsDbContext, IAuditDbContext
+public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>,
+    IEmployeesDbContext,
+    ISettingsDbContext,
+    IAuditDbContext,
+    ICalendarDbContext
 {
     private readonly AuditableEntityInterceptor? _auditableEntityInterceptor;
     private readonly AuditLogInterceptor? _auditLogInterceptor;
@@ -48,6 +54,13 @@ public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
     public DbSet<Setting> Settings => Set<Setting>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
+    // Calendar Module
+    public DbSet<CompanyWorkingDay> CompanyWorkingDays => Set<CompanyWorkingDay>();
+    public DbSet<Shift> Shifts => Set<Shift>();
+    public DbSet<ShiftVersion> ShiftVersions => Set<ShiftVersion>();
+    public DbSet<ShiftAssignment> ShiftAssignments => Set<ShiftAssignment>();
+    public DbSet<Holiday> Holidays => Set<Holiday>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -58,15 +71,10 @@ public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
         builder.Entity<ApplicationUser>(b =>
         {
             b.HasOne<Employee>()
-             .WithMany()
-             .HasForeignKey(u => u.EmployeeId)
-             .OnDelete(DeleteBehavior.NoAction)
-             .HasConstraintName("FK_AspNetUsers_Employees");
-
-            b.HasIndex(u => u.EmployeeId)
-             .IsUnique()
-             .HasFilter("[EmployeeId] IS NOT NULL")
-             .HasDatabaseName("UX_AspNetUsers_EmployeeId");
+                .WithMany()
+                .HasForeignKey(u => u.EmployeeId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

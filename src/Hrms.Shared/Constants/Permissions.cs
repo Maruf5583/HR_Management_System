@@ -88,7 +88,6 @@ public static class Permissions
         Attendance.Manage,
         Shifts.Manage,
         Shifts.ViewOwn,
-        Holidays.Manage,
         Holidays.View,
         Leave.ViewOwn,
         Leave.ViewAll,
@@ -111,7 +110,6 @@ public static class Permissions
         {
             Users.Manage,
             Roles.Manage,
-            Holidays.Manage,
             Settings.Manage,
             Audit.View
         })
@@ -128,3 +126,4 @@ public static class Permissions
         Assets.ViewOwn
     };
 }
+

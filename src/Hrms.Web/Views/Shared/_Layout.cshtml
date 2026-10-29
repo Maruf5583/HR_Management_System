@@ -97,6 +97,47 @@
                                 </a>
                             </li>
                         }
+                        @if (CurrentUser.HasPermission(Permissions.Holidays.View) || CurrentUser.HasPermission(Permissions.Shifts.Manage) || CurrentUser.HasPermission(Permissions.Holidays.Manage))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle @(currentArea == "Calendar" ? "active" : "")" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-calendar3"></i> <span>Calendar</span>
+                                </a>
+                                <ul class="dropdown-menu shadow-lg border-0 mt-2 py-2" style="border-radius: 14px; min-width: 220px;">
+                                    <li>
+                                        <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Calendar" asp-controller="Holidays" asp-action="Index">
+                                            <i class="bi bi-calendar-event text-primary"></i>
+                                            <span>Holidays Calendar</span>
+                                        </a>
+                                    </li>
+                                    @if (CurrentUser.HasPermission(Permissions.Shifts.Manage))
+                                    {
+                                        <li>
+                                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Calendar" asp-controller="Shifts" asp-action="Index">
+                                                <i class="bi bi-clock-history text-primary"></i>
+                                                <span>Work Shifts</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Calendar" asp-controller="ShiftAssignments" asp-action="Index">
+                                                <i class="bi bi-person-lines-fill text-primary"></i>
+                                                <span>Shift Assignments</span>
+                                            </a>
+                                        </li>
+                                    }
+                                    @if (CurrentUser.HasPermission(Permissions.Holidays.Manage))
+                                    {
+                                        <li><hr class="dropdown-divider my-1"></li>
+                                        <li>
+                                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Calendar" asp-controller="WorkingDays" asp-action="Index">
+                                                <i class="bi bi-calendar2-week text-primary"></i>
+                                                <span>Working Days & Weekend</span>
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                            </li>
+                        }
                         @if (CurrentUser.HasPermission(Permissions.Users.Manage))
                         {
                             <li class="nav-item">

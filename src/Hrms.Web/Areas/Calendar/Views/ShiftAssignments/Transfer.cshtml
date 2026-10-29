@@ -1,0 +1,79 @@
+@model TransferShiftViewModel
+@{
+    ViewData["Title"] = "Transfer Shift";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="d-flex align-items-center mb-4">
+            <a asp-action="Index" class="btn btn-light btn-sm border me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h4 class="fw-bold mb-0"><i class="bi bi-arrow-left-right me-2 text-primary"></i>Transfer Employee Shift</h4>
+                <p class="text-muted small mb-0">Transition employee to a new work shift schedule</p>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+            <div class="card-body p-4">
+                <form asp-action="Transfer" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="EmployeeId" />
+                    <input type="hidden" asp-for="EmployeeName" />
+                    <input type="hidden" asp-for="CurrentShiftName" />
+                    <input type="hidden" asp-for="CurrentShiftFrom" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger border-0 small mb-3"></div>
+
+                    <div class="p-3 rounded bg-light mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted small">Employee:</span>
+                            <span class="fw-bold text-dark">@Model.EmployeeName</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted small">Current Active Shift:</span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">@Model.CurrentShiftName</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Current Since:</span>
+                            <span class="fw-semibold text-dark">@Model.CurrentShiftFrom.ToString("yyyy-MM-dd")</span>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info py-2 px-3 small border-0 mb-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        The current shift assignment will automatically close on the day before the transfer effective date.
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="NewShiftId" class="form-label fw-semibold small">Transfer to New Shift <span class="text-danger">*</span></label>
+                        <select asp-for="NewShiftId" class="form-select">
+                            <option value="">-- Select New Shift --</option>
+                            @foreach (var s in Model.AvailableShifts)
+                            {
+                                var v = s.CurrentVersion;
+                                var timing = v != null ? $"{DateTime.Today.Add(v.StartTime):hh:mm tt} - {DateTime.Today.Add(v.EndTime):hh:mm tt}" : "";
+                                <option value="@s.ShiftId">@s.Name (@timing)</option>
+                            }
+                        </select>
+                        <span asp-validation-for="NewShiftId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="EffectiveFrom" class="form-label fw-semibold small">Transfer Effective Date <span class="text-danger">*</span></label>
+                        <input asp-for="EffectiveFrom" type="date" class="form-control" min="@Model.CurrentShiftFrom.AddDays(1).ToString("yyyy-MM-dd")" />
+                        <span asp-validation-for="EffectiveFrom" class="text-danger small"></span>
+                        <div class="form-text">Must be after current assignment start date (@Model.CurrentShiftFrom.ToString("yyyy-MM-dd")).</div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                        <a asp-action="Index" class="btn btn-light px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold shadow-sm">
+                            <i class="bi bi-arrow-right-circle me-1"></i>Execute Transfer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
