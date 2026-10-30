@@ -44,41 +44,53 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @for (int i = 0; i < Model.Days.Count; i++)
+                        @if (Model.Days.Count == 0)
                         {
-                            var day = Model.Days[i];
-                            var isWeekend = !day.IsWorkingDay;
-                            <tr id="row-day-@i">
-                                <td class="ps-4">
-                                    <input type="hidden" name="Days[@i].DayOfWeek" value="@day.DayOfWeek" />
-                                    <input type="hidden" name="Days[@i].DayName" value="@day.DayName" />
-                                    <span class="day-label fw-bold fs-6 @(isWeekend ? "text-danger" : "text-dark")">
-                                        <i class="day-icon bi @(isWeekend ? "bi-sun" : "bi-briefcase") me-2"></i>@day.DayName
-                                    </span>
-                                </td>
-                                <td class="indicator-cell">
-                                    @if (day.IsWorkingDay)
-                                    {
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
-                                            <i class="bi bi-check2-circle me-1"></i>Official Working Day
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2">
-                                            <i class="bi bi-pause-circle me-1"></i>Weekly Off (Weekend)
-                                        </span>
-                                    }
-                                </td>
-                                <td class="text-center">
-                                    <div class="form-check form-switch d-inline-block">
-                                        <input class="form-check-input fs-5 day-toggle" type="checkbox" role="switch"
-                                               data-index="@i"
-                                               name="Days[@i].IsWorkingDay" value="true" @(day.IsWorkingDay ? "checked" : "") />
-                                        <input type="hidden" name="Days[@i].IsWorkingDay" value="false" />
-                                    </div>
+                            <tr>
+                                <td colspan="3" class="text-center py-4 text-muted">
+                                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                    Initializing weekly schedule... Please refresh this page.
                                 </td>
                             </tr>
+                        }
+                        else
+                        {
+                            @for (int i = 0; i < Model.Days.Count; i++)
+                            {
+                                var day = Model.Days[i];
+                                var isWeekend = !day.IsWorkingDay;
+                                <tr id="row-day-@i">
+                                    <td class="ps-4">
+                                        <input type="hidden" name="Days[@i].DayOfWeek" value="@day.DayOfWeek" />
+                                        <input type="hidden" name="Days[@i].DayName" value="@day.DayName" />
+                                        <span class="day-label fw-bold fs-6 @(isWeekend ? "text-danger" : "text-dark")">
+                                            <i class="day-icon bi @(isWeekend ? "bi-sun" : "bi-briefcase") me-2"></i>@day.DayName
+                                        </span>
+                                    </td>
+                                    <td class="indicator-cell">
+                                        @if (day.IsWorkingDay)
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                                                <i class="bi bi-check2-circle me-1"></i>Official Working Day
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2">
+                                                <i class="bi bi-pause-circle me-1"></i>Weekly Off (Weekend)
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="form-check form-switch d-inline-block">
+                                            <input class="form-check-input fs-5 day-toggle" type="checkbox" role="switch"
+                                                   data-index="@i"
+                                                   name="Days[@i].IsWorkingDay" value="true" @(day.IsWorkingDay ? "checked" : "") />
+                                            <input type="hidden" name="Days[@i].IsWorkingDay" value="false" />
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
                         }
                     </tbody>
                 </table>
