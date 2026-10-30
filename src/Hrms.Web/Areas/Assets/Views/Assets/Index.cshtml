@@ -1,0 +1,230 @@
+@model PagedResult<AssetListItemDto>
+@{
+    ViewData["Title"] = "Assets Directory";
+    var search = ViewBag.Search as string;
+    var currentCategory = ViewBag.Category as AssetCategory?;
+    var currentStatus = ViewBag.Status as AssetStatus?;
+}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold text-dark mb-1">Company Assets Management</h4>
+        <p class="text-muted small mb-0">Track, allocate, and monitor physical equipment and workplace assets.</p>
+    </div>
+    @if (CurrentUser.HasPermission(Permissions.Assets.Manage))
+    {
+        <a asp-action="Create" class="btn btn-primary-modern">
+            <i class="bi bi-plus-lg"></i>
+            <span>Register New Asset</span>
+        </a>
+    }
+</div>
+
+<!-- Filters Bar -->
+<div class="card-modern p-3 mb-4">
+    <form method="get" class="row g-2 align-items-center">
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" value="@search" class="form-control border-start-0" placeholder="Search by tag, name, or serial..." />
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <select name="category" class="form-select" asp-items="Html.GetEnumSelectList<AssetCategory>()">
+                <option value="">All Categories</option>
+            </select>
+        </div>
+
+        <div class="col-md-3">
+            <select name="status" class="form-select" asp-items="Html.GetEnumSelectList<AssetStatus>()">
+                <option value="">All Statuses</option>
+            </select>
+        </div>
+
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary-modern w-100">
+                <i class="bi bi-funnel"></i> Filter
+            </button>
+            @if (!string.IsNullOrEmpty(search) || currentCategory.HasValue || currentStatus.HasValue)
+            {
+                <a asp-action="Index" class="btn btn-secondary-modern" title="Clear filters">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            }
+        </div>
+    </form>
+</div>
+
+<!-- Assets Table -->
+<div class="card-modern overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-modern">
+            <thead>
+                <tr>
+                    <th>Asset Tag</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Serial Number</th>
+                    <th>Condition</th>
+                    <th>Status</th>
+                    <th>Current Holder</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-laptop fs-1 d-block mb-2 text-slate-400"></i>
+                            <div class="fw-semibold">No assets found</div>
+                            <small>No equipment records match your current filter criteria.</small>
+                        </td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var item in Model.Items)
+                    {
+                        var statusBadgeClass = item.Status switch
+                        {
+                            AssetStatus.Available => "badge-soft-success",
+                            AssetStatus.Assigned => "badge-soft-primary",
+                            AssetStatus.InRepair => "badge-soft-warning",
+                            AssetStatus.Retired => "badge-soft-secondary",
+                            _ => "badge-soft-secondary"
+                        };
+
+                        var conditionBadgeClass = item.Condition switch
+                        {
+                            AssetCondition.New => "badge-soft-success",
+                            AssetCondition.Good => "badge-soft-primary",
+                            AssetCondition.Fair => "badge-soft-warning",
+                            AssetCondition.Damaged => "badge-soft-danger",
+                            _ => "badge-soft-secondary"
+                        };
+
+                        var categoryIcon = item.Category switch
+                        {
+                            AssetCategory.Laptop => "bi-laptop",
+                            AssetCategory.Monitor => "bi-display",
+                            AssetCategory.Phone => "bi-phone",
+                            AssetCategory.SIM => "bi-sim",
+                            AssetCategory.IDCard => "bi-person-badge",
+                            _ => "bi-box-seam"
+                        };
+
+                        <tr>
+                            <td>
+                                <a asp-action="Details" asp-route-id="@item.AssetId" class="fw-bold text-primary text-decoration-none font-monospace">
+                                    @item.AssetTag
+                                </a>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark">@item.Name</div>
+                            </td>
+                            <td>
+                                <span class="d-inline-flex align-items-center gap-1 small text-muted">
+                                    <i class="bi @categoryIcon text-primary"></i>
+                                    @item.Category
+                                </span>
+                            </td>
+                            <td>
+                                <span class="font-monospace small text-muted">@(item.SerialNumber ?? "—")</span>
+                            </td>
+                            <td>
+                                <span class="badge @conditionBadgeClass">@item.Condition</span>
+                            </td>
+                            <td>
+                                <span class="badge @statusBadgeClass">@item.Status</span>
+                            </td>
+                            <td>
+                                @if (item.Status == AssetStatus.Assigned && item.CurrentEmployeeId.HasValue)
+                                {
+                                    <div>
+                                        <span class="fw-semibold text-dark small">@item.CurrentEmployeeName</span>
+                                        <span class="text-muted small">(@item.CurrentEmployeeCode)</span>
+                                    </div>
+                                    @if (item.AssignedAtUtc.HasValue)
+                                    {
+                                        <div class="text-muted" style="font-size: 0.72rem;">
+                                            Since @item.AssignedAtUtc.Value.ToString("dd MMM yyyy")
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">—</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a asp-action="Details" asp-route-id="@item.AssetId" class="btn btn-secondary-modern" title="View details and history">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+
+                                    @if (CurrentUser.HasPermission(Permissions.Assets.Manage))
+                                    {
+                                        <a asp-action="Edit" asp-route-id="@item.AssetId" class="btn btn-secondary-modern" title="Edit specifications">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+
+                                        @if (item.Status == AssetStatus.Available)
+                                        {
+                                            <a asp-action="Assign" asp-route-id="@item.AssetId" class="btn btn-outline-primary" title="Assign to employee">
+                                                <i class="bi bi-person-plus"></i>
+                                            </a>
+                                        }
+                                        else if (item.Status == AssetStatus.Assigned)
+                                        {
+                                            <a asp-action="Return" asp-route-id="@item.AssetId" class="btn btn-outline-warning" title="Process equipment return">
+                                                <i class="bi bi-box-arrow-in-left"></i>
+                                            </a>
+                                        }
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    @if (Model.TotalPages > 1)
+    {
+        <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center">
+            <span class="small text-muted">
+                Showing @((Model.PageNumber - 1) * Model.PageSize + 1) to @(Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)) of @Model.TotalCount assets
+            </span>
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                    <a class="page-link" asp-action="Index"
+                       asp-route-page="@(Model.PageNumber - 1)"
+                       asp-route-search="@search"
+                       asp-route-category="@currentCategory"
+                       asp-route-status="@currentStatus">Previous</a>
+                </li>
+                @for (int i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                        <a class="page-link" asp-action="Index"
+                           asp-route-page="@i"
+                           asp-route-search="@search"
+                           asp-route-category="@currentCategory"
+                           asp-route-status="@currentStatus">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                    <a class="page-link" asp-action="Index"
+                       asp-route-page="@(Model.PageNumber + 1)"
+                       asp-route-search="@search"
+                       asp-route-category="@currentCategory"
+                       asp-route-status="@currentStatus">Next</a>
+                </li>
+            </ul>
+        </div>
+    }
+</div>

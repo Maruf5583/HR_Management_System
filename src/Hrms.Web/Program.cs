@@ -1,3 +1,5 @@
+using Hrms.Assets;
+using Hrms.Assets.Application.Abstractions;
 using Hrms.Audit;
 using Hrms.Audit.Application.Abstractions;
 using Hrms.Calendar;
@@ -104,6 +106,10 @@ builder.Services.AddAuditModule();
 // Calendar module services
 builder.Services.AddScoped<ICalendarDbContext>(sp => sp.GetRequiredService<HrmsDbContext>());
 builder.Services.AddCalendarModule();
+
+// Assets module services
+builder.Services.AddScoped<IAssetsDbContext>(sp => sp.GetRequiredService<HrmsDbContext>());
+builder.Services.AddAssetsModule();
 
 // Seeder
 builder.Services.AddScoped<IdentitySeeder>();

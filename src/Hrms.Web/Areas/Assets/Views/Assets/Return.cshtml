@@ -1,0 +1,86 @@
+@model ReturnAssetViewModel
+@{
+    ViewData["Title"] = $"Return {Model.AssetTag}";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <a asp-action="Details" asp-route-id="@Model.AssetId" class="btn btn-sm btn-secondary-modern">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h4 class="fw-bold text-dark mb-0">Process Equipment Return</h4>
+                <small class="text-muted">Return <strong class="font-monospace">@Model.AssetTag</strong> back into company inventory.</small>
+            </div>
+        </div>
+
+        <div class="card-modern p-4">
+            <form asp-action="Return" asp-route-id="@Model.AssetId" method="post">
+                <input type="hidden" asp-for="AssetId" />
+                <input type="hidden" asp-for="AssetTag" />
+                <input type="hidden" asp-for="AssetName" />
+                <input type="hidden" asp-for="AssignedEmployeeName" />
+                <input type="hidden" asp-for="AssignedAtUtc" />
+
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger border-0 small py-2 px-3 mb-3 d-flex align-items-center gap-2" style="border-radius: 8px;">
+                        <i class="bi bi-exclamation-circle-fill fs-5"></i>
+                        <div asp-validation-summary="All" class="mb-0"></div>
+                    </div>
+                }
+
+                <div class="p-3 bg-light rounded-3 border mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="proto-stat-icon-box proto-icon-orange">
+                            <i class="bi bi-box-arrow-in-left"></i>
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark font-monospace">@Model.AssetTag - @Model.AssetName</div>
+                            <small class="text-muted">Currently held by: <strong>@Model.AssignedEmployeeName</strong> (Since @Model.AssignedAtUtc.ToString("dd MMM yyyy"))</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="ReturnedAtUtc" class="form-label"></label>
+                    <input asp-for="ReturnedAtUtc" type="datetime-local" class="form-control" />
+                    <span asp-validation-for="ReturnedAtUtc" class="text-danger small"></span>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="ReturnedCondition" class="form-label"></label>
+                        <select asp-for="ReturnedCondition" class="form-select" asp-items="Html.GetEnumSelectList<AssetCondition>()"></select>
+                        <span asp-validation-for="ReturnedCondition" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="TargetStatus" class="form-label"></label>
+                        <select asp-for="TargetStatus" class="form-select">
+                            <option value="Available">Available (Ready for redeployment)</option>
+                            <option value="InRepair">InRepair (Requires servicing)</option>
+                            <option value="Retired">Retired (Scrapped / Obsolete)</option>
+                        </select>
+                        <span asp-validation-for="TargetStatus" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="Note" class="form-label"></label>
+                    <textarea asp-for="Note" class="form-control" rows="3" placeholder="Condition upon return, missing parts, reason for return..."></textarea>
+                    <span asp-validation-for="Note" class="text-danger small"></span>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                    <a asp-action="Details" asp-route-id="@Model.AssetId" class="btn btn-secondary-modern">Cancel</a>
+                    <button type="submit" class="btn btn-warning fw-semibold px-4 text-dark">
+                        <i class="bi bi-box-arrow-in-left me-1"></i>
+                        <span>Confirm Return</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

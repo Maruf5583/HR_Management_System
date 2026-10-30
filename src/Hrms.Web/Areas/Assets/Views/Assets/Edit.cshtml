@@ -1,0 +1,91 @@
+@model EditAssetViewModel
+@{
+    ViewData["Title"] = $"Edit {Model.AssetTag}";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <a asp-action="Details" asp-route-id="@Model.AssetId" class="btn btn-sm btn-secondary-modern">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h4 class="fw-bold text-dark mb-0">Edit Asset Specifications</h4>
+                <small class="text-muted">Modify equipment record for <strong class="font-monospace">@Model.AssetTag</strong>.</small>
+            </div>
+        </div>
+
+        <div class="card-modern p-4">
+            <form asp-action="Edit" asp-route-id="@Model.AssetId" method="post">
+                <input type="hidden" asp-for="AssetId" />
+                <input type="hidden" asp-for="AssetTag" />
+                <input type="hidden" asp-for="RowVersion" />
+
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger border-0 small py-2 px-3 mb-3 d-flex align-items-center gap-2" style="border-radius: 8px;">
+                        <i class="bi bi-exclamation-circle-fill fs-5"></i>
+                        <div asp-validation-summary="All" class="mb-0"></div>
+                    </div>
+                }
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Asset Tag (Fixed)</label>
+                        <input value="@Model.AssetTag" class="form-control font-monospace bg-light" disabled />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Category" class="form-label"></label>
+                        <select asp-for="Category" class="form-select" asp-items="Html.GetEnumSelectList<AssetCategory>()"></select>
+                        <span asp-validation-for="Category" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="SerialNumber" class="form-label"></label>
+                        <input asp-for="SerialNumber" class="form-control font-monospace" />
+                        <span asp-validation-for="SerialNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="PurchaseDate" class="form-label"></label>
+                        <input asp-for="PurchaseDate" type="date" class="form-control" />
+                        <span asp-validation-for="PurchaseDate" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="Condition" class="form-label"></label>
+                        <select asp-for="Condition" class="form-select" asp-items="Html.GetEnumSelectList<AssetCondition>()"></select>
+                        <span asp-validation-for="Condition" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="Status" class="form-label"></label>
+                        <select asp-for="Status" class="form-select" asp-items="Html.GetEnumSelectList<AssetStatus>()"></select>
+                        <span asp-validation-for="Status" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="Notes" class="form-label"></label>
+                        <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Notes" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                    <a asp-action="Details" asp-route-id="@Model.AssetId" class="btn btn-secondary-modern">Cancel</a>
+                    <button type="submit" class="btn btn-primary-modern">
+                        <i class="bi bi-save"></i>
+                        <span>Save Changes</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

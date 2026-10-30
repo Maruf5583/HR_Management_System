@@ -11,8 +11,14 @@
     }
     catch
     {
-        // Fallback to default
+        // Fallback default
     }
+
+    var currentArea = ViewContext.RouteData.Values["area"]?.ToString();
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var userInitial = !string.IsNullOrEmpty(CurrentUser.Email) ? CurrentUser.Email.Substring(0, 1).ToUpper() : "U";
+    var userRoleTitle = CurrentUser.IsInRole("Admin") ? "System Admin" : (CurrentUser.IsInRole("HR") ? "HR Manager" : "Staff Employee");
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -30,248 +36,434 @@
 <body class="d-flex flex-column min-vh-100">
     @if (CurrentUser.IsAuthenticated)
     {
-        var currentArea = ViewContext.RouteData.Values["area"]?.ToString();
-        var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
-        var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
-        var userInitial = !string.IsNullOrEmpty(CurrentUser.Email) ? CurrentUser.Email.Substring(0, 1).ToUpper() : "U";
+        <!-- Mobile Sidebar Backdrop -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-        <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
-            <div class="container-fluid px-lg-4 px-3">
-                <a class="navbar-brand d-flex align-items-center gap-2" asp-area="" asp-controller="Home" asp-action="Index">
-                    <span class="brand-icon"><i class="bi bi-layers-fill"></i></span>
-                    <span class="fw-bold tracking-tight">@companyName <span class="brand-badge ms-1">Enterprise Platform</span></span>
+        <!-- Left Modern Sidebar Navigation -->
+        <aside class="app-sidebar" id="appSidebar">
+            <!-- Sidebar Header & Brand -->
+            <div class="sidebar-header">
+                <a class="sidebar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                    <span class="brand-icon-box">
+                        <i class="bi bi-stack"></i>
+                    </span>
+                    <span class="fw-bold tracking-tight">@companyName</span>
                 </a>
-                <button class="navbar-toggler border-0 shadow-none text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
-                    <i class="bi bi-list fs-2"></i>
-                </button>
-                <div class="collapse navbar-collapse" id="navContent">
-                    <ul class="navbar-nav me-auto ms-lg-3 gap-1">
-                        <li class="nav-item">
-                            <a class="nav-link @(string.IsNullOrEmpty(currentArea) && currentController == "Home" ? "active" : "")" asp-area="" asp-controller="Home" asp-action="Index">
-                                <i class="bi bi-grid-1x2"></i> <span>Dashboard</span>
-                            </a>
-                        </li>
-                        @if (CurrentUser.HasPermission(Permissions.Employees.View) || CurrentUser.HasPermission(Permissions.Employees.Manage))
-                        {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(currentArea == "Employees" && currentAction != "MyProfile" ? "active" : "")" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-people-fill"></i> <span>Employees</span>
-                                </a>
-                                <ul class="dropdown-menu shadow-lg border-0 mt-2 py-2" style="border-radius: 14px; min-width: 210px;">
-                                    <li>
-                                        <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Employees" asp-controller="Employees" asp-action="Index">
-                                            <i class="bi bi-people text-primary"></i>
-                                            <span>Employees Directory</span>
-                                        </a>
-                                    </li>
-                                    @if (CurrentUser.HasPermission(Permissions.Employees.Manage))
-                                    {
-                                        <li><hr class="dropdown-divider my-1"></li>
-                                        <li>
-                                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Employees" asp-controller="Departments" asp-action="Index">
-                                                <i class="bi bi-building text-primary"></i>
-                                                <span>Departments</span>
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Employees" asp-controller="Designations" asp-action="Index">
-                                                <i class="bi bi-person-badge text-primary"></i>
-                                                <span>Designations</span>
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Employees" asp-controller="Grades" asp-action="Index">
-                                                <i class="bi bi-sort-numeric-up text-primary"></i>
-                                                <span>Grades & Scales</span>
-                                            </a>
-                                        </li>
-                                    }
-                                </ul>
-                            </li>
-                        }
+            </div>
+
+            <!-- Sidebar Navigation Links -->
+            <div class="sidebar-body">
+                <!-- General Section -->
+                <ul class="sidebar-nav">
+                    <li class="sidebar-nav-item">
+                        <a class="sidebar-nav-link @(string.IsNullOrEmpty(currentArea) && currentController == "Home" ? "active" : "")"
+                           asp-area="" asp-controller="Home" asp-action="Index">
+                            <i class="bi bi-grid-1x2"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- ME (Personal Profile & Self Service) -->
+                @if (CurrentUser.HasPermission(Permissions.Employees.ViewOwn) || CurrentUser.HasPermission(Permissions.Assets.ViewOwn))
+                {
+                    <div class="sidebar-section-label">ME</div>
+                    <ul class="sidebar-nav">
                         @if (CurrentUser.HasPermission(Permissions.Employees.ViewOwn))
                         {
-                            <li class="nav-item">
-                                <a class="nav-link @(currentArea == "Employees" && currentController == "Employees" && currentAction == "MyProfile" ? "active" : "")" asp-area="Employees" asp-controller="Employees" asp-action="MyProfile">
-                                    <i class="bi bi-person-circle"></i> <span>My Profile</span>
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Employees" && currentController == "Employees" && currentAction == "MyProfile" ? "active" : "")"
+                                   asp-area="Employees" asp-controller="Employees" asp-action="MyProfile">
+                                    <i class="bi bi-person"></i>
+                                    <span>My Profile</span>
                                 </a>
                             </li>
                         }
-                        @if (CurrentUser.HasPermission(Permissions.Holidays.View) || CurrentUser.HasPermission(Permissions.Shifts.Manage) || CurrentUser.HasPermission(Permissions.Holidays.Manage))
+                        @if (CurrentUser.HasPermission(Permissions.Assets.ViewOwn))
                         {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle @(currentArea == "Calendar" ? "active" : "")" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-calendar3"></i> <span>Calendar</span>
-                                </a>
-                                <ul class="dropdown-menu shadow-lg border-0 mt-2 py-2" style="border-radius: 14px; min-width: 220px;">
-                                    <li>
-                                        <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Calendar" asp-controller="Holidays" asp-action="Index">
-                                            <i class="bi bi-calendar-event text-primary"></i>
-                                            <span>Holidays Calendar</span>
-                                        </a>
-                                    </li>
-                                    @if (CurrentUser.HasPermission(Permissions.Shifts.Manage))
-                                    {
-                                        <li>
-                                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Calendar" asp-controller="Shifts" asp-action="Index">
-                                                <i class="bi bi-clock-history text-primary"></i>
-                                                <span>Work Shifts</span>
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Calendar" asp-controller="ShiftAssignments" asp-action="Index">
-                                                <i class="bi bi-person-lines-fill text-primary"></i>
-                                                <span>Shift Assignments</span>
-                                            </a>
-                                        </li>
-                                    }
-                                    @if (CurrentUser.HasPermission(Permissions.Holidays.Manage))
-                                    {
-                                        <li><hr class="dropdown-divider my-1"></li>
-                                        <li>
-                                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Calendar" asp-controller="WorkingDays" asp-action="Index">
-                                                <i class="bi bi-calendar2-week text-primary"></i>
-                                                <span>Working Days & Weekend</span>
-                                            </a>
-                                        </li>
-                                    }
-                                </ul>
-                            </li>
-                        }
-                        @if (CurrentUser.HasPermission(Permissions.Users.Manage))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link @(string.IsNullOrEmpty(currentArea) && currentController == "Users" ? "active" : "")" asp-area="" asp-controller="Users" asp-action="Index">
-                                    <i class="bi bi-people"></i> <span>Users</span>
-                                </a>
-                            </li>
-                        }
-                        @if (CurrentUser.HasPermission(Permissions.Roles.Manage))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link @(string.IsNullOrEmpty(currentArea) && currentController == "Roles" ? "active" : "")" asp-area="" asp-controller="Roles" asp-action="Index">
-                                    <i class="bi bi-shield-check"></i> <span>Roles & Permissions</span>
-                                </a>
-                            </li>
-                        }
-                        @if (CurrentUser.HasPermission(Permissions.Settings.Manage))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link @(currentArea == "Settings" && currentController == "Settings" ? "active" : "")" asp-area="Settings" asp-controller="Settings" asp-action="Index">
-                                    <i class="bi bi-gear"></i> <span>Settings</span>
-                                </a>
-                            </li>
-                        }
-                        @if (CurrentUser.HasPermission(Permissions.Audit.View))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link @(currentArea == "Audit" && currentController == "Audit" ? "active" : "")" asp-area="Audit" asp-controller="Audit" asp-action="Index">
-                                    <i class="bi bi-clock-history"></i> <span>Audit Logs</span>
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Assets" && currentController == "Assets" && currentAction == "My" ? "active" : "")"
+                                   asp-area="Assets" asp-controller="Assets" asp-action="My">
+                                    <i class="bi bi-laptop"></i>
+                                    <span>My Assets</span>
                                 </a>
                             </li>
                         }
                     </ul>
-                    <ul class="navbar-nav ms-auto align-items-center gap-2">
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle user-avatar-btn text-white d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <div class="avatar-circle">
-                                    @userInitial
-                                </div>
-                                <div class="d-none d-md-block text-start">
-                                    <div class="fw-semibold text-white small" style="line-height: 1.1;">@CurrentUser.Email</div>
-                                    <div class="text-white-50" style="font-size: 0.72rem;">
-                                        @if (CurrentUser.IsInRole("Admin"))
-                                        {
-                                            <span>System Admin</span>
-                                        }
-                                        else if (CurrentUser.IsInRole("HR"))
-                                        {
-                                            <span>HR Manager</span>
-                                        }
-                                        else
-                                        {
-                                            <span>Staff Employee</span>
-                                        }
-                                    </div>
-                                </div>
+                }
+
+                <!-- PEOPLE & ORGANIZATION -->
+                @if (CurrentUser.HasPermission(Permissions.Employees.View) || CurrentUser.HasPermission(Permissions.Employees.Manage))
+                {
+                    <div class="sidebar-section-label">PEOPLE & ORG</div>
+                    <ul class="sidebar-nav">
+                        <li class="sidebar-nav-item">
+                            <a class="sidebar-nav-link @(currentArea == "Employees" && currentController == "Employees" && currentAction != "MyProfile" ? "active" : "")"
+                               asp-area="Employees" asp-controller="Employees" asp-action="Index">
+                                <i class="bi bi-people"></i>
+                                <span>Employees</span>
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 py-2" style="border-radius: 14px; min-width: 220px;">
-                                <li class="px-3 py-2 border-bottom">
-                                    <small class="text-muted d-block font-monospace">Signed in as</small>
-                                    <strong class="d-block text-truncate text-dark" style="max-width: 190px;">@CurrentUser.Email</strong>
-                                </li>
-                                @if (CurrentUser.HasPermission(Permissions.Employees.ViewOwn))
-                                {
-                                    <li>
-                                        <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Employees" asp-controller="Employees" asp-action="MyProfile">
-                                            <i class="bi bi-person-circle text-muted"></i>
-                                            <span>My Profile</span>
-                                        </a>
-                                    </li>
-                                }
-                                <li>
-                                    <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="" asp-controller="Account" asp-action="ChangePassword">
-                                        <i class="bi bi-key text-muted"></i>
-                                        <span>Change Password</span>
-                                    </a>
-                                </li>
-                                <li><hr class="dropdown-divider my-1"></li>
-                                <li>
-                                    <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                        <button type="submit" class="dropdown-item py-2 text-danger d-flex align-items-center gap-2">
-                                            <i class="bi bi-box-arrow-right"></i>
-                                            <span>Sign Out</span>
-                                        </button>
-                                    </form>
-                                </li>
-                            </ul>
+                        </li>
+
+                        @if (CurrentUser.HasPermission(Permissions.Employees.Manage))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Employees" && currentController == "Departments" ? "active" : "")"
+                                   asp-area="Employees" asp-controller="Departments" asp-action="Index">
+                                    <i class="bi bi-building"></i>
+                                    <span>Departments</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Employees" && currentController == "Designations" ? "active" : "")"
+                                   asp-area="Employees" asp-controller="Designations" asp-action="Index">
+                                    <i class="bi bi-person-badge"></i>
+                                    <span>Designations</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Employees" && currentController == "Grades" ? "active" : "")"
+                                   asp-area="Employees" asp-controller="Grades" asp-action="Index">
+                                    <i class="bi bi-sort-numeric-up"></i>
+                                    <span>Grades & Scales</span>
+                                </a>
+                            </li>
+                        }
+
+                        @if (CurrentUser.HasPermission(Permissions.Assets.Manage))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Assets" && currentController == "Assets" && currentAction != "My" ? "active" : "")"
+                                   asp-area="Assets" asp-controller="Assets" asp-action="Index">
+                                    <i class="bi bi-laptop"></i>
+                                    <span>Assets</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                }
+
+                <!-- TIME & SCHEDULE (CALENDAR & SHIFTS) -->
+                @if (CurrentUser.HasPermission(Permissions.Holidays.View) || CurrentUser.HasPermission(Permissions.Shifts.Manage) || CurrentUser.HasPermission(Permissions.Holidays.Manage))
+                {
+                    <div class="sidebar-section-label">TIME & SCHEDULE</div>
+                    <ul class="sidebar-nav">
+                        @if (CurrentUser.HasPermission(Permissions.Shifts.Manage))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Calendar" && currentController == "Shifts" ? "active" : "")"
+                                   asp-area="Calendar" asp-controller="Shifts" asp-action="Index">
+                                    <i class="bi bi-clock-history"></i>
+                                    <span>Work Shifts</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Calendar" && currentController == "ShiftAssignments" ? "active" : "")"
+                                   asp-area="Calendar" asp-controller="ShiftAssignments" asp-action="Index">
+                                    <i class="bi bi-person-lines-fill"></i>
+                                    <span>Shift Assignments</span>
+                                </a>
+                            </li>
+                        }
+
+                        @if (CurrentUser.HasPermission(Permissions.Holidays.View) || CurrentUser.HasPermission(Permissions.Holidays.Manage))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Calendar" && currentController == "Holidays" ? "active" : "")"
+                                   asp-area="Calendar" asp-controller="Holidays" asp-action="Index">
+                                    <i class="bi bi-calendar-event"></i>
+                                    <span>Holidays</span>
+                                </a>
+                            </li>
+                        }
+
+                        @if (CurrentUser.HasPermission(Permissions.Holidays.Manage))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Calendar" && currentController == "WorkingDays" ? "active" : "")"
+                                   asp-area="Calendar" asp-controller="WorkingDays" asp-action="Index">
+                                    <i class="bi bi-calendar2-week"></i>
+                                    <span>Working Days</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                }
+
+                <!-- ADMINISTRATION & SYSTEM -->
+                @if (CurrentUser.HasPermission(Permissions.Users.Manage) || CurrentUser.HasPermission(Permissions.Roles.Manage) || CurrentUser.HasPermission(Permissions.Audit.View) || CurrentUser.HasPermission(Permissions.Settings.Manage))
+                {
+                    <div class="sidebar-section-label">ADMINISTRATION</div>
+                    <ul class="sidebar-nav">
+                        @if (CurrentUser.HasPermission(Permissions.Users.Manage))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(string.IsNullOrEmpty(currentArea) && currentController == "Users" ? "active" : "")"
+                                   asp-area="" asp-controller="Users" asp-action="Index">
+                                    <i class="bi bi-person-gear"></i>
+                                    <span>Users</span>
+                                </a>
+                            </li>
+                        }
+
+                        @if (CurrentUser.HasPermission(Permissions.Roles.Manage))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(string.IsNullOrEmpty(currentArea) && currentController == "Roles" ? "active" : "")"
+                                   asp-area="" asp-controller="Roles" asp-action="Index">
+                                    <i class="bi bi-shield-check"></i>
+                                    <span>Roles & Permissions</span>
+                                </a>
+                            </li>
+                        }
+
+                        @if (CurrentUser.HasPermission(Permissions.Audit.View))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Audit" && currentController == "Audit" ? "active" : "")"
+                                   asp-area="Audit" asp-controller="Audit" asp-action="Index">
+                                    <i class="bi bi-journal-text"></i>
+                                    <span>Audit Logs</span>
+                                </a>
+                            </li>
+                        }
+
+                        @if (CurrentUser.HasPermission(Permissions.Settings.Manage))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Settings" && currentController == "Settings" ? "active" : "")"
+                                   asp-area="Settings" asp-controller="Settings" asp-action="Index">
+                                    <i class="bi bi-gear"></i>
+                                    <span>Settings</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+
+            <!-- Sidebar User Profile Footer (Prototype inspired) -->
+            <div class="sidebar-footer">
+                <div class="dropdown dropup w-100">
+                    <div class="sidebar-user-card" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="sidebar-user-avatar">
+                            @userInitial
+                        </div>
+                        <div class="sidebar-user-info text-truncate flex-grow-1">
+                            <div class="fw-semibold text-dark small text-truncate" style="line-height: 1.2;">@CurrentUser.Email</div>
+                            <div class="text-muted" style="font-size: 0.72rem;">@userRoleTitle</div>
+                        </div>
+                        <i class="bi bi-three-dots-vertical text-muted"></i>
+                    </div>
+
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mb-2 py-2" style="border-radius: 12px; min-width: 220px;">
+                        <li class="px-3 py-2 border-bottom">
+                            <small class="text-muted d-block font-monospace">Account</small>
+                            <strong class="d-block text-truncate text-dark" style="max-width: 190px;">@CurrentUser.Email</strong>
+                        </li>
+                        @if (CurrentUser.HasPermission(Permissions.Employees.ViewOwn))
+                        {
+                            <li>
+                                <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Employees" asp-controller="Employees" asp-action="MyProfile">
+                                    <i class="bi bi-person text-muted"></i>
+                                    <span>My Profile</span>
+                                </a>
+                            </li>
+                        }
+                        @if (CurrentUser.HasPermission(Permissions.Assets.ViewOwn))
+                        {
+                            <li>
+                                <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Assets" asp-controller="Assets" asp-action="My">
+                                    <i class="bi bi-laptop text-muted"></i>
+                                    <span>My Assets</span>
+                                </a>
+                            </li>
+                        }
+                        <li>
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="" asp-controller="Account" asp-action="ChangePassword">
+                                <i class="bi bi-key text-muted"></i>
+                                <span>Change Password</span>
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                <button type="submit" class="dropdown-item py-2 text-danger d-flex align-items-center gap-2">
+                                    <i class="bi bi-box-arrow-right"></i>
+                                    <span>Sign Out</span>
+                                </button>
+                            </form>
                         </li>
                     </ul>
                 </div>
             </div>
-        </nav>
+        </aside>
+
+        <!-- Main Layout Area (Right side of Sidebar) -->
+        <div class="app-wrapper">
+            <!-- Top Navigation Bar -->
+            <header class="app-topbar">
+                <div class="topbar-left">
+                    <button type="button" class="sidebar-toggle-btn" id="sidebarToggle" title="Toggle Sidebar">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <h5 class="topbar-page-title">@(ViewData["Title"] ?? "Dashboard")</h5>
+                </div>
+
+                <div class="topbar-right">
+                    <!-- Search Input Pill with Shortcut Badge -->
+                    <div class="topbar-search-box">
+                        <i class="bi bi-search search-icon"></i>
+                        <input type="text" class="topbar-search-input" id="globalSearchInput" placeholder="Search..." />
+                        <span class="topbar-search-shortcut">⌘K</span>
+                    </div>
+
+                    <!-- Notification Bell -->
+                    <button type="button" class="topbar-action-icon-btn" title="Notifications">
+                        <i class="bi bi-bell"></i>
+                        <span class="notification-badge-dot"></span>
+                    </button>
+
+                    <!-- User Avatar Pill Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn p-0 border-0 d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="sidebar-user-avatar" style="width: 38px; height: 38px; border-radius: 50%;">
+                                @userInitial
+                            </div>
+                            <div class="d-none d-xl-block text-start">
+                                <div class="fw-semibold text-dark small" style="line-height: 1.1;">@CurrentUser.Email</div>
+                                <div class="text-muted" style="font-size: 0.72rem;">@userRoleTitle</div>
+                            </div>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 py-2" style="border-radius: 12px; min-width: 210px;">
+                            <li class="px-3 py-2 border-bottom">
+                                <small class="text-muted d-block">Signed in as</small>
+                                <strong class="d-block text-truncate text-dark" style="max-width: 180px;">@CurrentUser.Email</strong>
+                            </li>
+                            @if (CurrentUser.HasPermission(Permissions.Employees.ViewOwn))
+                            {
+                                <li>
+                                    <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Employees" asp-controller="Employees" asp-action="MyProfile">
+                                        <i class="bi bi-person text-muted"></i>
+                                        <span>My Profile</span>
+                                    </a>
+                                </li>
+                            }
+                            @if (CurrentUser.HasPermission(Permissions.Assets.ViewOwn))
+                            {
+                                <li>
+                                    <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="Assets" asp-controller="Assets" asp-action="My">
+                                        <i class="bi bi-laptop text-muted"></i>
+                                        <span>My Assets</span>
+                                    </a>
+                                </li>
+                            }
+                            <li>
+                                <a class="dropdown-item py-2 d-flex align-items-center gap-2" asp-area="" asp-controller="Account" asp-action="ChangePassword">
+                                    <i class="bi bi-key text-muted"></i>
+                                    <span>Change Password</span>
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li>
+                                <form asp-area="" asp-controller="Account" asp-action="Logout" method="post">
+                                    <button type="submit" class="dropdown-item py-2 text-danger d-flex align-items-center gap-2">
+                                        <i class="bi bi-box-arrow-right"></i>
+                                        <span>Sign Out</span>
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Main Body -->
+            <main class="flex-grow-1 p-3 p-lg-4">
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success border-0 shadow-sm d-flex align-items-center justify-content-between mb-4 fade show" role="alert" style="border-radius: 12px; background-color: #ecfdf3; color: #027a48; border-left: 4px solid #12b76a !important;">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                            <span class="fw-semibold">@TempData["SuccessMessage"]</span>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center justify-content-between mb-4 fade show" role="alert" style="border-radius: 12px; background-color: #fef3f2; color: #b42318; border-left: 4px solid #f04438 !important;">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
+                            <span class="fw-semibold">@TempData["ErrorMessage"]</span>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                @RenderBody()
+            </main>
+
+            <!-- App Footer -->
+            <footer class="app-footer">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+                    <div>
+                        <span class="fw-semibold text-dark">@companyName</span> &bull; Human Resource Management System
+                    </div>
+                    <div class="text-muted small">
+                        Standard Edition &bull; Asia/Dhaka
+                    </div>
+                </div>
+            </footer>
+        </div>
     }
-
-    <main class="flex-grow-1 @(CurrentUser.IsAuthenticated ? "container-fluid px-lg-4 px-3 py-4" : "")">
-        @if (CurrentUser.IsAuthenticated)
-        {
-            @if (TempData["SuccessMessage"] != null)
-            {
-                <div class="alert alert-success border-0 shadow-sm d-flex align-items-center justify-content-between mb-4 fade show" role="alert" style="border-radius: 12px; background-color: #ecfdf5; color: #065f46; border-left: 4px solid #10b981 !important;">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-check-circle-fill text-success fs-5"></i>
-                        <span class="fw-semibold">@TempData["SuccessMessage"]</span>
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
-            @if (TempData["ErrorMessage"] != null)
-            {
-                <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center justify-content-between mb-4 fade show" role="alert" style="border-radius: 12px; background-color: #fef2f2; color: #991b1b; border-left: 4px solid #ef4444 !important;">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
-                        <span class="fw-semibold">@TempData["ErrorMessage"]</span>
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
-        }
-
-        @RenderBody()
-    </main>
-
-    @if (CurrentUser.IsAuthenticated)
+    else
     {
-        <footer class="app-footer">
-            <div class="container-fluid px-lg-4 px-3 d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
-                <div>
-                    <span class="fw-semibold text-dark">@companyName</span> &bull; Organizational Workforce Management
-                </div>
-            </div>
-        </footer>
+        <!-- Unauthenticated View Container -->
+        <main class="flex-grow-1">
+            @RenderBody()
+        </main>
     }
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const sidebar = document.getElementById('appSidebar');
+            const toggleBtn = document.getElementById('sidebarToggle');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            const searchInput = document.getElementById('globalSearchInput');
+
+            if (toggleBtn && sidebar) {
+                toggleBtn.addEventListener('click', function () {
+                    if (window.innerWidth < 992) {
+                        // Mobile: toggle drawer
+                        sidebar.classList.toggle('show');
+                        if (backdrop) backdrop.classList.toggle('show');
+                    } else {
+                        // Desktop: toggle collapsed mini sidebar
+                        document.body.classList.toggle('sidebar-collapsed');
+                    }
+                });
+            }
+
+            if (backdrop) {
+                backdrop.addEventListener('click', function () {
+                    if (sidebar) sidebar.classList.remove('show');
+                    backdrop.classList.remove('show');
+                });
+            }
+
+            // Keyboard shortcut Ctrl+K / Cmd+K to focus search input
+            window.addEventListener('keydown', function (e) {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                    if (searchInput) {
+                        e.preventDefault();
+                        searchInput.focus();
+                    }
+                }
+            });
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
