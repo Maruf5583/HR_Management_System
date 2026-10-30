@@ -161,6 +161,93 @@ namespace Hrms.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Hrms.Attendance.Domain.Entities.AttendanceDay", b =>
+                {
+                    b.Property<Guid>("AttendanceDayId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<DateTime?>("CheckInUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime?>("CheckOutUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("LateMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid?>("ShiftVersionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("WorkDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("WorkedMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("AttendanceDayId")
+                        .HasName("PK_AttendanceDays");
+
+                    b.HasIndex("ShiftVersionId")
+                        .HasDatabaseName("IX_AttendanceDays_ShiftVersion")
+                        .HasFilter("[ShiftVersionId] IS NOT NULL");
+
+                    b.HasIndex("EmployeeId", "WorkDate")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_AttendanceDays_Emp_Date");
+
+                    b.HasIndex("WorkDate", "Status")
+                        .HasDatabaseName("IX_AttendanceDays_Date_Status");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("WorkDate", "Status"), new[] { "EmployeeId" });
+
+                    b.ToTable("AttendanceDays", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AttendanceDays_InOut", "[CheckOutUtc] IS NULL OR [CheckInUtc] IS NULL OR [CheckOutUtc] >= [CheckInUtc]");
+
+                            t.HasCheckConstraint("CK_AttendanceDays_Minutes", "[LateMinutes] >= 0 AND [WorkedMinutes] >= 0");
+
+                            t.HasCheckConstraint("CK_AttendanceDays_Status", "[Status] IN ('Present','Late','Absent','HalfDay','OnLeave','Holiday','Weekend')");
+                        });
+                });
+
             modelBuilder.Entity("Hrms.Audit.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<long>("AuditLogId")
@@ -889,6 +976,223 @@ namespace Hrms.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Hrms.Leave.Domain.Entities.LeaveBalance", b =>
+                {
+                    b.Property<Guid>("LeaveBalanceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Entitled")
+                        .HasColumnType("decimal(4,1)");
+
+                    b.Property<Guid>("LeaveTypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Remaining")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("decimal(4,1)")
+                        .HasComputedColumnSql("[Entitled] - [Used]", true);
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Used")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(4,1)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int")
+                        .HasColumnName("Year");
+
+                    b.HasKey("LeaveBalanceId")
+                        .HasName("PK_LeaveBalances");
+
+                    b.HasIndex("LeaveTypeId")
+                        .HasDatabaseName("IX_LeaveBalances_LeaveType");
+
+                    b.HasIndex("EmployeeId", "LeaveTypeId", "Year")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_LeaveBalances_Emp_Type_Year");
+
+                    b.ToTable("LeaveBalances", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_LeaveBalances_Values", "[Entitled] >= 0 AND [Used] >= 0 AND [Used] <= [Entitled]");
+                        });
+                });
+
+            modelBuilder.Entity("Hrms.Leave.Domain.Entities.LeaveRecord", b =>
+                {
+                    b.Property<Guid>("LeaveRecordId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<string>("AttachmentKey")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsHalfDay")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("LeaveTypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<Guid?>("ReviewedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValueSql("'Approved'");
+
+                    b.Property<decimal>("TotalDays")
+                        .HasColumnType("decimal(4,1)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("LeaveRecordId")
+                        .HasName("PK_LeaveRecords");
+
+                    b.HasIndex("LeaveTypeId")
+                        .HasDatabaseName("IX_LeaveRecords_LeaveType");
+
+                    b.HasIndex("EmployeeId", "StartDate")
+                        .HasDatabaseName("IX_LeaveRecords_Emp_Start");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("EmployeeId", "StartDate"), new[] { "EndDate", "Status" });
+
+                    b.ToTable("LeaveRecords", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_LeaveRecords_Days", "[TotalDays] > 0");
+
+                            t.HasCheckConstraint("CK_LeaveRecords_Half", "[IsHalfDay] = 0 OR ([StartDate] = [EndDate] AND [TotalDays] = 0.5)");
+
+                            t.HasCheckConstraint("CK_LeaveRecords_Range", "[EndDate] >= [StartDate]");
+
+                            t.HasCheckConstraint("CK_LeaveRecords_Reviewer", "([Status] NOT IN ('Approved','Rejected')) OR ([ReviewedByUserId] IS NOT NULL AND [ReviewedAtUtc] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_LeaveRecords_Status", "[Status] IN ('Pending','Approved','Rejected','Cancelled')");
+                        });
+                });
+
+            modelBuilder.Entity("Hrms.Leave.Domain.Entities.LeaveType", b =>
+                {
+                    b.Property<Guid>("LeaveTypeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("DaysPerYear")
+                        .HasColumnType("decimal(4,1)");
+
+                    b.Property<bool>("IsPaid")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("RequiresDocument")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValueSql("'Active'");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("LeaveTypeId")
+                        .HasName("PK_LeaveTypes");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_LeaveTypes_Code");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("UQ_LeaveTypes_Name");
+
+                    b.ToTable("LeaveTypes", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_LeaveTypes_Days", "[DaysPerYear] >= 0");
+
+                            t.HasCheckConstraint("CK_LeaveTypes_Status", "[Status] IN ('Active','Inactive')");
+                        });
+                });
+
             modelBuilder.Entity("Hrms.Settings.Domain.Entities.Setting", b =>
                 {
                     b.Property<Guid>("SettingId")
@@ -1052,6 +1356,22 @@ namespace Hrms.Persistence.Migrations
                     b.Navigation("Asset");
                 });
 
+            modelBuilder.Entity("Hrms.Attendance.Domain.Entities.AttendanceDay", b =>
+                {
+                    b.HasOne("Hrms.Employees.Domain.Entities.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("FK_AttendanceDays_Employees");
+
+                    b.HasOne("Hrms.Calendar.Domain.Entities.ShiftVersion", null)
+                        .WithMany()
+                        .HasForeignKey("ShiftVersionId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .HasConstraintName("FK_AttendanceDays_ShiftVersions");
+                });
+
             modelBuilder.Entity("Hrms.Calendar.Domain.Entities.ShiftAssignment", b =>
                 {
                     b.HasOne("Hrms.Employees.Domain.Entities.Employee", null)
@@ -1136,6 +1456,44 @@ namespace Hrms.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Hrms.Leave.Domain.Entities.LeaveBalance", b =>
+                {
+                    b.HasOne("Hrms.Employees.Domain.Entities.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("FK_LeaveBalances_Employees");
+
+                    b.HasOne("Hrms.Leave.Domain.Entities.LeaveType", "LeaveType")
+                        .WithMany()
+                        .HasForeignKey("LeaveTypeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("FK_LeaveBalances_LeaveTypes");
+
+                    b.Navigation("LeaveType");
+                });
+
+            modelBuilder.Entity("Hrms.Leave.Domain.Entities.LeaveRecord", b =>
+                {
+                    b.HasOne("Hrms.Employees.Domain.Entities.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("FK_LeaveRecords_Employees");
+
+                    b.HasOne("Hrms.Leave.Domain.Entities.LeaveType", "LeaveType")
+                        .WithMany()
+                        .HasForeignKey("LeaveTypeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("FK_LeaveRecords_LeaveTypes");
+
+                    b.Navigation("LeaveType");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

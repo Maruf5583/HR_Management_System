@@ -1,0 +1,290 @@
+@model Hrms.Web.Areas.Leave.Controllers.MyLeavePageViewModel
+@{
+    ViewData["Title"] = "My Leave";
+    string activeTab = (ViewBag.ActiveTab as string) ?? "myleaves";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-calendar2-check me-2 text-primary"></i>My Leave</h4>
+        <p class="text-muted small mb-0">View your personal leave entitlement, history, and submit new leave requests</p>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!Model.Summary.HasLinkedEmployee)
+{
+    <div class="card border-0 shadow-sm rounded-4 p-5 text-center">
+        <div class="py-4">
+            <i class="bi bi-person-x fs-1 text-muted d-block mb-3"></i>
+            <h5 class="fw-bold text-dark">No Linked Employee Record Found</h5>
+            <p class="text-muted mb-0">Your user account is not currently linked to an active employee record. Employee self-service features require an employee profile.</p>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-pills mb-4 bg-light p-1 rounded-4 d-inline-flex" id="leaveTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-3 px-4 @(activeTab == "myleaves" ? "active" : "")" id="myleaves-tab" data-bs-toggle="pill" data-bs-target="#myleaves" type="button" role="tab">
+                <i class="bi bi-clock-history me-1"></i> My Leaves
+            </button>
+        </li>
+        @if (CurrentUser.HasPermission(Permissions.Leave.Apply))
+        {
+            <li class="nav-item" role="presentation">
+                <button class="nav-link rounded-3 px-4 @(activeTab == "request" ? "active" : "")" id="request-tab" data-bs-toggle="pill" data-bs-target="#request" type="button" role="tab">
+                    <i class="bi bi-plus-circle me-1"></i> Request Leave
+                </button>
+            </li>
+        }
+    </ul>
+
+    <div class="tab-content" id="leaveTabsContent">
+        <!-- Tab 1: My Leaves -->
+        <div class="tab-pane fade @(activeTab == "myleaves" ? "show active" : "")" id="myleaves" role="tabpanel">
+            <!-- Balance Cards -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold text-dark mb-0">Leave Balances for Year @Model.Summary.CurrentLeaveYear</h6>
+            </div>
+
+            @if (!Model.Summary.Balances.Any())
+            {
+                <div class="alert alert-light border-0 shadow-sm rounded-4 text-center py-4 text-muted mb-4">
+                    <i class="bi bi-wallet2 fs-2 d-block mb-2 text-secondary opacity-50"></i>
+                    No leave balances found for @Model.Summary.CurrentLeaveYear.
+                </div>
+            }
+            else
+            {
+                <div class="row g-3 mb-4">
+                    @foreach (var card in Model.Summary.Balances)
+                    {
+                        <div class="col-xl-3 col-md-6">
+                            <div class="card border-0 shadow-sm rounded-4 h-100">
+                                <div class="card-body p-4">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">@card.LeaveTypeCode</span>
+                                        <span class="small @(card.IsPaid ? "text-success" : "text-secondary")">@(card.IsPaid ? "Paid Leave" : "Unpaid")</span>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-3">@card.LeaveTypeName</h6>
+                                    <div class="d-flex justify-content-between align-items-baseline mb-2">
+                                        <span class="text-muted small">Remaining</span>
+                                        <span class="fs-3 fw-bold @(card.Remaining > 0 ? "text-success" : "text-secondary")">@card.Remaining.ToString("0.#") <small class="fs-6 text-muted fw-normal">days</small></span>
+                                    </div>
+                                    <div class="progress mb-3" style="height: 6px;">
+                                        @{
+                                            var pct = card.Entitled > 0 ? Math.Min(100, (card.Used / card.Entitled) * 100) : 0;
+                                        }
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: @pct%"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between text-muted small">
+                                        <span>Entitled: <strong>@card.Entitled.ToString("0.#")</strong></span>
+                                        <span>Used: <strong>@card.Used.ToString("0.#")</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- History Table -->
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-card-list text-primary me-2"></i>My Leave History</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-muted small">
+                                <tr>
+                                    <th class="ps-4 py-3">TYPE</th>
+                                    <th class="py-3">FROM</th>
+                                    <th class="py-3">TO</th>
+                                    <th class="py-3 text-center">DAYS</th>
+                                    <th class="py-3 text-center">STATUS</th>
+                                    <th class="py-3">DETAILS / NOTES</th>
+                                    <th class="pe-4 py-3 text-end">ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.Summary.History.Any())
+                                {
+                                    <tr>
+                                        <td colspan="7" class="text-center py-5 text-muted">
+                                            <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                                            You have not submitted any leave requests yet.
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    foreach (var item in Model.Summary.History)
+                                    {
+                                        <tr>
+                                            <td class="ps-4">
+                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">@item.LeaveTypeName</span>
+                                            </td>
+                                            <td class="fw-medium text-dark">@item.StartDate.ToString("dd MMM yyyy")</td>
+                                            <td class="fw-medium text-dark">
+                                                @item.EndDate.ToString("dd MMM yyyy")
+                                                @if (item.IsHalfDay)
+                                                {
+                                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-1">Half Day</span>
+                                                }
+                                            </td>
+                                            <td class="text-center fw-bold">@item.TotalDays.ToString("0.#")</td>
+                                            <td class="text-center">
+                                                @switch (item.Status)
+                                                {
+                                                    case LeaveRecordStatus.Pending:
+                                                        <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Pending</span>
+                                                        break;
+                                                    case LeaveRecordStatus.Approved:
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Approved</span>
+                                                        break;
+                                                    case LeaveRecordStatus.Rejected:
+                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle me-1"></i>Rejected</span>
+                                                        break;
+                                                    case LeaveRecordStatus.Cancelled:
+                                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><i class="bi bi-dash-circle me-1"></i>Cancelled</span>
+                                                        break;
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (item.Status == LeaveRecordStatus.Rejected && !string.IsNullOrWhiteSpace(item.ReviewNote))
+                                                {
+                                                    <div class="small text-danger fw-medium" title="Rejection Note">
+                                                        <i class="bi bi-exclamation-circle me-1"></i>@item.ReviewNote
+                                                    </div>
+                                                }
+                                                else if (!string.IsNullOrWhiteSpace(item.Reason))
+                                                {
+                                                    <div class="small text-muted text-truncate" style="max-width: 250px;" title="@item.Reason">@item.Reason</div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">-</span>
+                                                }
+                                            </td>
+                                            <td class="pe-4 text-end">
+                                                @if (item.Status == LeaveRecordStatus.Pending)
+                                                {
+                                                    <form asp-action="Cancel" asp-route-id="@item.LeaveRecordId" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to cancel this pending leave request?');">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancel Request">
+                                                            <i class="bi bi-x-circle me-1"></i> Cancel
+                                                        </button>
+                                                    </form>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted small">-</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Request Leave -->
+        @if (CurrentUser.HasPermission(Permissions.Leave.Apply))
+        {
+            <div class="tab-pane fade @(activeTab == "request" ? "show active" : "")" id="request" role="tabpanel">
+                <div class="row justify-content-center">
+                    <div class="col-lg-6 col-md-8">
+                        <div class="card border-0 shadow-sm rounded-4">
+                            <div class="card-body p-4">
+                                <h5 class="fw-bold text-dark mb-1">Submit Leave Request</h5>
+                                <p class="text-muted small mb-4">Request leave for upcoming working days. Requests will be submitted for HR/Admin approval.</p>
+
+                                <form asp-action="Apply" method="post">
+                                    @Html.AntiForgeryToken()
+
+                                    <div class="mb-3">
+                                        <label asp-for="Apply.LeaveTypeId" class="form-label fw-semibold">Leave Type <span class="text-danger">*</span></label>
+                                        <select asp-for="Apply.LeaveTypeId" class="form-select bg-light border-0 form-select-lg" asp-items="ViewBag.ActiveLeaveTypes" required>
+                                            <option value="">Select leave type...</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-md-6">
+                                            <label asp-for="Apply.StartDate" class="form-label fw-semibold">Start Date <span class="text-danger">*</span></label>
+                                            <input asp-for="Apply.StartDate" type="date" class="form-control bg-light border-0" required />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label asp-for="Apply.EndDate" class="form-label fw-semibold">End Date <span class="text-danger">*</span></label>
+                                            <input asp-for="Apply.EndDate" type="date" class="form-control bg-light border-0" required />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check form-switch">
+                                            <input asp-for="Apply.IsHalfDay" class="form-check-input" type="checkbox" id="myIsHalfDaySwitch">
+                                            <label class="form-check-label fw-semibold" for="myIsHalfDaySwitch">Half Day Request (0.5 Day)</label>
+                                        </div>
+                                        <div class="form-text">For half day, Start Date and End Date must be identical.</div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label asp-for="Apply.Reason" class="form-label fw-semibold">Reason (Optional)</label>
+                                        <textarea asp-for="Apply.Reason" class="form-control bg-light border-0" rows="3" placeholder="Provide reason or context for this leave request..." maxlength="1000"></textarea>
+                                    </div>
+
+                                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                                        <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                                            <i class="bi bi-send me-1"></i> Submit Request
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+    <script>
+        var switchEl = document.getElementById('myIsHalfDaySwitch');
+        var startEl = document.getElementById('Apply_StartDate');
+        var endEl = document.getElementById('Apply_EndDate');
+
+        if (switchEl && startEl && endEl) {
+            switchEl.addEventListener('change', function () {
+                if (this.checked && startEl.value) {
+                    endEl.value = startEl.value;
+                }
+            });
+            startEl.addEventListener('change', function () {
+                if (switchEl.checked) {
+                    endEl.value = this.value;
+                }
+            });
+        }
+    </script>
+}

@@ -1,0 +1,163 @@
+@model MonthlyAttendanceViewModel
+@{
+    ViewData["Title"] = $"Monthly Attendance - {new DateTime(Model.Year, Model.Month, 1):MMMM yyyy}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-grid-3x3 me-2 text-primary"></i>Monthly Attendance Sheet</h4>
+        <p class="text-muted small mb-0">Overview of daily attendance records across all employees for @(new DateTime(Model.Year, Model.Month, 1).ToString("MMMM yyyy"))</p>
+    </div>
+    <div>
+        <a asp-controller="DailySheet" asp-action="Index" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-calendar-check me-1"></i> Daily Sheet
+        </a>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold mb-1">Month</label>
+                <select name="month" class="form-select bg-light border-0">
+                    @for (int m = 1; m <= 12; m++)
+                    {
+                        var mName = new DateTime(2000, m, 1).ToString("MMMM");
+                        <option value="@m" selected="@(Model.Month == m ? "selected" : null)">@mName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold mb-1">Year</label>
+                <input type="number" name="year" class="form-control bg-light border-0" value="@Model.Year" min="2020" max="2050" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold mb-1">Search Employee</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control bg-light border-0" value="@Model.SearchTerm" placeholder="Name or employee code..." />
+                </div>
+            </div>
+            <div class="col-md-3 d-flex gap-2 align-items-end pt-3">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel me-1"></i> Filter</button>
+                <a asp-action="Index" class="btn btn-outline-secondary" title="Reset"><i class="bi bi-arrow-counterclockwise"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Monthly Matrix Card -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle text-center mb-0" style="font-size: 0.85rem;">
+                <thead class="bg-light text-muted">
+                    <tr>
+                        <th class="text-start ps-3 py-3" style="min-width: 180px; position: sticky; left: 0; background-color: #f8f9fa; z-index: 2;">EMPLOYEE</th>
+                        @for (int day = 1; day <= Model.DaysInMonth; day++)
+                        {
+                            var date = new DateTime(Model.Year, Model.Month, day);
+                            var isWeekend = date.DayOfWeek == DayOfWeek.Friday || date.DayOfWeek == DayOfWeek.Saturday;
+                            <th class="p-1 @(isWeekend ? "table-secondary text-muted" : "")" style="min-width: 28px;">
+                                <div>@day</div>
+                                <div style="font-size: 0.65rem;">@date.ToString("ddd")[..1]</div>
+                            </th>
+                        }
+                        <th class="table-success py-2" title="Present" style="min-width: 32px;">P</th>
+                        <th class="table-warning py-2" title="Late" style="min-width: 32px;">L</th>
+                        <th class="table-info py-2" title="Half Day" style="min-width: 32px;">HD</th>
+                        <th class="table-danger py-2" title="Absent" style="min-width: 32px;">A</th>
+                        <th class="table-primary py-2" title="On Leave" style="min-width: 32px;">LV</th>
+                        <th class="table-secondary py-2" title="Holiday" style="min-width: 32px;">H</th>
+                        <th class="table-light py-2" title="Weekend" style="min-width: 32px;">W</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Employees.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="@(Model.DaysInMonth + 8)" class="text-center py-5 text-muted">
+                                <i class="bi bi-people fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                                No active employee records found for this period.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var emp in Model.Employees)
+                        {
+                            <tr>
+                                <td class="text-start ps-3 py-2 fw-semibold" style="position: sticky; left: 0; background-color: #fff; z-index: 1;">
+                                    <div class="text-dark text-truncate" style="max-width: 170px;">@emp.FullName</div>
+                                    <div class="small text-muted fw-normal">@emp.EmployeeCode</div>
+                                </td>
+                                @for (int day = 1; day <= Model.DaysInMonth; day++)
+                                {
+                                    var hasStatus = emp.DailyStatuses.TryGetValue(day, out var status);
+                                    <td class="p-1">
+                                        @if (hasStatus && status.HasValue)
+                                        {
+                                            @switch (status.Value)
+                                            {
+                                                case AttendanceStatus.Present:
+                                                    <span class="badge bg-success-subtle text-success p-1" title="Day @day: Present">P</span>
+                                                    break;
+                                                case AttendanceStatus.Late:
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis p-1" title="Day @day: Late">L</span>
+                                                    break;
+                                                case AttendanceStatus.HalfDay:
+                                                    <span class="badge bg-info-subtle text-info-emphasis p-1" title="Day @day: Half Day">HD</span>
+                                                    break;
+                                                case AttendanceStatus.Absent:
+                                                    <span class="badge bg-danger-subtle text-danger p-1" title="Day @day: Absent">A</span>
+                                                    break;
+                                                case AttendanceStatus.OnLeave:
+                                                    <span class="badge bg-primary-subtle text-primary p-1" title="Day @day: On Leave">LV</span>
+                                                    break;
+                                                case AttendanceStatus.Holiday:
+                                                    <span class="badge bg-secondary-subtle text-secondary p-1" title="Day @day: Holiday">H</span>
+                                                    break;
+                                                case AttendanceStatus.Weekend:
+                                                    <span class="badge bg-light text-muted border p-1" title="Day @day: Weekend">W</span>
+                                                    break;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">-</span>
+                                        }
+                                    </td>
+                                }
+                                <td class="fw-bold text-success">@emp.PresentCount</td>
+                                <td class="fw-bold text-warning-emphasis">@emp.LateCount</td>
+                                <td class="fw-bold text-info-emphasis">@emp.HalfDayCount</td>
+                                <td class="fw-bold text-danger">@emp.AbsentCount</td>
+                                <td class="fw-bold text-primary">@emp.OnLeaveCount</td>
+                                <td class="text-muted">@emp.HolidayCount</td>
+                                <td class="text-muted">@emp.WeekendCount</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Legend Card -->
+<div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-3">
+        <h6 class="fw-bold mb-2 small text-muted text-uppercase">Status Legend & Codes</h6>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">P : Present</span>
+            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">L : Late</span>
+            <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-1">HD : Half Day</span>
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">A : Absent</span>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">LV : On Leave</span>
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">H : Holiday</span>
+            <span class="badge bg-light text-muted border px-2 py-1">W : Weekend / Off Day</span>
+        </div>
+    </div>
+</div>

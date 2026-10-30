@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Hrms.Shared\Hrms.Shared.csproj" />
+    <ProjectReference Include="..\Hrms.Leave.Contracts\Hrms.Leave.Contracts.csproj" />
+    <ProjectReference Include="..\..\Employees\Hrms.Employees.Contracts\Hrms.Employees.Contracts.csproj" />
+    <ProjectReference Include="..\..\Calendar\Hrms.Calendar.Contracts\Hrms.Calendar.Contracts.csproj" />
+    <ProjectReference Include="..\..\Settings\Hrms.Settings.Contracts\Hrms.Settings.Contracts.csproj" />
+    <ProjectReference Include="..\..\Attendance\Hrms.Attendance.Contracts\Hrms.Attendance.Contracts.csproj" />
+    <ProjectReference Include="..\..\Audit\Hrms.Audit.Contracts\Hrms.Audit.Contracts.csproj" />
+  </ItemGroup>
+</Project>

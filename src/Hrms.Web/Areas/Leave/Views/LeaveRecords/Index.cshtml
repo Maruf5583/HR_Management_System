@@ -1,0 +1,213 @@
+@model PagedResult<LeaveRecordItemDto>
+@{
+    ViewData["Title"] = "Leave Records";
+    var currentStatus = ViewBag.Status as LeaveRecordStatus?;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-calendar2-range me-2 text-primary"></i>Leave Records</h4>
+        <p class="text-muted small mb-0">Complete company records of leave requests, direct entries, and decisions</p>
+    </div>
+    @if (CurrentUser.HasPermission(Permissions.Leave.Manage))
+    {
+        <a asp-action="Create" class="btn btn-primary shadow-sm">
+            <i class="bi bi-plus-circle me-1"></i> Direct Leave Record
+        </a>
+    }
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Filters Card -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-3">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control bg-light border-0" value="@ViewBag.Search" placeholder="Search employee name/code..." />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="status" class="form-select bg-light border-0">
+                    <option value="">All Statuses</option>
+                    @foreach (LeaveRecordStatus st in Enum.GetValues(typeof(LeaveRecordStatus)))
+                    {
+                        <option value="@st" selected="@(currentStatus == st ? "selected" : null)">@st</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="leaveTypeId" class="form-select bg-light border-0" asp-items="ViewBag.LeaveTypes">
+                    <option value="">All Leave Types</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-1 align-items-center">
+                <input type="date" name="fromDate" class="form-control form-control-sm bg-light border-0" value="@ViewBag.FromDate" placeholder="From" />
+                <span class="text-muted small">-</span>
+                <input type="date" name="toDate" class="form-control form-control-sm bg-light border-0" value="@ViewBag.ToDate" placeholder="To" />
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel"></i> Filter</button>
+                <a asp-action="Index" class="btn btn-outline-secondary" title="Reset"><i class="bi bi-arrow-counterclockwise"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-muted small">
+                    <tr>
+                        <th class="ps-4 py-3">EMPLOYEE</th>
+                        <th class="py-3">TYPE</th>
+                        <th class="py-3">DATE RANGE</th>
+                        <th class="py-3 text-center">DAYS</th>
+                        <th class="py-3 text-center">STATUS</th>
+                        <th class="py-3">REASON / NOTES</th>
+                        <th class="pe-4 py-3 text-end">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model == null || !Model.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                                No leave records found matching the filter criteria.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold text-dark">@item.EmployeeName</div>
+                                    <span class="badge bg-secondary-subtle text-secondary font-monospace">@item.EmployeeCode</span>
+                                </td>
+                                <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">@item.LeaveTypeName</span></td>
+                                <td>
+                                    <div class="fw-medium text-dark">
+                                        @item.StartDate.ToString("dd MMM yyyy")
+                                        @if (item.StartDate != item.EndDate)
+                                        {
+                                            <span> - @item.EndDate.ToString("dd MMM yyyy")</span>
+                                        }
+                                    </div>
+                                    @if (item.IsHalfDay)
+                                    {
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-1">Half Day</span>
+                                    }
+                                </td>
+                                <td class="text-center fw-bold">@item.TotalDays.ToString("0.#")</td>
+                                <td class="text-center">
+                                    @switch (item.Status)
+                                    {
+                                        case LeaveRecordStatus.Pending:
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i>Pending</span>
+                                            break;
+                                        case LeaveRecordStatus.Approved:
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Approved</span>
+                                            break;
+                                        case LeaveRecordStatus.Rejected:
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle me-1"></i>Rejected</span>
+                                            break;
+                                        case LeaveRecordStatus.Cancelled:
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><i class="bi bi-dash-circle me-1"></i>Cancelled</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(item.Reason))
+                                    {
+                                        <div class="small text-truncate" style="max-width: 200px;" title="@item.Reason">@item.Reason</div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(item.ReviewNote))
+                                    {
+                                        <div class="small text-danger text-truncate" style="max-width: 200px;" title="@item.ReviewNote">
+                                            <i class="bi bi-chat-left-dots me-1"></i>@item.ReviewNote
+                                        </div>
+                                    }
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <a asp-action="Details" asp-route-id="@item.LeaveRecordId" class="btn btn-outline-secondary" title="Details">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        @if (item.Status == LeaveRecordStatus.Approved && CurrentUser.HasPermission(Permissions.Leave.Manage))
+                                        {
+                                            <form asp-action="Cancel" asp-route-id="@item.LeaveRecordId" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to cancel this approved leave? The days will be deducted from used leave and returned to remaining balance.');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-outline-danger" title="Cancel Leave">
+                                                    <i class="bi bi-x-circle"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model != null && Model.TotalPages > 1)
+        {
+            <div class="p-3 border-top d-flex justify-content-between align-items-center">
+                <div class="text-muted small">Showing @Model.Items.Count of @Model.TotalCount leave records</div>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                        <a class="page-link" asp-action="Index"
+                           asp-route-status="@currentStatus"
+                           asp-route-leaveTypeId="@ViewBag.LeaveTypes?.SelectedValue"
+                           asp-route-fromDate="@ViewBag.FromDate"
+                           asp-route-toDate="@ViewBag.ToDate"
+                           asp-route-search="@ViewBag.Search"
+                           asp-route-page="@(Model.PageNumber - 1)">Previous</a>
+                    </li>
+                    @for (int p = 1; p <= Model.TotalPages; p++)
+                    {
+                        <li class="page-item @(p == Model.PageNumber ? "active" : "")">
+                            <a class="page-link" asp-action="Index"
+                               asp-route-status="@currentStatus"
+                               asp-route-leaveTypeId="@ViewBag.LeaveTypes?.SelectedValue"
+                               asp-route-fromDate="@ViewBag.FromDate"
+                               asp-route-toDate="@ViewBag.ToDate"
+                               asp-route-search="@ViewBag.Search"
+                               asp-route-page="@p">@p</a>
+                        </li>
+                    }
+                    <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                        <a class="page-link" asp-action="Index"
+                           asp-route-status="@currentStatus"
+                           asp-route-leaveTypeId="@ViewBag.LeaveTypes?.SelectedValue"
+                           asp-route-fromDate="@ViewBag.FromDate"
+                           asp-route-toDate="@ViewBag.ToDate"
+                           asp-route-search="@ViewBag.Search"
+                           asp-route-page="@(Model.PageNumber + 1)">Next</a>
+                    </li>
+                </ul>
+            </div>
+        }
+    </div>
+</div>

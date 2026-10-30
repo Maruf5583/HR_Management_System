@@ -1,0 +1,108 @@
+@{
+    ViewData["Title"] = "Reports & Analytics Center";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-file-earmark-bar-graph me-2 text-primary"></i>Reports & Analytics</h4>
+        <p class="text-muted small mb-0">Generate, view, and export company-wide HRMS data and analytics in Microsoft Excel (.xlsx)</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Report 1: Attendance Report -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3 hover-shadow transition">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="rounded-3 p-3 bg-primary-subtle text-primary">
+                    <i class="bi bi-calendar-check fs-3"></i>
+                </div>
+                <span class="badge bg-light text-muted border">Live Data</span>
+            </div>
+            <h5 class="fw-bold text-dark mb-1">Attendance Report</h5>
+            <p class="text-muted small mb-4 flex-grow-1">
+                Detailed attendance log of check-ins, check-outs, late times, worked hours, and status breakdown across departments.
+            </p>
+            <div class="d-flex gap-2">
+                <a asp-action="Attendance" class="btn btn-primary btn-sm flex-grow-1">
+                    <i class="bi bi-eye me-1"></i> View Report
+                </a>
+                <a asp-action="ExportAttendance" class="btn btn-outline-success btn-sm" title="Quick Export Excel">
+                    <i class="bi bi-file-earmark-excel"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report 2: Leave Report -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3 hover-shadow transition">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="rounded-3 p-3 bg-warning-subtle text-warning-emphasis">
+                    <i class="bi bi-calendar2-range fs-3"></i>
+                </div>
+                <span class="badge bg-light text-muted border">Balances & History</span>
+            </div>
+            <h5 class="fw-bold text-dark mb-1">Leave Report</h5>
+            <p class="text-muted small mb-4 flex-grow-1">
+                Review employee annual leave balances (entitled vs used vs remaining) and historical applications with approval decisions.
+            </p>
+            <div class="d-flex gap-2">
+                <a asp-action="Leave" class="btn btn-primary btn-sm flex-grow-1">
+                    <i class="bi bi-eye me-1"></i> View Report
+                </a>
+                <a asp-action="ExportLeaveBalances" class="btn btn-outline-success btn-sm" title="Quick Export Balances">
+                    <i class="bi bi-file-earmark-excel"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report 3: Employee Directory -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3 hover-shadow transition">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="rounded-3 p-3 bg-success-subtle text-success">
+                    <i class="bi bi-people fs-3"></i>
+                </div>
+                <span class="badge bg-light text-muted border">Directory</span>
+            </div>
+            <h5 class="fw-bold text-dark mb-1">Employee Directory</h5>
+            <p class="text-muted small mb-4 flex-grow-1">
+                Full organization headcount and workforce master report with departments, designations, pay grades, and join dates.
+            </p>
+            <div class="d-flex gap-2">
+                <a asp-action="Employees" class="btn btn-primary btn-sm flex-grow-1">
+                    <i class="bi bi-eye me-1"></i> View Report
+                </a>
+                <a asp-action="ExportEmployees" class="btn btn-outline-success btn-sm" title="Quick Export Excel">
+                    <i class="bi bi-file-earmark-excel"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report 4: Asset Inventory -->
+    <div class="col-md-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 h-100 p-3 hover-shadow transition">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="rounded-3 p-3 bg-info-subtle text-info-emphasis">
+                    <i class="bi bi-laptop fs-3"></i>
+                </div>
+                <span class="badge bg-light text-muted border">Hardware & Items</span>
+            </div>
+            <h5 class="fw-bold text-dark mb-1">Asset Inventory</h5>
+            <p class="text-muted small mb-4 flex-grow-1">
+                Company hardware and asset allocations, condition tracking, active custodian employees, and available inventory.
+            </p>
+            <div class="d-flex gap-2">
+                <a asp-action="Assets" class="btn btn-primary btn-sm flex-grow-1">
+                    <i class="bi bi-eye me-1"></i> View Report
+                </a>
+                <a asp-action="ExportAssets" class="btn btn-outline-success btn-sm" title="Quick Export Excel">
+                    <i class="bi bi-file-earmark-excel"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

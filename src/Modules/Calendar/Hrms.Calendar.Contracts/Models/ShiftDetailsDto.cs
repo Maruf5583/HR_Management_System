@@ -7,5 +7,6 @@ public record ShiftDetailsDto(
     TimeSpan EndTime,
     int GraceMinutes,
     int BreakMinutes,
-    bool IsNightShift
+    bool IsNightShift,
+    Guid? ShiftVersionId = null
 );

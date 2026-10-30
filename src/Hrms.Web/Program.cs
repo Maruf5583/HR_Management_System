@@ -8,6 +8,12 @@ using Hrms.Employees;
 using Hrms.Employees.Application.Abstractions;
 using Hrms.Identity;
 using Hrms.Identity.Domain.Entities;
+using Hrms.Leave;
+using Hrms.Leave.Application.Abstractions;
+using Hrms.Attendance.Contracts;
+using Hrms.Attendance;
+using Hrms.Attendance.Application.Abstractions;
+using Hrms.Reports;
 using Hrms.Settings;
 using Hrms.Settings.Application.Abstractions;
 using Hrms.Persistence;
@@ -110,6 +116,17 @@ builder.Services.AddCalendarModule();
 // Assets module services
 builder.Services.AddScoped<IAssetsDbContext>(sp => sp.GetRequiredService<HrmsDbContext>());
 builder.Services.AddAssetsModule();
+
+// Leave module services
+builder.Services.AddScoped<ILeaveDbContext>(sp => sp.GetRequiredService<HrmsDbContext>());
+builder.Services.AddLeaveModule();
+
+// Attendance module services
+builder.Services.AddScoped<IAttendanceDbContext>(sp => sp.GetRequiredService<HrmsDbContext>());
+builder.Services.AddAttendanceModule();
+
+// Reports module services
+builder.Services.AddReportsModule();
 
 // Seeder
 builder.Services.AddScoped<IdentitySeeder>();

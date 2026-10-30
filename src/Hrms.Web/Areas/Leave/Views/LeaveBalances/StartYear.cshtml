@@ -1,0 +1,60 @@
+@{
+    ViewData["Title"] = "Start New Leave Year";
+    int defaultYear = ViewBag.DefaultYear ?? DateTime.UtcNow.Year;
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+        <div class="d-flex align-items-center mb-4">
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm me-3 rounded-circle" style="width: 36px; height: 36px; padding: 6px 0; text-align: center;">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h4 class="fw-bold mb-1">Start New Leave Year</h4>
+                <p class="text-muted small mb-0">Initialize annual leave balances for all active employees</p>
+            </div>
+        </div>
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-4">
+                <div class="alert alert-info border-0 rounded-3 mb-4">
+                    <div class="d-flex">
+                        <i class="bi bi-info-circle-fill fs-5 text-info me-3 mt-1"></i>
+                        <div class="small">
+                            <strong>Safe & Idempotent Initialization:</strong>
+                            <p class="mb-0 mt-1">This operation creates missing balance records for all active employees across all active leave types. Existing balances for the selected year will <strong>never</strong> be modified or overwritten.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <form asp-action="StartYear" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Target Leave Year <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-calendar-event"></i></span>
+                            <input type="number" name="year" class="form-control bg-light border-0 form-control-lg" value="@defaultYear" min="2000" max="2100" required />
+                        </div>
+                        <div class="form-text">Default is calculated according to the configured leave year start date.</div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <a asp-action="Index" class="btn btn-outline-secondary px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                            <i class="bi bi-play-circle me-1"></i> Initialize Balances
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

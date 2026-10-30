@@ -1,4 +1,5 @@
 @inject Hrms.Settings.Contracts.ISettingsReader SettingsReader
+@inject Hrms.Leave.Application.Queries.Approvals.IGetApprovalsHandler ApprovalsHandler
 @{
     string companyName = "HRMS";
     try
@@ -12,6 +13,19 @@
     catch
     {
         // Fallback default
+    }
+
+    int pendingApprovalsCount = 0;
+    if (CurrentUser.IsAuthenticated && CurrentUser.HasPermission(Permissions.Leave.Approve))
+    {
+        try
+        {
+            pendingApprovalsCount = await ApprovalsHandler.GetPendingCountAsync();
+        }
+        catch
+        {
+            // Fallback
+        }
     }
 
     var currentArea = ViewContext.RouteData.Values["area"]?.ToString();
@@ -65,7 +79,7 @@
                 </ul>
 
                 <!-- ME (Personal Profile & Self Service) -->
-                @if (CurrentUser.HasPermission(Permissions.Employees.ViewOwn) || CurrentUser.HasPermission(Permissions.Assets.ViewOwn))
+                @if (CurrentUser.HasPermission(Permissions.Employees.ViewOwn) || CurrentUser.HasPermission(Permissions.Assets.ViewOwn) || CurrentUser.HasPermission(Permissions.Leave.ViewOwn) || CurrentUser.HasPermission(Permissions.Attendance.ViewOwn))
                 {
                     <div class="sidebar-section-label">ME</div>
                     <ul class="sidebar-nav">
@@ -76,6 +90,26 @@
                                    asp-area="Employees" asp-controller="Employees" asp-action="MyProfile">
                                     <i class="bi bi-person"></i>
                                     <span>My Profile</span>
+                                </a>
+                            </li>
+                        }
+                        @if (CurrentUser.HasPermission(Permissions.Leave.ViewOwn))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Leave" && currentController == "MyLeave" ? "active" : "")"
+                                   asp-area="Leave" asp-controller="MyLeave" asp-action="Index">
+                                    <i class="bi bi-calendar2-check"></i>
+                                    <span>My Leave</span>
+                                </a>
+                            </li>
+                        }
+                        @if (CurrentUser.HasPermission(Permissions.Attendance.ViewOwn))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Attendance" && currentController == "MyAttendance" ? "active" : "")"
+                                   asp-area="Attendance" asp-controller="MyAttendance" asp-action="Index">
+                                    <i class="bi bi-clock-history"></i>
+                                    <span>My Attendance</span>
                                 </a>
                             </li>
                         }
@@ -187,6 +221,94 @@
                                 </a>
                             </li>
                         }
+                    </ul>
+                }
+
+                <!-- ATTENDANCE -->
+                @if (CurrentUser.HasPermission(Permissions.Attendance.ViewAll) || CurrentUser.HasPermission(Permissions.Attendance.Manage))
+                {
+                    <div class="sidebar-section-label">ATTENDANCE</div>
+                    <ul class="sidebar-nav">
+                        <li class="sidebar-nav-item">
+                            <a class="sidebar-nav-link @(currentArea == "Attendance" && currentController == "DailySheet" ? "active" : "")"
+                               asp-area="Attendance" asp-controller="DailySheet" asp-action="Index">
+                                <i class="bi bi-calendar-check"></i>
+                                <span>Daily Sheet</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-nav-item">
+                            <a class="sidebar-nav-link @(currentArea == "Attendance" && currentController == "Monthly" ? "active" : "")"
+                               asp-area="Attendance" asp-controller="Monthly" asp-action="Index">
+                                <i class="bi bi-grid-3x3"></i>
+                                <span>Monthly Sheet</span>
+                            </a>
+                        </li>
+                    </ul>
+                }
+
+                <!-- LEAVE MANAGEMENT -->
+                @if (CurrentUser.HasPermission(Permissions.Leave.Approve) || CurrentUser.HasPermission(Permissions.Leave.ViewAll) || CurrentUser.HasPermission(Permissions.Leave.Manage))
+                {
+                    <div class="sidebar-section-label">LEAVE</div>
+                    <ul class="sidebar-nav">
+                        @if (CurrentUser.HasPermission(Permissions.Leave.Approve))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Leave" && currentController == "Approvals" ? "active" : "")"
+                                   asp-area="Leave" asp-controller="Approvals" asp-action="Index">
+                                    <i class="bi bi-clipboard-check"></i>
+                                    <span>Approvals</span>
+                                    @if (pendingApprovalsCount > 0)
+                                    {
+                                        <span class="badge bg-danger rounded-pill ms-auto px-2">@pendingApprovalsCount</span>
+                                    }
+                                </a>
+                            </li>
+                        }
+
+                        @if (CurrentUser.HasPermission(Permissions.Leave.ViewAll))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Leave" && currentController == "LeaveRecords" ? "active" : "")"
+                                   asp-area="Leave" asp-controller="LeaveRecords" asp-action="Index">
+                                    <i class="bi bi-calendar2-range"></i>
+                                    <span>Leave Records</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Leave" && currentController == "LeaveBalances" ? "active" : "")"
+                                   asp-area="Leave" asp-controller="LeaveBalances" asp-action="Index">
+                                    <i class="bi bi-wallet2"></i>
+                                    <span>Leave Balances</span>
+                                </a>
+                            </li>
+                        }
+
+                        @if (CurrentUser.HasPermission(Permissions.Leave.Manage))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Leave" && currentController == "LeaveTypes" ? "active" : "")"
+                                   asp-area="Leave" asp-controller="LeaveTypes" asp-action="Index">
+                                    <i class="bi bi-tags"></i>
+                                    <span>Leave Types</span>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                }
+
+                <!-- REPORTS & ANALYTICS -->
+                @if (CurrentUser.HasPermission(Permissions.Reports.View))
+                {
+                    <div class="sidebar-section-label">REPORTS</div>
+                    <ul class="sidebar-nav">
+                        <li class="sidebar-nav-item">
+                            <a class="sidebar-nav-link @(currentArea == "Reports" && currentController == "Reports" ? "active" : "")"
+                               asp-area="Reports" asp-controller="Reports" asp-action="Index">
+                                <i class="bi bi-file-earmark-bar-graph"></i>
+                                <span>Reports Center</span>
+                            </a>
+                        </li>
                     </ul>
                 }
 
