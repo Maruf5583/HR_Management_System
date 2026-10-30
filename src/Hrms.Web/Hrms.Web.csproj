@@ -9,6 +9,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.Extensions" />
+    <PackageReference Include="ClosedXML" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,6 +26,11 @@
     <ProjectReference Include="..\Modules\Calendar\Hrms.Calendar\Hrms.Calendar.csproj" />
     <ProjectReference Include="..\Modules\Assets\Hrms.Assets.Contracts\Hrms.Assets.Contracts.csproj" />
     <ProjectReference Include="..\Modules\Assets\Hrms.Assets\Hrms.Assets.csproj" />
+    <ProjectReference Include="..\Modules\Attendance\Hrms.Attendance.Contracts\Hrms.Attendance.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Attendance\Hrms.Attendance\Hrms.Attendance.csproj" />
+    <ProjectReference Include="..\Modules\Leave\Hrms.Leave.Contracts\Hrms.Leave.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Leave\Hrms.Leave\Hrms.Leave.csproj" />
+    <ProjectReference Include="..\Modules\Reports\Hrms.Reports\Hrms.Reports.csproj" />
     <ProjectReference Include="..\Hrms.Persistence\Hrms.Persistence.csproj" />
   </ItemGroup>
 </Project>

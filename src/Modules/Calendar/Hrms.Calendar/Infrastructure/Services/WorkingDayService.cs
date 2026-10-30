@@ -1,6 +1,7 @@
 using Hrms.Calendar.Application.Abstractions;
 using Hrms.Calendar.Application.Models;
 using Hrms.Calendar.Application.Services;
+using Hrms.Calendar.Domain.Entities;
 using Hrms.Shared.Abstractions;
 using Hrms.Shared.Primitives;
 
@@ -25,6 +26,36 @@ public class WorkingDayService : IWorkingDayService
     public async Task<IReadOnlyList<CompanyWorkingDayDto>> GetWorkingDaysAsync(CancellationToken cancellationToken = default)
     {
         var days = await _repository.GetAllAsync(cancellationToken);
+
+        // Auto-heal / initialize if table is empty
+        if (days.Count == 0)
+        {
+            var now = _clock.UtcNow;
+            var defaultDays = new (byte DayOfWeek, bool IsWorkingDay)[]
+            {
+                (0, true),  // Sunday - Working
+                (1, true),  // Monday - Working
+                (2, true),  // Tuesday - Working
+                (3, true),  // Wednesday - Working
+                (4, true),  // Thursday - Working
+                (5, false), // Friday - Weekend off
+                (6, false)  // Saturday - Weekend off
+            };
+
+            var toSeed = defaultDays.Select(d => new CompanyWorkingDay
+            {
+                CompanyWorkingDayId = Guid.NewGuid(),
+                DayOfWeek = d.DayOfWeek,
+                IsWorkingDay = d.IsWorkingDay,
+                UpdatedAtUtc = now
+            }).ToList();
+
+            await _repository.AddRangeAsync(toSeed, cancellationToken);
+            await _repository.SaveChangesAsync(cancellationToken);
+
+            days = await _repository.GetAllAsync(cancellationToken);
+        }
+
         return days.Select(d => new CompanyWorkingDayDto(
             d.CompanyWorkingDayId,
             d.DayOfWeek,
@@ -43,12 +74,27 @@ public class WorkingDayService : IWorkingDayService
         foreach (var item in command.Days)
         {
             var day = await _repository.GetByDayOfWeekAsync(item.DayOfWeek, cancellationToken);
-            if (day != null && day.IsWorkingDay != item.IsWorkingDay)
+            if (day != null)
             {
-                day.IsWorkingDay = item.IsWorkingDay;
-                day.UpdatedAtUtc = now;
-                day.UpdatedByUserId = userId;
-                await _repository.UpdateAsync(day, cancellationToken);
+                if (day.IsWorkingDay != item.IsWorkingDay)
+                {
+                    day.IsWorkingDay = item.IsWorkingDay;
+                    day.UpdatedAtUtc = now;
+                    day.UpdatedByUserId = userId;
+                    await _repository.UpdateAsync(day, cancellationToken);
+                }
+            }
+            else
+            {
+                var newDay = new CompanyWorkingDay
+                {
+                    CompanyWorkingDayId = Guid.NewGuid(),
+                    DayOfWeek = item.DayOfWeek,
+                    IsWorkingDay = item.IsWorkingDay,
+                    UpdatedAtUtc = now,
+                    UpdatedByUserId = userId
+                };
+                await _repository.AddAsync(newDay, cancellationToken);
             }
         }
 

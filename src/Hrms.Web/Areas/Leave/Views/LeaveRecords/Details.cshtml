@@ -1,0 +1,118 @@
+@model LeaveRecordDetailsDto
+@{
+    ViewData["Title"] = "Leave Record Details";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div class="d-flex align-items-center">
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm me-3 rounded-circle" style="width: 36px; height: 36px; padding: 6px 0; text-align: center;">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <div>
+                    <h4 class="fw-bold mb-1">Leave Record Details</h4>
+                    <p class="text-muted small mb-0">Record ID: <span class="font-monospace">@Model.LeaveRecordId</span></p>
+                </div>
+            </div>
+            <div>
+                @switch (Model.Status)
+                {
+                    case LeaveRecordStatus.Pending:
+                        <span class="badge bg-warning text-dark fs-6 px-3 py-2"><i class="bi bi-hourglass-split me-1"></i>Pending</span>
+                        break;
+                    case LeaveRecordStatus.Approved:
+                        <span class="badge bg-success-subtle text-success border border-success-subtle fs-6 px-3 py-2"><i class="bi bi-check-circle me-1"></i>Approved</span>
+                        break;
+                    case LeaveRecordStatus.Rejected:
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle fs-6 px-3 py-2"><i class="bi bi-x-circle me-1"></i>Rejected</span>
+                        break;
+                    case LeaveRecordStatus.Cancelled:
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle fs-6 px-3 py-2"><i class="bi bi-dash-circle me-1"></i>Cancelled</span>
+                        break;
+                }
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-body p-4">
+                <h6 class="text-uppercase text-muted fw-bold small mb-3">Employee & Leave Information</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-6">
+                        <label class="text-muted small d-block">Employee</label>
+                        <span class="fw-bold text-dark fs-5">@Model.EmployeeName</span>
+                        <div class="badge bg-secondary-subtle text-secondary font-monospace mt-1">@Model.EmployeeCode</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small d-block">Leave Type</label>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 px-3 py-1 mt-1">@Model.LeaveTypeName</span>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small d-block">Period</label>
+                        <span class="fw-semibold text-dark">@Model.StartDate.ToString("dd MMM yyyy")</span>
+                        @if (Model.StartDate != Model.EndDate)
+                        {
+                            <span class="text-muted"> to </span>
+                            <span class="fw-semibold text-dark">@Model.EndDate.ToString("dd MMM yyyy")</span>
+                        }
+                        @if (Model.IsHalfDay)
+                        {
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle ms-2">Half Day</span>
+                        }
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small d-block">Total Working Days Counted</label>
+                        <span class="fw-bold text-primary fs-4">@Model.TotalDays.ToString("0.#") <small class="fs-6 text-muted fw-normal">day(s)</small></span>
+                    </div>
+                    <div class="col-12">
+                        <label class="text-muted small d-block">Reason</label>
+                        <div class="p-3 bg-light rounded-3 text-secondary">
+                            @(string.IsNullOrWhiteSpace(Model.Reason) ? "No reason specified." : Model.Reason)
+                        </div>
+                    </div>
+                </div>
+
+                @if (Model.Status == LeaveRecordStatus.Approved || Model.Status == LeaveRecordStatus.Rejected)
+                {
+                    <hr class="my-4" />
+                    <h6 class="text-uppercase text-muted fw-bold small mb-3">Review Details</h6>
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="text-muted small d-block">Reviewed At</label>
+                            <span class="fw-semibold text-dark">@(Model.ReviewedAtUtc.HasValue ? Model.ReviewedAtUtc.Value.ToString("dd MMM yyyy hh:mm tt UTC") : "-")</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="text-muted small d-block">Reviewed By User ID</label>
+                            <span class="font-monospace text-secondary">@(Model.ReviewedByUserId.HasValue ? Model.ReviewedByUserId.Value.ToString() : "-")</span>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(Model.ReviewNote))
+                        {
+                            <div class="col-12">
+                                <label class="text-muted small d-block">Reviewer Note</label>
+                                <div class="p-3 bg-danger-subtle text-danger rounded-3 border border-danger-subtle">
+                                    @Model.ReviewNote
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <div class="d-flex justify-content-between align-items-center pt-4 mt-4 border-top">
+                    <a asp-action="Index" class="btn btn-outline-secondary px-4">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Records
+                    </a>
+
+                    @if (Model.Status == LeaveRecordStatus.Approved && CurrentUser.HasPermission(Permissions.Leave.Manage))
+                    {
+                        <form asp-action="Cancel" asp-route-id="@Model.LeaveRecordId" method="post" onsubmit="return confirm('Are you sure you want to cancel this approved leave? The days will be returned to remaining balance.');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-danger shadow-sm">
+                                <i class="bi bi-x-circle me-1"></i> Cancel Leave Record
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -26,6 +26,16 @@ public class CompanyWorkingDayRepository : ICompanyWorkingDayRepository
             .FirstOrDefaultAsync(d => d.DayOfWeek == dayOfWeek, cancellationToken);
     }
 
+    public async Task AddAsync(CompanyWorkingDay workingDay, CancellationToken cancellationToken = default)
+    {
+        await _context.CompanyWorkingDays.AddAsync(workingDay, cancellationToken);
+    }
+
+    public async Task AddRangeAsync(IEnumerable<CompanyWorkingDay> workingDays, CancellationToken cancellationToken = default)
+    {
+        await _context.CompanyWorkingDays.AddRangeAsync(workingDays, cancellationToken);
+    }
+
     public Task UpdateAsync(CompanyWorkingDay workingDay, CancellationToken cancellationToken = default)
     {
         _context.CompanyWorkingDays.Update(workingDay);

@@ -1,0 +1,114 @@
+@model Hrms.Web.Areas.Leave.Controllers.CreateDirectLeaveViewModel
+@{
+    ViewData["Title"] = "Direct Leave Record";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7 col-md-9">
+        <div class="d-flex align-items-center mb-4">
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm me-3 rounded-circle" style="width: 36px; height: 36px; padding: 6px 0; text-align: center;">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h4 class="fw-bold mb-1">Direct Leave Record</h4>
+                <p class="text-muted small mb-0">Record and approve an employee leave entry directly as HR/Admin</p>
+            </div>
+        </div>
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-4">
+                <div class="alert alert-warning border-0 rounded-3 mb-4">
+                    <div class="d-flex">
+                        <i class="bi bi-lightning-charge-fill fs-5 text-warning me-3 mt-1"></i>
+                        <div class="small">
+                            <strong>Immediate Approval:</strong>
+                            <p class="mb-0 mt-1">Directly recorded leaves are automatically saved with status <strong>Approved</strong>. The employee's leave balance is immediately deducted and working days are marked as <code>OnLeave</code>.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label asp-for="EmployeeId" class="form-label fw-semibold">Employee <span class="text-danger">*</span></label>
+                        <select asp-for="EmployeeId" class="form-select bg-light border-0 form-select-lg" asp-items="ViewBag.Employees" required>
+                            <option value="">Select active employee...</option>
+                        </select>
+                        <span asp-validation-for="EmployeeId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="LeaveTypeId" class="form-label fw-semibold">Leave Type <span class="text-danger">*</span></label>
+                        <select asp-for="LeaveTypeId" class="form-select bg-light border-0" asp-items="ViewBag.LeaveTypes" required>
+                            <option value="">Select leave type...</option>
+                        </select>
+                        <span asp-validation-for="LeaveTypeId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="StartDate" class="form-label fw-semibold">Start Date <span class="text-danger">*</span></label>
+                            <input asp-for="StartDate" type="date" class="form-control bg-light border-0" required />
+                            <span asp-validation-for="StartDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="EndDate" class="form-label fw-semibold">End Date <span class="text-danger">*</span></label>
+                            <input asp-for="EndDate" type="date" class="form-control bg-light border-0" required />
+                            <span asp-validation-for="EndDate" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input asp-for="IsHalfDay" class="form-check-input" type="checkbox" id="isHalfDaySwitch">
+                            <label class="form-check-label fw-semibold" for="isHalfDaySwitch">Half Day Leave (0.5 Day)</label>
+                        </div>
+                        <div class="form-text">For half day, Start Date and End Date must be the same date.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Reason" class="form-label fw-semibold">Reason (Optional)</label>
+                        <textarea asp-for="Reason" class="form-control bg-light border-0" rows="3" placeholder="Enter reason or notes for this leave..." maxlength="1000"></textarea>
+                        <span asp-validation-for="Reason" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <a asp-action="Index" class="btn btn-outline-secondary px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                            <i class="bi bi-check-circle me-1"></i> Record & Approve
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.getElementById('isHalfDaySwitch').addEventListener('change', function () {
+            if (this.checked) {
+                var startVal = document.getElementById('StartDate').value;
+                if (startVal) {
+                    document.getElementById('EndDate').value = startVal;
+                }
+            }
+        });
+        document.getElementById('StartDate').addEventListener('change', function () {
+            var isHalf = document.getElementById('isHalfDaySwitch').checked;
+            if (isHalf) {
+                document.getElementById('EndDate').value = this.value;
+            }
+        });
+    </script>
+}

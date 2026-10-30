@@ -1,0 +1,147 @@
+@model PagedResult<LeaveBalanceItemDto>
+@{
+    ViewData["Title"] = "Leave Balances";
+    int selectedYear = ViewBag.SelectedYear ?? DateTime.UtcNow.Year;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-wallet2 me-2 text-primary"></i>Leave Balances</h4>
+        <p class="text-muted small mb-0">Overview of entitled, used, and remaining leave days per employee</p>
+    </div>
+    @if (CurrentUser.HasPermission(Permissions.Leave.Manage))
+    {
+        <a asp-action="StartYear" class="btn btn-outline-primary shadow-sm">
+            <i class="bi bi-calendar-plus me-1"></i> Start New Leave Year
+        </a>
+    }
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Filters Card -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-3">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-calendar"></i></span>
+                    <input type="number" name="year" class="form-control bg-light border-0" value="@selectedYear" placeholder="Year" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="leaveTypeId" class="form-select bg-light border-0" asp-items="ViewBag.LeaveTypes">
+                    <option value="">All Leave Types</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                    <input type="text" name="search" class="form-control bg-light border-0" value="@ViewBag.Search" placeholder="Search employee name or code..." />
+                </div>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel"></i> Filter</button>
+                <a asp-action="Index" class="btn btn-outline-secondary" title="Reset"><i class="bi bi-arrow-counterclockwise"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-muted small">
+                    <tr>
+                        <th class="ps-4 py-3">EMPLOYEE</th>
+                        <th class="py-3">LEAVE TYPE</th>
+                        <th class="py-3 text-center">YEAR</th>
+                        <th class="py-3 text-center">ENTITLED</th>
+                        <th class="py-3 text-center">USED</th>
+                        <th class="pe-4 py-3 text-center">REMAINING</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model == null || !Model.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                                No leave balances found for year <strong>@selectedYear</strong>.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold text-dark">@item.EmployeeName</div>
+                                    <span class="badge bg-secondary-subtle text-secondary font-monospace">@item.EmployeeCode</span>
+                                </td>
+                                <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">@item.LeaveTypeName</span></td>
+                                <td class="text-center fw-semibold">@item.Year</td>
+                                <td class="text-center fw-semibold text-secondary">@item.Entitled.ToString("0.#")</td>
+                                <td class="text-center fw-semibold text-danger">@item.Used.ToString("0.#")</td>
+                                <td class="pe-4 text-center">
+                                    <span class="badge @(item.Remaining > 0 ? "bg-success-subtle text-success border border-success-subtle" : "bg-danger-subtle text-danger border border-danger-subtle") fs-6 px-3 py-1">
+                                        @item.Remaining.ToString("0.#")
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model != null && Model.TotalPages > 1)
+        {
+            <div class="p-3 border-top d-flex justify-content-between align-items-center">
+                <div class="text-muted small">Showing @Model.Items.Count of @Model.TotalCount balance records</div>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                        <a class="page-link" asp-action="Index"
+                           asp-route-year="@selectedYear"
+                           asp-route-leaveTypeId="@ViewBag.SelectedLeaveTypeId"
+                           asp-route-search="@ViewBag.Search"
+                           asp-route-page="@(Model.PageNumber - 1)">Previous</a>
+                    </li>
+                    @for (int p = 1; p <= Model.TotalPages; p++)
+                    {
+                        <li class="page-item @(p == Model.PageNumber ? "active" : "")">
+                            <a class="page-link" asp-action="Index"
+                               asp-route-year="@selectedYear"
+                               asp-route-leaveTypeId="@ViewBag.SelectedLeaveTypeId"
+                               asp-route-search="@ViewBag.Search"
+                               asp-route-page="@p">@p</a>
+                        </li>
+                    }
+                    <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                        <a class="page-link" asp-action="Index"
+                           asp-route-year="@selectedYear"
+                           asp-route-leaveTypeId="@ViewBag.SelectedLeaveTypeId"
+                           asp-route-search="@ViewBag.Search"
+                           asp-route-page="@(Model.PageNumber + 1)">Next</a>
+                    </li>
+                </ul>
+            </div>
+        }
+    </div>
+</div>

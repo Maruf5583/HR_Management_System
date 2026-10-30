@@ -70,7 +70,8 @@ public class CalendarQueryService : ICalendarQuery
             version.EndTime,
             version.GraceMinutes,
             version.BreakMinutes,
-            version.IsNightShift
+            version.IsNightShift,
+            version.ShiftVersionId
         );
     }
 

@@ -44,6 +44,8 @@ public static class Permissions
         public const string ViewOwn = "leave.view_own";
         public const string ViewAll = "leave.view_all";
         public const string Manage = "leave.manage";
+        public const string Apply = "leave.apply";
+        public const string Approve = "leave.approve";
     }
 
     public static class Payroll
@@ -92,6 +94,8 @@ public static class Permissions
         Leave.ViewOwn,
         Leave.ViewAll,
         Leave.Manage,
+        Leave.Apply,
+        Leave.Approve,
         Payroll.ViewOwn,
         Payroll.ViewAll,
         Payroll.Generate,
@@ -122,8 +126,8 @@ public static class Permissions
         Shifts.ViewOwn,
         Holidays.View,
         Leave.ViewOwn,
+        Leave.Apply,
         Payroll.ViewOwn,
         Assets.ViewOwn
     };
 }
-
