@@ -23,6 +23,8 @@
     <ProjectReference Include="..\Modules\Audit\Hrms.Audit\Hrms.Audit.csproj" />
     <ProjectReference Include="..\Modules\Calendar\Hrms.Calendar.Contracts\Hrms.Calendar.Contracts.csproj" />
     <ProjectReference Include="..\Modules\Calendar\Hrms.Calendar\Hrms.Calendar.csproj" />
+    <ProjectReference Include="..\Modules\Assets\Hrms.Assets.Contracts\Hrms.Assets.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Assets\Hrms.Assets\Hrms.Assets.csproj" />
     <ProjectReference Include="..\Hrms.Persistence\Hrms.Persistence.csproj" />
   </ItemGroup>
 </Project>

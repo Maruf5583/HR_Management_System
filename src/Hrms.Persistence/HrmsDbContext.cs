@@ -1,3 +1,5 @@
+using Hrms.Assets.Application.Abstractions;
+using Hrms.Assets.Domain.Entities;
 using Hrms.Audit.Application.Abstractions;
 using Hrms.Audit.Domain.Entities;
 using Hrms.Calendar.Application.Abstractions;
@@ -17,7 +19,8 @@ public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
     IEmployeesDbContext,
     ISettingsDbContext,
     IAuditDbContext,
-    ICalendarDbContext
+    ICalendarDbContext,
+    IAssetsDbContext
 {
     private readonly AuditableEntityInterceptor? _auditableEntityInterceptor;
     private readonly AuditLogInterceptor? _auditLogInterceptor;
@@ -61,6 +64,10 @@ public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
     public DbSet<ShiftAssignment> ShiftAssignments => Set<ShiftAssignment>();
     public DbSet<Holiday> Holidays => Set<Holiday>();
 
+    // Assets Module
+    public DbSet<Asset> Assets => Set<Asset>();
+    public DbSet<AssetAssignment> AssetAssignments => Set<AssetAssignment>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -75,6 +82,16 @@ public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
                 .HasForeignKey(u => u.EmployeeId)
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Cross-module relation: AssetAssignments.EmployeeId -> Employees.EmployeeId
+        builder.Entity<AssetAssignment>(b =>
+        {
+            b.HasOne<Employee>()
+                .WithMany()
+                .HasForeignKey(a => a.EmployeeId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_AssetAssignments_Employees");
         });
     }
 }

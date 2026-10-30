@@ -1,0 +1,83 @@
+@model CreateAssetViewModel
+@{
+    ViewData["Title"] = "Register Asset";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <a asp-action="Index" class="btn btn-sm btn-secondary-modern">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h4 class="fw-bold text-dark mb-0">Register New Asset</h4>
+                <small class="text-muted">Enter specifications to add equipment to the company directory.</small>
+            </div>
+        </div>
+
+        <div class="card-modern p-4">
+            <form asp-action="Create" method="post">
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger border-0 small py-2 px-3 mb-3 d-flex align-items-center gap-2" style="border-radius: 8px;">
+                        <i class="bi bi-exclamation-circle-fill fs-5"></i>
+                        <div asp-validation-summary="All" class="mb-0"></div>
+                    </div>
+                }
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="AssetTag" class="form-label"></label>
+                        <input asp-for="AssetTag" class="form-control font-monospace" placeholder="e.g. AST-001" autofocus />
+                        <span asp-validation-for="AssetTag" class="text-danger small"></span>
+                        <div class="form-text" style="font-size: 0.74rem;">Must be unique across the organization.</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control" placeholder="e.g. Dell Latitude 5520" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Category" class="form-label"></label>
+                        <select asp-for="Category" class="form-select" asp-items="Html.GetEnumSelectList<AssetCategory>()"></select>
+                        <span asp-validation-for="Category" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="SerialNumber" class="form-label"></label>
+                        <input asp-for="SerialNumber" class="form-control font-monospace" placeholder="e.g. CN-0G789-72481" />
+                        <span asp-validation-for="SerialNumber" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="PurchaseDate" class="form-label"></label>
+                        <input asp-for="PurchaseDate" type="date" class="form-control" />
+                        <span asp-validation-for="PurchaseDate" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="Condition" class="form-label"></label>
+                        <select asp-for="Condition" class="form-select" asp-items="Html.GetEnumSelectList<AssetCondition>()"></select>
+                        <span asp-validation-for="Condition" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="Notes" class="form-label"></label>
+                        <textarea asp-for="Notes" class="form-control" rows="3" placeholder="CPU, RAM, accessories, or vendor details..."></textarea>
+                        <span asp-validation-for="Notes" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                    <a asp-action="Index" class="btn btn-secondary-modern">Cancel</a>
+                    <button type="submit" class="btn btn-primary-modern">
+                        <i class="bi bi-check-lg"></i>
+                        <span>Register Asset</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

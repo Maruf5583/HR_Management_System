@@ -1,0 +1,201 @@
+@model AssetDetailsDto
+@{
+    ViewData["Title"] = $"{Model.AssetTag} - Details";
+    var history = ViewBag.History as IReadOnlyList<AssetAssignmentHistoryDto> ?? Array.Empty<AssetAssignmentHistoryDto>();
+
+    var statusBadgeClass = Model.Status switch
+    {
+        AssetStatus.Available => "badge-soft-success",
+        AssetStatus.Assigned => "badge-soft-primary",
+        AssetStatus.InRepair => "badge-soft-warning",
+        AssetStatus.Retired => "badge-soft-secondary",
+        _ => "badge-soft-secondary"
+    };
+
+    var conditionBadgeClass = Model.Condition switch
+    {
+        AssetCondition.New => "badge-soft-success",
+        AssetCondition.Good => "badge-soft-primary",
+        AssetCondition.Fair => "badge-soft-warning",
+        AssetCondition.Damaged => "badge-soft-danger",
+        _ => "badge-soft-secondary"
+    };
+}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+        <a asp-action="Index" class="btn btn-secondary-modern">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h4 class="fw-bold text-dark mb-0 font-monospace">@Model.AssetTag</h4>
+                <span class="badge @statusBadgeClass">@Model.Status</span>
+                <span class="badge @conditionBadgeClass">Condition: @Model.Condition</span>
+            </div>
+            <p class="text-muted small mb-0">@Model.Name &bull; @Model.Category</p>
+        </div>
+    </div>
+
+    @if (CurrentUser.HasPermission(Permissions.Assets.Manage))
+    {
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <a asp-action="Edit" asp-route-id="@Model.AssetId" class="btn btn-secondary-modern">
+                <i class="bi bi-pencil me-1"></i> Edit
+            </a>
+
+            @if (Model.Status == AssetStatus.Available)
+            {
+                <a asp-action="Assign" asp-route-id="@Model.AssetId" class="btn btn-primary-modern">
+                    <i class="bi bi-person-plus me-1"></i> Assign Equipment
+                </a>
+            }
+            else if (Model.Status == AssetStatus.Assigned)
+            {
+                <a asp-action="Return" asp-route-id="@Model.AssetId" class="btn btn-outline-warning fw-semibold">
+                    <i class="bi bi-box-arrow-in-left me-1"></i> Process Return
+                </a>
+            }
+        </div>
+    }
+</div>
+
+<div class="row g-4">
+    <!-- Equipment Specifications -->
+    <div class="col-lg-6">
+        <div class="card-modern h-100">
+            <div class="card-modern-header">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-info-circle-fill text-primary fs-5"></i>
+                    <h6 class="fw-bold mb-0 text-dark">Hardware Specifications</h6>
+                </div>
+            </div>
+            <div class="p-3">
+                <dl class="row mb-0 small">
+                    <dt class="col-sm-4 text-muted">Category:</dt>
+                    <dd class="col-sm-8 fw-semibold text-dark">@Model.Category</dd>
+
+                    <dt class="col-sm-4 text-muted">Serial Number:</dt>
+                    <dd class="col-sm-8 font-monospace text-dark">@(Model.SerialNumber ?? "Not specified")</dd>
+
+                    <dt class="col-sm-4 text-muted">Purchase Date:</dt>
+                    <dd class="col-sm-8 text-dark">@(Model.PurchaseDate?.ToString("dd MMM yyyy") ?? "Not specified")</dd>
+
+                    <dt class="col-sm-4 text-muted">Registered On:</dt>
+                    <dd class="col-sm-8 text-dark">@Model.CreatedAtUtc.ToString("dd MMM yyyy, HH:mm UTC")</dd>
+
+                    <dt class="col-sm-4 text-muted">Notes / Specs:</dt>
+                    <dd class="col-sm-8 text-dark">@(string.IsNullOrWhiteSpace(Model.Notes) ? "None" : Model.Notes)</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Custody / Allocation Status -->
+    <div class="col-lg-6">
+        <div class="card-modern h-100">
+            <div class="card-modern-header">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-person-check-fill text-success fs-5"></i>
+                    <h6 class="fw-bold mb-0 text-dark">Current Custody Status</h6>
+                </div>
+                <span class="badge @statusBadgeClass">@Model.Status</span>
+            </div>
+            <div class="p-3">
+                @if (Model.Status == AssetStatus.Assigned && Model.CurrentEmployeeId.HasValue)
+                {
+                    <div class="p-3 rounded-3 border bg-light mb-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="proto-stat-icon-box proto-icon-purple">
+                                <i class="bi bi-person-badge"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold text-dark mb-0">@Model.CurrentEmployeeName</h6>
+                                <small class="text-muted">Staff Code: <span class="font-monospace fw-semibold">@Model.CurrentEmployeeCode</span></small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <dl class="row mb-0 small">
+                        <dt class="col-sm-4 text-muted">Assigned On:</dt>
+                        <dd class="col-sm-8 fw-semibold text-dark">@(Model.CurrentAssignedAtUtc?.ToString("dd MMM yyyy, HH:mm UTC") ?? "—")</dd>
+
+                        <dt class="col-sm-4 text-muted">Handover Note:</dt>
+                        <dd class="col-sm-8 text-dark">@(string.IsNullOrWhiteSpace(Model.CurrentAssignmentNote) ? "No remarks" : Model.CurrentAssignmentNote)</dd>
+                    </dl>
+                }
+                else
+                {
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-shield-check fs-1 text-success d-block mb-2"></i>
+                        <h6 class="fw-bold text-dark mb-1">Equipment in Storage</h6>
+                        <small>This asset is currently in the inventory and available for deployment.</small>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignment History Log -->
+    <div class="col-12">
+        <div class="card-modern">
+            <div class="card-modern-header">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-clock-history text-primary fs-5"></i>
+                    <h6 class="fw-bold mb-0 text-dark">Custody & Deployment History</h6>
+                </div>
+                <span class="badge badge-soft-secondary font-monospace">@history.Count Records</span>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-modern">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Code</th>
+                            <th>Assigned Date (UTC)</th>
+                            <th>Returned Date (UTC)</th>
+                            <th>Status</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (history.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    No allocation history recorded for this asset yet.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var h in history)
+                            {
+                                <tr>
+                                    <td class="fw-semibold text-dark">@h.EmployeeName</td>
+                                    <td class="font-monospace small">@h.EmployeeCode</td>
+                                    <td class="small">@h.AssignedAtUtc.ToString("dd MMM yyyy, HH:mm")</td>
+                                    <td class="small">
+                                        @(h.ReturnedAtUtc.HasValue ? h.ReturnedAtUtc.Value.ToString("dd MMM yyyy, HH:mm") : "—")
+                                    </td>
+                                    <td>
+                                        @if (h.IsCurrentlyHeld)
+                                        {
+                                            <span class="badge badge-soft-success">Currently Held</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-soft-secondary">Returned</span>
+                                        }
+                                    </td>
+                                    <td class="small text-muted">@(string.IsNullOrWhiteSpace(h.Note) ? "—" : h.Note)</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
