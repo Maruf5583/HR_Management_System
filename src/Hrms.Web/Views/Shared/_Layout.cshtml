@@ -13,18 +13,40 @@
         {
             companyName = configuredName;
         }
-
-        companyLogo = await SettingsReader.GetStringAsync(Hrms.Settings.Contracts.SettingKeys.CompanyLogo);
-        companyFavicon = await SettingsReader.GetStringAsync(Hrms.Settings.Contracts.SettingKeys.CompanyFavicon);
-
-        if (CurrentUser.IsAuthenticated)
-        {
-            userPhotoKey = await EmployeeLookup.GetPhotoKeyForUserAsync(CurrentUser.EmployeeId, CurrentUser.Email);
-        }
     }
     catch
     {
         // Fallback default
+    }
+
+    try
+    {
+        companyLogo = await SettingsReader.GetStringAsync(Hrms.Settings.Contracts.SettingKeys.CompanyLogo);
+    }
+    catch
+    {
+        // Optional setting
+    }
+
+    try
+    {
+        companyFavicon = await SettingsReader.GetStringAsync(Hrms.Settings.Contracts.SettingKeys.CompanyFavicon);
+    }
+    catch
+    {
+        // Optional setting
+    }
+
+    if (CurrentUser.IsAuthenticated)
+    {
+        try
+        {
+            userPhotoKey = await EmployeeLookup.GetPhotoKeyForUserAsync(CurrentUser.EmployeeId, CurrentUser.Email);
+        }
+        catch
+        {
+            // Fallback default
+        }
     }
 
     string? photoUrl = null;
