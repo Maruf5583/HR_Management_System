@@ -33,7 +33,7 @@ public class CurrentUser : ICurrentUser
         }
     }
 
-    public string? Email => User?.FindFirst(ClaimTypes.Email)?.Value;
+    public string? Email => User?.FindFirst(ClaimTypes.Email)?.Value ?? User?.Identity?.Name;
 
     public bool IsAuthenticated => User?.Identity?.IsAuthenticated ?? false;
 

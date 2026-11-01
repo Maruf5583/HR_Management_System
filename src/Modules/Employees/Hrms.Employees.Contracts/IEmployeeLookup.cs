@@ -29,5 +29,6 @@ public interface IEmployeeLookup
     Task<bool> ExistsAsync(Guid employeeId, CancellationToken cancellationToken = default);
     Task<EmployeeBasicDto?> GetBasicInfoAsync(Guid employeeId, CancellationToken cancellationToken = default);
     Task<string?> GetPhotoKeyAsync(Guid employeeId, CancellationToken cancellationToken = default);
+    Task<string?> GetPhotoKeyForUserAsync(Guid? employeeId, string? email, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmployeeLookupDto>> GetActiveEmployeesDropdownAsync(CancellationToken cancellationToken = default);
 }
