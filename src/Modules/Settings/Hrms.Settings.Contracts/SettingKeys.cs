@@ -4,6 +4,8 @@ public static class SettingKeys
 {
     public const string CompanyName = "company.name";
     public const string CompanyTimezone = "company.timezone";
+    public const string CompanyLogo = "company.logo";
+    public const string CompanyFavicon = "company.favicon";
     public const string AttendanceHalfDayHours = "attendance.half_day_hours";
     public const string AttendanceHolidayPriority = "attendance.holiday_priority";
     public const string LeaveYearStart = "leave.year_start";
@@ -14,6 +16,8 @@ public static class SettingKeys
     {
         CompanyName,
         CompanyTimezone,
+        CompanyLogo,
+        CompanyFavicon,
         AttendanceHalfDayHours,
         AttendanceHolidayPriority,
         LeaveYearStart,

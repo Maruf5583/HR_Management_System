@@ -161,6 +161,36 @@ namespace Hrms.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Hrms.Attendance.Domain.Entities.AttendanceBreak", b =>
+                {
+                    b.Property<Guid>("AttendanceBreakId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<Guid>("AttendanceDayId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("BreakEndUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime>("BreakStartUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<int>("Minutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("AttendanceBreakId")
+                        .HasName("PK_AttendanceBreaks");
+
+                    b.HasIndex("AttendanceDayId")
+                        .HasDatabaseName("IX_AttendanceBreaks_AttendanceDayId");
+
+                    b.ToTable("AttendanceBreaks", (string)null);
+                });
+
             modelBuilder.Entity("Hrms.Attendance.Domain.Entities.AttendanceDay", b =>
                 {
                     b.Property<Guid>("AttendanceDayId")
@@ -246,6 +276,71 @@ namespace Hrms.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_AttendanceDays_Status", "[Status] IN ('Present','Late','Absent','HalfDay','OnLeave','Holiday','Weekend')");
                         });
+                });
+
+            modelBuilder.Entity("Hrms.Attendance.Domain.Entities.AttendanceRequest", b =>
+                {
+                    b.Property<Guid>("AttendanceRequestId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("RequestedCheckInUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<DateTime?>("RequestedCheckOutUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("ReviewRemarks")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<Guid?>("ReviewedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly>("WorkDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("AttendanceRequestId")
+                        .HasName("PK_AttendanceRequests");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_AttendanceRequests_Status");
+
+                    b.HasIndex("EmployeeId", "WorkDate")
+                        .HasDatabaseName("IX_AttendanceRequests_Employee_Date");
+
+                    b.ToTable("AttendanceRequests", (string)null);
                 });
 
             modelBuilder.Entity("Hrms.Audit.Domain.Entities.AuditLog", b =>
@@ -1193,6 +1288,52 @@ namespace Hrms.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Hrms.Notifications.Domain.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("NotificationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<bool>("IsRead")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("LinkUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReadAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("NotificationId")
+                        .HasName("PK_Notifications");
+
+                    b.HasIndex("UserId", "IsRead")
+                        .HasDatabaseName("IX_Notifications_UserId_IsRead");
+
+                    b.ToTable("Notifications", (string)null);
+                });
+
             modelBuilder.Entity("Hrms.Settings.Domain.Entities.Setting", b =>
                 {
                     b.Property<Guid>("SettingId")
@@ -1356,6 +1497,16 @@ namespace Hrms.Persistence.Migrations
                     b.Navigation("Asset");
                 });
 
+            modelBuilder.Entity("Hrms.Attendance.Domain.Entities.AttendanceBreak", b =>
+                {
+                    b.HasOne("Hrms.Attendance.Domain.Entities.AttendanceDay", null)
+                        .WithMany()
+                        .HasForeignKey("AttendanceDayId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_AttendanceBreaks_AttendanceDays");
+                });
+
             modelBuilder.Entity("Hrms.Attendance.Domain.Entities.AttendanceDay", b =>
                 {
                     b.HasOne("Hrms.Employees.Domain.Entities.Employee", null)
@@ -1370,6 +1521,16 @@ namespace Hrms.Persistence.Migrations
                         .HasForeignKey("ShiftVersionId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK_AttendanceDays_ShiftVersions");
+                });
+
+            modelBuilder.Entity("Hrms.Attendance.Domain.Entities.AttendanceRequest", b =>
+                {
+                    b.HasOne("Hrms.Employees.Domain.Entities.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired()
+                        .HasConstraintName("FK_AttendanceRequests_Employees");
                 });
 
             modelBuilder.Entity("Hrms.Calendar.Domain.Entities.ShiftAssignment", b =>
@@ -1494,6 +1655,16 @@ namespace Hrms.Persistence.Migrations
                         .HasConstraintName("FK_LeaveRecords_LeaveTypes");
 
                     b.Navigation("LeaveType");
+                });
+
+            modelBuilder.Entity("Hrms.Notifications.Domain.Entities.Notification", b =>
+                {
+                    b.HasOne("Hrms.Identity.Domain.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("FK_Notifications_AspNetUsers");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

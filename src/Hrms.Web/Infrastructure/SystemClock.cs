@@ -16,6 +16,12 @@ public class SystemClock : IClock
         return TimeZoneInfo.ConvertTimeFromUtc(unspecifiedUtc, LocalTimeZone);
     }
 
+    public DateTime ToUtc(DateTime local)
+    {
+        var unspecified = DateTime.SpecifyKind(local, DateTimeKind.Unspecified);
+        return TimeZoneInfo.ConvertTimeToUtc(unspecified, LocalTimeZone);
+    }
+
     private static TimeZoneInfo GetTimeZone()
     {
         try

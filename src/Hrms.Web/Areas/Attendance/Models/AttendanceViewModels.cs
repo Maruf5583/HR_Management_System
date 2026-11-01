@@ -1,4 +1,6 @@
 using Hrms.Attendance.Application.Models;
+using Hrms.Attendance.Application.Queries.GetAttendanceRequests;
+using Hrms.Attendance.Application.Queries.GetMyAttendanceSession;
 using Hrms.Attendance.Domain.Enums;
 
 namespace Hrms.Web.Areas.Attendance.Models;
@@ -70,5 +72,32 @@ public class MyAttendanceViewModel
     public bool HasEmployee { get; set; }
     public int Year { get; set; }
     public int Month { get; set; }
+    public string ActiveTab { get; set; } = "attendance";
+    public MyAttendanceSessionDto? Session { get; set; }
     public EmployeeMonthlyReportDto? Report { get; set; }
+    public IReadOnlyList<AttendanceRequestDto> MyRequests { get; set; } = new List<AttendanceRequestDto>();
+    public double TotalLoggedHours { get; set; }
+    public double TotalOvertimeHours { get; set; }
+    public int WorkingDaysCount { get; set; }
+    public int ScorePercent { get; set; }
+}
+
+public class SubmitCorrectionInputModel
+{
+    public DateOnly WorkDate { get; set; }
+    public TimeOnly CheckInTime { get; set; } = new TimeOnly(9, 0);
+    public TimeOnly? CheckOutTime { get; set; } = new TimeOnly(18, 0);
+    public string Reason { get; set; } = string.Empty;
+}
+
+public class ReviewCorrectionInputModel
+{
+    public Guid RequestId { get; set; }
+    public bool Approve { get; set; }
+    public string? Remarks { get; set; }
+}
+
+public class AttendanceApprovalsViewModel
+{
+    public IReadOnlyList<AttendanceRequestDto> PendingRequests { get; set; } = new List<AttendanceRequestDto>();
 }

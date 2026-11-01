@@ -37,9 +37,53 @@ public class EmployeeLookupService : IEmployeeLookup
                 e.JoinDate,
                 e.ExitDate,
                 e.DepartmentId,
-                e.Grade != null ? e.Grade.Salary : 0m
+                e.Grade != null ? e.Grade.Salary : 0m,
+                e.PhotoKey
             ))
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<string?> GetPhotoKeyAsync(Guid employeeId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Employees
+            .AsNoTracking()
+            .Where(e => e.EmployeeId == employeeId)
+            .Select(e => e.PhotoKey)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<string?> GetPhotoKeyForUserAsync(Guid? employeeId, string? email, CancellationToken cancellationToken = default)
+    {
+        if (employeeId.HasValue && employeeId.Value != Guid.Empty)
+        {
+            var photo = await _context.Employees
+                .AsNoTracking()
+                .Where(e => e.EmployeeId == employeeId.Value)
+                .Select(e => e.PhotoKey)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(photo))
+            {
+                return photo.Trim();
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            var trimmedEmail = email.Trim();
+            var photo = await _context.Employees
+                .AsNoTracking()
+                .Where(e => e.Email != null && (e.Email == trimmedEmail || e.Email.ToLower() == trimmedEmail.ToLower()))
+                .Select(e => e.PhotoKey)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(photo))
+            {
+                return photo.Trim();
+            }
+        }
+
+        return null;
     }
 
     public async Task<IReadOnlyList<EmployeeLookupDto>> GetActiveEmployeesDropdownAsync(CancellationToken cancellationToken = default)

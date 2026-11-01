@@ -6,6 +6,7 @@ using Hrms.Settings.Application.Abstractions;
 using Hrms.Settings.Application.Models;
 using Hrms.Settings.Application.Services;
 using Hrms.Settings.Contracts;
+using Hrms.Settings.Domain.Entities;
 using Hrms.Shared.Abstractions;
 using Hrms.Shared.Primitives;
 using Microsoft.EntityFrameworkCore;
@@ -68,6 +69,16 @@ public class SettingsService : ISettingsService
             [SettingKeys.EmployeeCodeFormat] = command.EmployeeCodeFormat.Trim()
         };
 
+        if (command.CompanyLogo != null)
+        {
+            newValues[SettingKeys.CompanyLogo] = command.CompanyLogo.Trim();
+        }
+
+        if (command.CompanyFavicon != null)
+        {
+            newValues[SettingKeys.CompanyFavicon] = command.CompanyFavicon.Trim();
+        }
+
         using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
         var existingSettings = await _context.Settings.ToListAsync(cancellationToken);
@@ -77,19 +88,37 @@ public class SettingsService : ISettingsService
         var oldValuesDict = new Dictionary<string, string>();
         var newValuesDict = new Dictionary<string, string>();
 
-        foreach (var setting in existingSettings)
+        foreach (var kvp in newValues)
         {
-            if (newValues.TryGetValue(setting.SettingKey, out var newValue))
+            var setting = existingSettings.FirstOrDefault(s => s.SettingKey == kvp.Key);
+            if (setting == null)
             {
-                if (setting.ValueText != newValue)
+                var newSetting = new Setting
                 {
-                    oldValuesDict[setting.SettingKey] = setting.ValueText;
-                    newValuesDict[setting.SettingKey] = newValue;
+                    SettingId = Guid.NewGuid(),
+                    SettingKey = kvp.Key,
+                    ValueText = kvp.Value,
+                    Description = kvp.Key switch
+                    {
+                        SettingKeys.CompanyLogo => "Company brand logo image path",
+                        SettingKeys.CompanyFavicon => "Company website favicon image path",
+                        _ => null
+                    },
+                    UpdatedAtUtc = now,
+                    UpdatedByUserId = currentUserId
+                };
+                _context.Settings.Add(newSetting);
+                oldValuesDict[kvp.Key] = string.Empty;
+                newValuesDict[kvp.Key] = kvp.Value;
+            }
+            else if (setting.ValueText != kvp.Value)
+            {
+                oldValuesDict[setting.SettingKey] = setting.ValueText;
+                newValuesDict[setting.SettingKey] = kvp.Value;
 
-                    setting.ValueText = newValue;
-                    setting.UpdatedAtUtc = now;
-                    setting.UpdatedByUserId = currentUserId;
-                }
+                setting.ValueText = kvp.Value;
+                setting.UpdatedAtUtc = now;
+                setting.UpdatedByUserId = currentUserId;
             }
         }
 

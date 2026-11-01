@@ -11,6 +11,8 @@ using Hrms.Employees.Domain.Entities;
 using Hrms.Identity.Domain.Entities;
 using Hrms.Leave.Application.Abstractions;
 using Hrms.Leave.Domain.Entities;
+using Hrms.Notifications.Application.Abstractions;
+using Hrms.Notifications.Domain.Entities;
 using Hrms.Persistence.Interceptors;
 using Hrms.Settings.Application.Abstractions;
 using Hrms.Settings.Domain.Entities;
@@ -26,7 +28,8 @@ public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
     ICalendarDbContext,
     IAssetsDbContext,
     ILeaveDbContext,
-    IAttendanceDbContext
+    IAttendanceDbContext,
+    INotificationsDbContext
 {
     private readonly AuditableEntityInterceptor? _auditableEntityInterceptor;
     private readonly AuditLogInterceptor? _auditLogInterceptor;
@@ -81,6 +84,11 @@ public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
 
     // Attendance Module
     public DbSet<AttendanceDay> AttendanceDays => Set<AttendanceDay>();
+    public DbSet<AttendanceBreak> AttendanceBreaks => Set<AttendanceBreak>();
+    public DbSet<AttendanceRequest> AttendanceRequests => Set<AttendanceRequest>();
+
+    // Notifications Module
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -143,6 +151,36 @@ public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.NoAction)
                 .HasConstraintName("FK_AttendanceDays_ShiftVersions");
+        });
+
+        // AttendanceBreaks -> AttendanceDays
+        builder.Entity<AttendanceBreak>(b =>
+        {
+            b.HasOne<AttendanceDay>()
+                .WithMany()
+                .HasForeignKey(ab => ab.AttendanceDayId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_AttendanceBreaks_AttendanceDays");
+        });
+
+        // AttendanceRequests -> Employees
+        builder.Entity<AttendanceRequest>(b =>
+        {
+            b.HasOne<Employee>()
+                .WithMany()
+                .HasForeignKey(ar => ar.EmployeeId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_AttendanceRequests_Employees");
+        });
+
+        // Notifications -> AspNetUsers
+        builder.Entity<Notification>(b =>
+        {
+            b.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_Notifications_AspNetUsers");
         });
     }
 }

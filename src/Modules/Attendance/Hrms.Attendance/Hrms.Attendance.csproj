@@ -19,5 +19,7 @@
     <ProjectReference Include="..\..\Leave\Hrms.Leave.Contracts\Hrms.Leave.Contracts.csproj" />
     <ProjectReference Include="..\..\Settings\Hrms.Settings.Contracts\Hrms.Settings.Contracts.csproj" />
     <ProjectReference Include="..\..\Audit\Hrms.Audit.Contracts\Hrms.Audit.Contracts.csproj" />
+    <ProjectReference Include="..\..\Identity\Hrms.Identity.Contracts\Hrms.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\Notifications\Hrms.Notifications.Contracts\Hrms.Notifications.Contracts.csproj" />
   </ItemGroup>
 </Project>

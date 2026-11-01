@@ -30,6 +30,8 @@
     <ProjectReference Include="..\Modules\Attendance\Hrms.Attendance\Hrms.Attendance.csproj" />
     <ProjectReference Include="..\Modules\Leave\Hrms.Leave.Contracts\Hrms.Leave.Contracts.csproj" />
     <ProjectReference Include="..\Modules\Leave\Hrms.Leave\Hrms.Leave.csproj" />
+    <ProjectReference Include="..\Modules\Notifications\Hrms.Notifications.Contracts\Hrms.Notifications.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Notifications\Hrms.Notifications\Hrms.Notifications.csproj" />
     <ProjectReference Include="..\Modules\Reports\Hrms.Reports\Hrms.Reports.csproj" />
     <ProjectReference Include="..\Hrms.Persistence\Hrms.Persistence.csproj" />
   </ItemGroup>

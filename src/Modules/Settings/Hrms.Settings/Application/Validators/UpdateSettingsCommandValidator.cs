@@ -45,6 +45,12 @@ public class UpdateSettingsCommandValidator : AbstractValidator<UpdateSettingsCo
             .NotEmpty().WithMessage("Employee code format is required.")
             .Must(BeAValidEmployeeCodeFormat)
             .WithMessage("Employee code format must be a valid .NET format string with exactly one placeholder like {0:0000}, and formatted codes must not exceed 30 characters.");
+
+        RuleFor(x => x.CompanyLogo)
+            .MaximumLength(500).When(x => !string.IsNullOrEmpty(x.CompanyLogo));
+
+        RuleFor(x => x.CompanyFavicon)
+            .MaximumLength(500).When(x => !string.IsNullOrEmpty(x.CompanyFavicon));
     }
 
     private static bool BeAValidTimeZone(string timezone)
@@ -52,7 +58,6 @@ public class UpdateSettingsCommandValidator : AbstractValidator<UpdateSettingsCo
         if (string.IsNullOrWhiteSpace(timezone)) return false;
         var trimmed = timezone.Trim();
 
-        // Explicitly accept Asia/Dhaka per specification
         if (string.Equals(trimmed, "Asia/Dhaka", StringComparison.OrdinalIgnoreCase))
         {
             return true;

@@ -1,10 +1,14 @@
 using FluentValidation;
 using Hrms.Attendance.Application.Abstractions;
+using Hrms.Attendance.Application.Commands.Approvals;
 using Hrms.Attendance.Application.Commands.SaveDailySheet;
+using Hrms.Attendance.Application.Commands.SelfService;
 using Hrms.Attendance.Application.Commands.UpdateAttendanceRecord;
+using Hrms.Attendance.Application.Queries.GetAttendanceRequests;
 using Hrms.Attendance.Application.Queries.GetDailySheet;
 using Hrms.Attendance.Application.Queries.GetEmployeeAttendance;
 using Hrms.Attendance.Application.Queries.GetMonthlyAttendance;
+using Hrms.Attendance.Application.Queries.GetMyAttendanceSession;
 using Hrms.Attendance.Contracts;
 using Hrms.Attendance.Infrastructure.Repositories;
 using Hrms.Attendance.Infrastructure.Services;
@@ -25,10 +29,18 @@ public static class AttendanceModule
         services.AddScoped<IGetDailySheetHandler, GetDailySheetHandler>();
         services.AddScoped<IGetMonthlyAttendanceHandler, GetMonthlyAttendanceHandler>();
         services.AddScoped<IGetEmployeeAttendanceHandler, GetEmployeeAttendanceHandler>();
+        services.AddScoped<IGetMyAttendanceSessionHandler, GetMyAttendanceSessionHandler>();
+        services.AddScoped<IGetAttendanceRequestsHandler, GetAttendanceRequestsHandler>();
 
         // Command Handlers
         services.AddScoped<ISaveDailySheetHandler, SaveDailySheetHandler>();
         services.AddScoped<IUpdateAttendanceRecordHandler, UpdateAttendanceRecordHandler>();
+        services.AddScoped<IClockInHandler, ClockInHandler>();
+        services.AddScoped<IStartBreakHandler, StartBreakHandler>();
+        services.AddScoped<IEndBreakHandler, EndBreakHandler>();
+        services.AddScoped<IClockOutHandler, ClockOutHandler>();
+        services.AddScoped<ISubmitAttendanceCorrectionHandler, SubmitAttendanceCorrectionHandler>();
+        services.AddScoped<IReviewAttendanceCorrectionHandler, ReviewAttendanceCorrectionHandler>();
 
         // Validators
         services.AddValidatorsFromAssemblyContaining<SaveDailySheetCommandValidator>();

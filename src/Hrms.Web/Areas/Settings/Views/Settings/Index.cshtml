@@ -9,7 +9,7 @@
             <h3 class="fw-bold tracking-tight mb-1">
                 <i class="bi bi-gear-wide-connected text-primary me-2"></i>System Settings
             </h3>
-            <p class="text-muted small mb-0">Manage global operational rules, attendance policies, leave parameters, and numbering conventions.</p>
+            <p class="text-muted small mb-0">Manage global operational rules, branding, attendance policies, leave parameters, and numbering conventions.</p>
         </div>
     </div>
 
@@ -24,17 +24,20 @@
         </div>
     }
 
-    <form asp-area="Settings" asp-controller="Settings" asp-action="Save" method="post" id="settingsForm" novalidate>
+    <form asp-area="Settings" asp-controller="Settings" asp-action="Save" method="post" id="settingsForm" enctype="multipart/form-data" novalidate>
         @Html.AntiForgeryToken()
 
         <input type="hidden" asp-for="CompanyNameDescription" />
         <input type="hidden" asp-for="CompanyTimezoneDescription" />
+        <input type="hidden" asp-for="CompanyLogo" />
+        <input type="hidden" asp-for="CompanyFavicon" />
         <input type="hidden" asp-for="AttendanceHalfDayHoursDescription" />
         <input type="hidden" asp-for="AttendanceHolidayPriorityDescription" />
         <input type="hidden" asp-for="LeaveYearStartDescription" />
         <input type="hidden" asp-for="PayrollPerDayDivisorDescription" />
         <input type="hidden" asp-for="EmployeeCodeFormatDescription" />
 
+        <!-- Company Information -->
         <div class="card border-0 shadow-sm mb-4" style="border-radius: 14px;">
             <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
                 <div class="d-flex align-items-center gap-2">
@@ -49,7 +52,7 @@
                         <input asp-for="CompanyName" class="form-control" placeholder="Company Name" />
                         <span asp-validation-for="CompanyName" class="text-danger small d-block mt-1"></span>
                         <div class="form-text text-muted small mt-1">
-                            @(Model.CompanyNameDescription ?? "Company name")
+                            @(Model.CompanyNameDescription ?? "Company name displayed across pages and headers")
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -57,13 +60,91 @@
                         <input asp-for="CompanyTimezone" class="form-control font-monospace" placeholder="Asia/Dhaka" />
                         <span asp-validation-for="CompanyTimezone" class="text-danger small d-block mt-1"></span>
                         <div class="form-text text-muted small mt-1">
-                            @(Model.CompanyTimezoneDescription ?? "Time zone for WorkDate")
+                            @(Model.CompanyTimezoneDescription ?? "Time zone for WorkDate and operational hours")
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- Branding: Logo & Favicon -->
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 14px;">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-purple-subtle text-purple p-2 rounded-3" style="background-color: #ede9fe; color: #6d28d9;"><i class="bi bi-image"></i></span>
+                    <h5 class="fw-bold mb-0 text-dark">Branding & Visual Identity</h5>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <!-- Company Logo Upload -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold d-flex justify-content-between align-items-center">
+                            <span>Company Logo</span>
+                            <span class="badge bg-light text-muted border">Sidebar & Header</span>
+                        </label>
+
+                        @if (!string.IsNullOrEmpty(Model.CompanyLogo))
+                        {
+                            <div class="p-3 mb-3 rounded-3 border bg-light d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="p-2 bg-white rounded-2 border shadow-xs" style="max-width: 140px; max-height: 50px;">
+                                        <img src="@Model.CompanyLogo" alt="Current Logo" style="max-height: 36px; max-width: 120px; object-fit: contain;" />
+                                    </div>
+                                    <span class="small text-muted text-break">Active Logo</span>
+                                </div>
+                                <div class="form-check">
+                                    <input asp-for="RemoveLogo" class="form-check-input" id="removeLogoCheck" />
+                                    <label class="form-check-label small text-danger fw-semibold" for="removeLogoCheck">
+                                        Remove
+                                    </label>
+                                </div>
+                            </div>
+                        }
+
+                        <input asp-for="LogoFile" type="file" class="form-control" accept=".png,.jpg,.jpeg,.svg,.webp" />
+                        <span asp-validation-for="LogoFile" class="text-danger small d-block mt-1"></span>
+                        <div class="form-text text-muted small mt-1">
+                            <i class="bi bi-info-circle me-1"></i>Formats: PNG, JPG, JPEG, SVG, WebP. Recommended height: 40px, max size: 2 MB.
+                        </div>
+                    </div>
+
+                    <!-- Website Favicon Upload -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold d-flex justify-content-between align-items-center">
+                            <span>Website Favicon</span>
+                            <span class="badge bg-light text-muted border">Browser Tab</span>
+                        </label>
+
+                        @if (!string.IsNullOrEmpty(Model.CompanyFavicon))
+                        {
+                            <div class="p-3 mb-3 rounded-3 border bg-light d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="p-2 bg-white rounded-2 border shadow-xs d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                                        <img src="@Model.CompanyFavicon" alt="Current Favicon" style="width: 28px; height: 28px; object-fit: contain;" />
+                                    </div>
+                                    <span class="small text-muted text-break">Active Favicon</span>
+                                </div>
+                                <div class="form-check">
+                                    <input asp-for="RemoveFavicon" class="form-check-input" id="removeFaviconCheck" />
+                                    <label class="form-check-label small text-danger fw-semibold" for="removeFaviconCheck">
+                                        Remove
+                                    </label>
+                                </div>
+                            </div>
+                        }
+
+                        <input asp-for="FaviconFile" type="file" class="form-control" accept=".ico,.png,.svg" />
+                        <span asp-validation-for="FaviconFile" class="text-danger small d-block mt-1"></span>
+                        <div class="form-text text-muted small mt-1">
+                            <i class="bi bi-info-circle me-1"></i>Formats: ICO, PNG, SVG. Recommended: 32x32px or 64x64px, max size: 512 KB.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Rules -->
         <div class="card border-0 shadow-sm mb-4" style="border-radius: 14px;">
             <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
                 <div class="d-flex align-items-center gap-2">
@@ -96,6 +177,7 @@
             </div>
         </div>
 
+        <!-- Leave Management -->
         <div class="card border-0 shadow-sm mb-4" style="border-radius: 14px;">
             <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
                 <div class="d-flex align-items-center gap-2">
@@ -117,6 +199,7 @@
             </div>
         </div>
 
+        <!-- Payroll Configuration -->
         <div class="card border-0 shadow-sm mb-4" style="border-radius: 14px;">
             <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
                 <div class="d-flex align-items-center gap-2">
@@ -138,6 +221,7 @@
             </div>
         </div>
 
+        <!-- Employee Numbering -->
         <div class="card border-0 shadow-sm mb-4" style="border-radius: 14px;">
             <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
                 <div class="d-flex align-items-center gap-2">
