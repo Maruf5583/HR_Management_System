@@ -127,17 +127,20 @@
                 }
 
                 <!-- PEOPLE & ORGANIZATION -->
-                @if (CurrentUser.HasPermission(Permissions.Employees.View) || CurrentUser.HasPermission(Permissions.Employees.Manage))
+                @if (CurrentUser.HasPermission(Permissions.Employees.View) || CurrentUser.HasPermission(Permissions.Employees.Manage) || CurrentUser.HasPermission(Permissions.Assets.Manage))
                 {
                     <div class="sidebar-section-label">PEOPLE & ORG</div>
                     <ul class="sidebar-nav">
-                        <li class="sidebar-nav-item">
-                            <a class="sidebar-nav-link @(currentArea == "Employees" && currentController == "Employees" && currentAction != "MyProfile" ? "active" : "")"
-                               asp-area="Employees" asp-controller="Employees" asp-action="Index">
-                                <i class="bi bi-people"></i>
-                                <span>Employees</span>
-                            </a>
-                        </li>
+                        @if (CurrentUser.HasPermission(Permissions.Employees.View))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Employees" && currentController == "Employees" && currentAction != "MyProfile" ? "active" : "")"
+                                   asp-area="Employees" asp-controller="Employees" asp-action="Index">
+                                    <i class="bi bi-people"></i>
+                                    <span>Employees</span>
+                                </a>
+                            </li>
+                        }
 
                         @if (CurrentUser.HasPermission(Permissions.Employees.Manage))
                         {
@@ -178,7 +181,7 @@
                 }
 
                 <!-- TIME & SCHEDULE (CALENDAR & SHIFTS) -->
-                @if (CurrentUser.HasPermission(Permissions.Holidays.View) || CurrentUser.HasPermission(Permissions.Shifts.Manage) || CurrentUser.HasPermission(Permissions.Holidays.Manage))
+                @if (CurrentUser.HasPermission(Permissions.Shifts.Manage) || CurrentUser.HasPermission(Permissions.Holidays.Manage) || (!CurrentUser.IsInRole("Employee") && CurrentUser.HasPermission(Permissions.Holidays.View)))
                 {
                     <div class="sidebar-section-label">TIME & SCHEDULE</div>
                     <ul class="sidebar-nav">
@@ -200,7 +203,7 @@
                             </li>
                         }
 
-                        @if (CurrentUser.HasPermission(Permissions.Holidays.View) || CurrentUser.HasPermission(Permissions.Holidays.Manage))
+                        @if (CurrentUser.HasPermission(Permissions.Holidays.Manage) || (!CurrentUser.IsInRole("Employee") && CurrentUser.HasPermission(Permissions.Holidays.View)))
                         {
                             <li class="sidebar-nav-item">
                                 <a class="sidebar-nav-link @(currentArea == "Calendar" && currentController == "Holidays" ? "active" : "")"
@@ -229,20 +232,26 @@
                 {
                     <div class="sidebar-section-label">ATTENDANCE</div>
                     <ul class="sidebar-nav">
-                        <li class="sidebar-nav-item">
-                            <a class="sidebar-nav-link @(currentArea == "Attendance" && currentController == "DailySheet" ? "active" : "")"
-                               asp-area="Attendance" asp-controller="DailySheet" asp-action="Index">
-                                <i class="bi bi-calendar-check"></i>
-                                <span>Daily Sheet</span>
-                            </a>
-                        </li>
-                        <li class="sidebar-nav-item">
-                            <a class="sidebar-nav-link @(currentArea == "Attendance" && currentController == "Monthly" ? "active" : "")"
-                               asp-area="Attendance" asp-controller="Monthly" asp-action="Index">
-                                <i class="bi bi-grid-3x3"></i>
-                                <span>Monthly Sheet</span>
-                            </a>
-                        </li>
+                        @if (CurrentUser.HasPermission(Permissions.Attendance.Manage))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Attendance" && currentController == "DailySheet" ? "active" : "")"
+                                   asp-area="Attendance" asp-controller="DailySheet" asp-action="Index">
+                                    <i class="bi bi-calendar-check"></i>
+                                    <span>Daily Sheet</span>
+                                </a>
+                            </li>
+                        }
+                        @if (CurrentUser.HasPermission(Permissions.Attendance.ViewAll))
+                        {
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Attendance" && currentController == "Monthly" ? "active" : "")"
+                                   asp-area="Attendance" asp-controller="Monthly" asp-action="Index">
+                                    <i class="bi bi-grid-3x3"></i>
+                                    <span>Monthly Sheet</span>
+                                </a>
+                            </li>
+                        }
                     </ul>
                 }
 
