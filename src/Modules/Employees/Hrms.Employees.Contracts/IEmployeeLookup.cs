@@ -10,7 +10,8 @@ public record EmployeeBasicDto(
     DateOnly JoinDate,
     DateOnly? ExitDate,
     Guid DepartmentId,
-    decimal GradeSalary
+    decimal GradeSalary,
+    string? PhotoKey = null
 )
 {
     public string FullName => $"{FirstName} {LastName}".Trim();
@@ -27,5 +28,6 @@ public interface IEmployeeLookup
 {
     Task<bool> ExistsAsync(Guid employeeId, CancellationToken cancellationToken = default);
     Task<EmployeeBasicDto?> GetBasicInfoAsync(Guid employeeId, CancellationToken cancellationToken = default);
+    Task<string?> GetPhotoKeyAsync(Guid employeeId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmployeeLookupDto>> GetActiveEmployeesDropdownAsync(CancellationToken cancellationToken = default);
 }

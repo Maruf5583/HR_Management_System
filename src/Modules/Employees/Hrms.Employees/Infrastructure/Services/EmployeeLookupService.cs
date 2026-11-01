@@ -37,8 +37,18 @@ public class EmployeeLookupService : IEmployeeLookup
                 e.JoinDate,
                 e.ExitDate,
                 e.DepartmentId,
-                e.Grade != null ? e.Grade.Salary : 0m
+                e.Grade != null ? e.Grade.Salary : 0m,
+                e.PhotoKey
             ))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<string?> GetPhotoKeyAsync(Guid employeeId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Employees
+            .AsNoTracking()
+            .Where(e => e.EmployeeId == employeeId)
+            .Select(e => e.PhotoKey)
             .FirstOrDefaultAsync(cancellationToken);
     }
 

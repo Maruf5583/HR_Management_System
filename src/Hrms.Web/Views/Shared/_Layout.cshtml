@@ -1,9 +1,11 @@
 @inject Hrms.Settings.Contracts.ISettingsReader SettingsReader
 @inject Hrms.Leave.Application.Queries.Approvals.IGetApprovalsHandler ApprovalsHandler
+@inject Hrms.Employees.Contracts.IEmployeeLookup EmployeeLookup
 @{
     string companyName = "HRMS";
     string? companyLogo = null;
     string? companyFavicon = null;
+    string? userPhotoKey = null;
     try
     {
         var configuredName = await SettingsReader.GetStringAsync(Hrms.Settings.Contracts.SettingKeys.CompanyName);
@@ -14,6 +16,11 @@
 
         companyLogo = await SettingsReader.GetStringAsync(Hrms.Settings.Contracts.SettingKeys.CompanyLogo);
         companyFavicon = await SettingsReader.GetStringAsync(Hrms.Settings.Contracts.SettingKeys.CompanyFavicon);
+
+        if (CurrentUser.IsAuthenticated && CurrentUser.EmployeeId.HasValue)
+        {
+            userPhotoKey = await EmployeeLookup.GetPhotoKeyAsync(CurrentUser.EmployeeId.Value);
+        }
     }
     catch
     {
@@ -497,18 +504,37 @@
                     <!-- User Avatar Pill Dropdown -->
                     <div class="dropdown">
                         <button class="btn p-0 border-0 d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="sidebar-user-avatar" style="width: 38px; height: 38px; border-radius: 50%;">
-                                @userInitial
-                            </div>
+                            @if (!string.IsNullOrWhiteSpace(userPhotoKey))
+                            {
+                                <img src="/uploads/@userPhotoKey" alt="@CurrentUser.Email" class="rounded-circle shadow-sm" style="width: 38px; height: 38px; object-fit: cover; border: 2px solid #e2e8f0;" />
+                            }
+                            else
+                            {
+                                <div class="sidebar-user-avatar" style="width: 38px; height: 38px; border-radius: 50%;">
+                                    @userInitial
+                                </div>
+                            }
                             <div class="d-none d-xl-block text-start">
                                 <div class="fw-semibold text-dark small" style="line-height: 1.1;">@CurrentUser.Email</div>
                                 <div class="text-muted" style="font-size: 0.72rem;">@userRoleTitle</div>
                             </div>
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 py-2" style="border-radius: 12px; min-width: 210px;">
-                            <li class="px-3 py-2 border-bottom">
-                                <small class="text-muted d-block">Signed in as</small>
-                                <strong class="d-block text-truncate text-dark" style="max-width: 180px;">@CurrentUser.Email</strong>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2 py-2" style="border-radius: 12px; min-width: 220px;">
+                            <li class="px-3 py-2 border-bottom d-flex align-items-center gap-2">
+                                @if (!string.IsNullOrWhiteSpace(userPhotoKey))
+                                {
+                                    <img src="/uploads/@userPhotoKey" alt="@CurrentUser.Email" class="rounded-circle shadow-sm" style="width: 36px; height: 36px; object-fit: cover; border: 1px solid #e2e8f0;" />
+                                }
+                                else
+                                {
+                                    <div class="sidebar-user-avatar" style="width: 36px; height: 36px; border-radius: 50%; font-size: 0.85rem;">
+                                        @userInitial
+                                    </div>
+                                }
+                                <div class="overflow-hidden">
+                                    <small class="text-muted d-block" style="font-size: 0.7rem;">Signed in as</small>
+                                    <strong class="d-block text-truncate text-dark" style="max-width: 150px; font-size: 0.82rem;">@CurrentUser.Email</strong>
+                                </div>
                             </li>
                             @if (CurrentUser.HasPermission(Permissions.Employees.ViewOwn))
                             {
