@@ -1,6 +1,7 @@
 using Hrms.Identity.Contracts;
 using Hrms.Identity.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Hrms.Identity.Infrastructure.Services;
 
@@ -23,5 +24,13 @@ public class IdentityService : IIdentityService
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
         return user?.Email;
+    }
+
+    public async Task<Guid?> GetUserIdByEmployeeIdAsync(Guid employeeId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.EmployeeId == employeeId, cancellationToken);
+        return user?.Id;
     }
 }

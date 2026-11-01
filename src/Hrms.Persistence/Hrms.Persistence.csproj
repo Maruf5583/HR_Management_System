@@ -26,5 +26,7 @@
     <ProjectReference Include="..\Modules\Assets\Hrms.Assets\Hrms.Assets.csproj" />
     <ProjectReference Include="..\Modules\Leave\Hrms.Leave\Hrms.Leave.csproj" />
     <ProjectReference Include="..\Modules\Attendance\Hrms.Attendance\Hrms.Attendance.csproj" />
+    <ProjectReference Include="..\Modules\Notifications\Hrms.Notifications.Contracts\Hrms.Notifications.Contracts.csproj" />
+    <ProjectReference Include="..\Modules\Notifications\Hrms.Notifications\Hrms.Notifications.csproj" />
   </ItemGroup>
 </Project>

@@ -13,6 +13,8 @@ using Hrms.Leave.Application.Abstractions;
 using Hrms.Attendance.Contracts;
 using Hrms.Attendance;
 using Hrms.Attendance.Application.Abstractions;
+using Hrms.Notifications;
+using Hrms.Notifications.Application.Abstractions;
 using Hrms.Reports;
 using Hrms.Settings;
 using Hrms.Settings.Application.Abstractions;
@@ -125,6 +127,10 @@ builder.Services.AddLeaveModule();
 builder.Services.AddScoped<IAttendanceDbContext>(sp => sp.GetRequiredService<HrmsDbContext>());
 builder.Services.AddAttendanceModule();
 
+// Notifications module services
+builder.Services.AddScoped<INotificationsDbContext>(sp => sp.GetRequiredService<HrmsDbContext>());
+builder.Services.AddNotificationsModule();
+
 // Reports module services
 builder.Services.AddReportsModule();
 
@@ -161,6 +167,7 @@ if (args.Contains("--seed-only"))
     return;
 }
 
+// HTTP request pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -175,7 +182,6 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Route configuration
 app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");

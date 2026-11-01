@@ -257,6 +257,13 @@
                                     <span>Daily Sheet</span>
                                 </a>
                             </li>
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Attendance" && currentController == "Approvals" ? "active" : "")"
+                                   asp-area="Attendance" asp-controller="Approvals" asp-action="Index">
+                                    <i class="bi bi-check2-circle"></i>
+                                    <span>Approvals</span>
+                                </a>
+                            </li>
                         }
                         @if (CurrentUser.HasPermission(Permissions.Attendance.ViewAll))
                         {
@@ -465,11 +472,27 @@
                         <span class="topbar-search-shortcut">⌘K</span>
                     </div>
 
-                    <!-- Notification Bell -->
-                    <button type="button" class="topbar-action-icon-btn" title="Notifications">
-                        <i class="bi bi-bell"></i>
-                        <span class="notification-badge-dot"></span>
-                    </button>
+                    <!-- Notification Bell Dropdown -->
+                    <div class="dropdown me-1" id="notificationDropdownContainer">
+                        <button type="button" class="topbar-action-icon-btn position-relative" id="notificationBellBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+                            <i class="bi bi-bell"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" id="notificationBadge" style="font-size: 0.65rem;">
+                                0
+                            </span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 p-0 mt-2" style="width: 320px; border-radius: 14px; overflow: hidden;">
+                            <div class="d-flex justify-content-between align-items-center px-3 py-2 bg-light border-bottom">
+                                <span class="fw-bold small text-dark"><i class="bi bi-bell me-1 text-primary"></i>Notifications</span>
+                                <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 small text-primary" id="markAllReadBtn" style="font-size: 0.75rem;">Mark all as read</button>
+                            </div>
+                            <div id="notificationList" style="max-height: 320px; overflow-y: auto;">
+                                <div class="text-center py-4 text-muted small" id="noNotificationsMsg">
+                                    <i class="bi bi-bell-slash fs-4 d-block mb-1 text-muted"></i>
+                                    No notifications
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- User Avatar Pill Dropdown -->
                     <div class="dropdown">
@@ -609,6 +632,70 @@
                     }
                 }
             });
+
+            // Notifications Polling & UI
+            async function loadNotifications() {
+                try {
+                    const res = await fetch('/Notifications/GetSummary');
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    const badge = document.getElementById('notificationBadge');
+                    const list = document.getElementById('notificationList');
+
+                    if (badge) {
+                        if (data.unreadCount > 0) {
+                            badge.textContent = data.unreadCount > 99 ? '99+' : data.unreadCount;
+                            badge.classList.remove('d-none');
+                        } else {
+                            badge.classList.add('d-none');
+                        }
+                    }
+
+                    if (list && data.items) {
+                        if (data.items.length === 0) {
+                            list.innerHTML = `<div class="text-center py-4 text-muted small"><i class="bi bi-bell-slash fs-4 d-block mb-1 text-muted"></i>No notifications</div>`;
+                        } else {
+                            let html = '';
+                            data.items.forEach(item => {
+                                const bg = item.isRead ? 'bg-white' : 'bg-primary-subtle bg-opacity-25';
+                                const link = item.linkUrl || '#';
+                                html += `
+                                    <a href="${link}" class="d-block text-decoration-none p-3 border-bottom notification-item ${bg}">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <strong class="text-dark small" style="font-size: 0.82rem;">${item.title}</strong>
+                                            <span class="text-muted" style="font-size: 0.7rem;">${item.timeAgo}</span>
+                                        </div>
+                                        <p class="text-muted small mb-0" style="font-size: 0.78rem; line-height: 1.3;">${item.message}</p>
+                                    </a>
+                                `;
+                            });
+                            list.innerHTML = html;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to load notifications', e);
+                }
+            }
+
+            loadNotifications();
+            setInterval(loadNotifications, 30000);
+
+            const markAllBtn = document.getElementById('markAllReadBtn');
+            if (markAllBtn) {
+                markAllBtn.addEventListener('click', async function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+                    await fetch('/Notifications/MarkAllAsRead', {
+                        method: 'POST',
+                        headers: {
+                            'RequestVerificationToken': token,
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        }
+                    });
+                    loadNotifications();
+                });
+            }
         });
     </script>
     @await RenderSectionAsync("Scripts", required: false)
