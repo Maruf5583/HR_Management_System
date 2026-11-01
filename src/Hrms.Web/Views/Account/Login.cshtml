@@ -5,6 +5,8 @@
     Layout = null;
 
     string companyName = "EuitSols";
+    string? companyLogo = null;
+    string? companyFavicon = null;
     try
     {
         var configuredName = await SettingsReader.GetStringAsync(Hrms.Settings.Contracts.SettingKeys.CompanyName);
@@ -12,6 +14,9 @@
         {
             companyName = configuredName;
         }
+
+        companyLogo = await SettingsReader.GetStringAsync(Hrms.Settings.Contracts.SettingKeys.CompanyLogo);
+        companyFavicon = await SettingsReader.GetStringAsync(Hrms.Settings.Contracts.SettingKeys.CompanyFavicon);
     }
     catch
     {
@@ -25,6 +30,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sign In - @companyName</title>
+    @if (!string.IsNullOrEmpty(companyFavicon))
+    {
+        <link rel="icon" href="@companyFavicon" />
+    }
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -306,10 +315,17 @@
     <div class="login-container">
         <!-- Brand Header matching prototype with sidebar palette -->
         <div class="brand-header">
-            <div class="brand-logo-icon">
-                <i class="bi bi-stack"></i>
-            </div>
-            <h1 class="brand-logo-title">@companyName</h1>
+            @if (!string.IsNullOrEmpty(companyLogo))
+            {
+                <img src="@companyLogo" alt="@companyName" style="max-height: 48px; max-width: 220px; object-fit: contain;" />
+            }
+            else
+            {
+                <div class="brand-logo-icon">
+                    <i class="bi bi-stack"></i>
+                </div>
+                <h1 class="brand-logo-title">@companyName</h1>
+            }
         </div>
         
         <p class="login-subtitle">Enter your details to sign in.</p>

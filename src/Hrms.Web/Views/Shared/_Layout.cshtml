@@ -2,6 +2,8 @@
 @inject Hrms.Leave.Application.Queries.Approvals.IGetApprovalsHandler ApprovalsHandler
 @{
     string companyName = "HRMS";
+    string? companyLogo = null;
+    string? companyFavicon = null;
     try
     {
         var configuredName = await SettingsReader.GetStringAsync(Hrms.Settings.Contracts.SettingKeys.CompanyName);
@@ -9,6 +11,9 @@
         {
             companyName = configuredName;
         }
+
+        companyLogo = await SettingsReader.GetStringAsync(Hrms.Settings.Contracts.SettingKeys.CompanyLogo);
+        companyFavicon = await SettingsReader.GetStringAsync(Hrms.Settings.Contracts.SettingKeys.CompanyFavicon);
     }
     catch
     {
@@ -40,6 +45,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - @companyName</title>
+    @if (!string.IsNullOrEmpty(companyFavicon))
+    {
+        <link rel="icon" href="@companyFavicon" />
+    }
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -58,10 +67,17 @@
             <!-- Sidebar Header & Brand -->
             <div class="sidebar-header">
                 <a class="sidebar-brand" asp-area="" asp-controller="Home" asp-action="Index">
-                    <span class="brand-icon-box">
-                        <i class="bi bi-stack"></i>
-                    </span>
-                    <span class="fw-bold tracking-tight">@companyName</span>
+                    @if (!string.IsNullOrEmpty(companyLogo))
+                    {
+                        <img src="@companyLogo" alt="@companyName" class="brand-logo-img me-2" style="max-height: 38px; max-width: 140px; object-fit: contain;" />
+                    }
+                    else
+                    {
+                        <span class="brand-icon-box">
+                            <i class="bi bi-stack"></i>
+                        </span>
+                        <span class="fw-bold tracking-tight">@companyName</span>
+                    }
                 </a>
             </div>
 

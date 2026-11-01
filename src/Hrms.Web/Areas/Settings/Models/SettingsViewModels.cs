@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace Hrms.Web.Areas.Settings.Models;
 
@@ -12,6 +13,23 @@ public class SettingsViewModel
     [Display(Name = "Company Timezone")]
     public string CompanyTimezone { get; set; } = string.Empty;
     public string? CompanyTimezoneDescription { get; set; }
+
+    // Branding: Logo & Favicon
+    [Display(Name = "Current Logo")]
+    public string? CompanyLogo { get; set; }
+
+    [Display(Name = "Upload Logo")]
+    public IFormFile? LogoFile { get; set; }
+
+    public bool RemoveLogo { get; set; }
+
+    [Display(Name = "Current Favicon")]
+    public string? CompanyFavicon { get; set; }
+
+    [Display(Name = "Upload Favicon")]
+    public IFormFile? FaviconFile { get; set; }
+
+    public bool RemoveFavicon { get; set; }
 
     // Attendance Group
     [Display(Name = "Half Day Hours")]

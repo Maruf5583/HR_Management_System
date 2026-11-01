@@ -15,4 +15,6 @@ public record UpdateSettingsCommand(
     string AttendanceHolidayPriority,
     string LeaveYearStart,
     string PayrollPerDayDivisor,
-    string EmployeeCodeFormat);
+    string EmployeeCodeFormat,
+    string? CompanyLogo = null,
+    string? CompanyFavicon = null);
