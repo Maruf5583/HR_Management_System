@@ -30,7 +30,9 @@ public record MyAttendanceSessionDto(
     bool ShiftHasEnded,
     int WorkedMinutesToday,
     int OvertimeMinutesToday,
-    IReadOnlyList<BreakDto> BreaksToday
+    IReadOnlyList<BreakDto> BreaksToday,
+    bool CanClockIn = true,
+    string? ClockInBlockedReason = null
 );
 
 public record GetMyAttendanceSessionQuery(Guid EmployeeId);
@@ -129,14 +131,43 @@ public class GetMyAttendanceSessionHandler : IGetMyAttendanceSessionHandler
         }
 
         bool shiftHasEnded = false;
+        bool canClockIn = false;
+        string? clockInBlockedReason = null;
+
         if (shift != null)
         {
-            var shiftEndLocal = today.ToDateTime(TimeOnly.FromTimeSpan(shift.EndTime));
-            if (shift.IsNightShift && shift.EndTime < shift.StartTime)
-            {
-                shiftEndLocal = shiftEndLocal.AddDays(1);
-            }
+            var shiftStart = TimeOnly.FromTimeSpan(shift.StartTime);
+            var shiftEnd = TimeOnly.FromTimeSpan(shift.EndTime);
+            var shiftStartLocal = today.ToDateTime(shiftStart);
+            var shiftEndLocal = (shift.IsNightShift || shiftEnd < shiftStart)
+                ? today.AddDays(1).ToDateTime(shiftEnd)
+                : today.ToDateTime(shiftEnd);
+
             shiftHasEnded = nowLocal > shiftEndLocal;
+
+            if (!hasClockedIn)
+            {
+                var earliestAllowed = shiftStartLocal.AddMinutes(-30);
+                if (nowLocal < earliestAllowed)
+                {
+                    canClockIn = false;
+                    clockInBlockedReason = $"Shift starts at {shiftStart:hh\\:mm\\ tt}. Clock-in opens at {earliestAllowed:hh\\:mm\\ tt}.";
+                }
+                else if (nowLocal > shiftEndLocal)
+                {
+                    canClockIn = false;
+                    clockInBlockedReason = $"Shift ended at {shiftEnd:hh\\:mm\\ tt}. Clock-in is closed for today.";
+                }
+                else
+                {
+                    canClockIn = true;
+                }
+            }
+        }
+        else
+        {
+            canClockIn = false;
+            clockInBlockedReason = "No scheduled shift found for today.";
         }
 
         int workedMins = day?.WorkedMinutes ?? 0;
@@ -165,7 +196,9 @@ public class GetMyAttendanceSessionHandler : IGetMyAttendanceSessionHandler
             ShiftHasEnded: shiftHasEnded,
             WorkedMinutesToday: workedMins,
             OvertimeMinutesToday: overtimeMins,
-            BreaksToday: breakDtos
+            BreaksToday: breakDtos,
+            CanClockIn: canClockIn,
+            ClockInBlockedReason: clockInBlockedReason
         );
     }
 }
