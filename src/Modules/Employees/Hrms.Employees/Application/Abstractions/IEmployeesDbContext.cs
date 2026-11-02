@@ -10,6 +10,7 @@ public interface IEmployeesDbContext
     DbSet<Designation> Designations { get; }
     DbSet<Grade> Grades { get; }
     DbSet<Employee> Employees { get; }
+    DbSet<EmployeeBankDetail> EmployeeBankDetails { get; }
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -1,0 +1,133 @@
+@model List<BankDetailDto>
+@{
+    ViewData["Title"] = "Bank Details Approvals";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-bank me-2 text-primary"></i>Bank Details Approvals</h4>
+        <p class="text-muted small mb-0">Review and verify employee bank account submissions and changes</p>
+    </div>
+    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 fs-6">
+        @Model.Count Pending Request@(Model.Count == 1 ? "" : "s")
+    </span>
+</div>
+
+<div class="card border-0 shadow-sm" style="border-radius: 12px;">
+    <div class="card-body p-0">
+        @if (Model.Count == 0)
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+                <h5 class="fw-bold mt-3 mb-1">All Caught Up!</h5>
+                <p class="text-muted small mb-0">There are no pending bank detail approval requests right now.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Employee</th>
+                            <th>Department</th>
+                            <th>Bank & Branch</th>
+                            <th>Account Name</th>
+                            <th>Account Number</th>
+                            <th>Submitted At</th>
+                            <th class="text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-bold">
+                                        <a asp-area="Employees" asp-controller="Employees" asp-action="Details" asp-route-id="@item.EmployeeId" class="text-decoration-none text-dark">
+                                            @item.EmployeeName
+                                        </a>
+                                    </div>
+                                    <span class="badge bg-light text-secondary border font-monospace" style="font-size: 0.75rem;">@item.EmployeeCode</span>
+                                </td>
+                                <td>
+                                    <div>@item.DepartmentName</div>
+                                    <small class="text-muted">@item.DesignationTitle</small>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-primary">@item.BankName</div>
+                                    <small class="text-muted">@item.BranchName</small>
+                                </td>
+                                <td>
+                                    <div class="fw-medium">@item.AccountHolderName</div>
+                                    @if (!string.IsNullOrWhiteSpace(item.RoutingNumber))
+                                    {
+                                        <small class="text-muted font-monospace">Routing: @item.RoutingNumber</small>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="font-monospace fw-bold text-dark fs-6">@item.AccountNumber</span>
+                                    @if (!string.IsNullOrWhiteSpace(item.SwiftCode))
+                                    {
+                                        <div class="small text-muted font-monospace">SWIFT: @item.SwiftCode</div>
+                                    }
+                                </td>
+                                <td>
+                                    <div>@item.CreatedAtUtc.ToString("dd MMM yyyy")</div>
+                                    <small class="text-muted">@item.CreatedAtUtc.ToString("hh:mm tt")</small>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <form asp-action="Approve" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@item.EmployeeBankDetailId" />
+                                            <button type="submit" class="btn btn-sm btn-success px-3" onclick="return confirm('Approve bank details for @item.EmployeeName?');">
+                                                <i class="bi bi-check-lg me-1"></i> Approve
+                                            </button>
+                                        </form>
+                                        <button type="button" class="btn btn-sm btn-outline-danger px-3" data-bs-toggle="modal" data-bs-target="#rejectModal-@item.EmployeeBankDetailId">
+                                            <i class="bi bi-x-lg me-1"></i> Reject
+                                        </button>
+                                    </div>
+
+                                    <!-- Reject Modal -->
+                                    <div class="modal fade" id="rejectModal-@item.EmployeeBankDetailId" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered text-start">
+                                            <div class="modal-content border-0 shadow" style="border-radius: 12px;">
+                                                <form asp-action="Reject" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@item.EmployeeBankDetailId" />
+                                                    <div class="modal-header border-bottom py-3">
+                                                        <h5 class="modal-title fw-bold text-danger">
+                                                            <i class="bi bi-x-circle me-2"></i>Reject Bank Details
+                                                        </h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body p-4">
+                                                        <p class="text-muted small mb-3">
+                                                            Rejecting bank details for <strong>@item.EmployeeName</strong> (@item.EmployeeCode). Please provide a reason so the employee can correct their details.
+                                                        </p>
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-semibold small">Reason / Remarks <span class="text-danger">*</span></label>
+                                                            <textarea name="reviewRemarks" class="form-control" rows="3" placeholder="e.g. Invalid account number, name does not match NID..." required maxlength="500"></textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer border-top py-2">
+                                                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-danger">
+                                                            <i class="bi bi-x-lg me-1"></i> Confirm Reject
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

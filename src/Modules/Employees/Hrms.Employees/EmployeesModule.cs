@@ -27,6 +27,7 @@ public static class EmployeesModule
 
         // Employee Services
         services.AddScoped<IEmployeeService, EmployeeService>();
+        services.AddScoped<IBankDetailService, BankDetailService>();
         services.AddScoped<Hrms.Employees.Contracts.IEmployeeLookup, EmployeeLookupService>();
 
         return services;

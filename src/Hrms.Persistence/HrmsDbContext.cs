@@ -63,6 +63,7 @@ public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
     public DbSet<Designation> Designations => Set<Designation>();
     public DbSet<Grade> Grades => Set<Grade>();
     public DbSet<Employee> Employees => Set<Employee>();
+    public DbSet<EmployeeBankDetail> EmployeeBankDetails => Set<EmployeeBankDetail>();
     public DbSet<Setting> Settings => Set<Setting>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 

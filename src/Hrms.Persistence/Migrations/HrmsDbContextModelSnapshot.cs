@@ -861,6 +861,90 @@ namespace Hrms.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Hrms.Employees.Domain.Entities.EmployeeBankDetail", b =>
+                {
+                    b.Property<Guid>("EmployeeBankDetailId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
+
+                    b.Property<string>("AccountHolderName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("AccountNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("BankName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("BranchName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2(3)")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("ReviewRemarks")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<Guid?>("ReviewedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RoutingNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("SwiftCode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("EmployeeBankDetailId")
+                        .HasName("PK_EmployeeBankDetails");
+
+                    b.HasIndex("EmployeeId")
+                        .HasDatabaseName("IX_EmployeeBankDetails_EmployeeId");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_EmployeeBankDetails_Status");
+
+                    b.ToTable("EmployeeBankDetails", (string)null);
+                });
+
             modelBuilder.Entity("Hrms.Employees.Domain.Entities.Grade", b =>
                 {
                     b.Property<Guid>("GradeId")
@@ -1599,6 +1683,18 @@ namespace Hrms.Persistence.Migrations
                     b.Navigation("Grade");
                 });
 
+            modelBuilder.Entity("Hrms.Employees.Domain.Entities.EmployeeBankDetail", b =>
+                {
+                    b.HasOne("Hrms.Employees.Domain.Entities.Employee", "Employee")
+                        .WithMany("BankDetails")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_EmployeeBankDetails_Employees");
+
+                    b.Navigation("Employee");
+                });
+
             modelBuilder.Entity("Hrms.Employees.Domain.Entities.Grade", b =>
                 {
                     b.HasOne("Hrms.Employees.Domain.Entities.Designation", "Designation")
@@ -1738,6 +1834,11 @@ namespace Hrms.Persistence.Migrations
             modelBuilder.Entity("Hrms.Employees.Domain.Entities.Designation", b =>
                 {
                     b.Navigation("Grades");
+                });
+
+            modelBuilder.Entity("Hrms.Employees.Domain.Entities.Employee", b =>
+                {
+                    b.Navigation("BankDetails");
                 });
 #pragma warning restore 612, 618
         }

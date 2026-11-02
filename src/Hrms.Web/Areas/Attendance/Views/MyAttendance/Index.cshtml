@@ -383,7 +383,7 @@ else
                         <tbody>
                             @if (Model.Report?.Days != null && Model.Report.Days.Count > 0)
                             {
-                                foreach (var day in Model.Report.Days.OrderByDescending(d => d.WorkDate))
+                                foreach (var day in Model.Report.Days.OrderBy(d => d.WorkDate))
                                 {
                                     int overtimeMins = Math.Max(0, day.WorkedMinutes - 480);
                                     <tr>

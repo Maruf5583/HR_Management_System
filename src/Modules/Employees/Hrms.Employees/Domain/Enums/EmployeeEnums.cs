@@ -21,3 +21,10 @@ public enum EmployeeStatus
     Resigned = 3,
     Terminated = 4
 }
+
+public enum BankDetailStatus
+{
+    Pending = 1,
+    Approved = 2,
+    Rejected = 3
+}
