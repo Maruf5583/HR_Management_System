@@ -295,7 +295,6 @@ Hrms/
 ├── Directory.Build.props        # net8.0, Nullable enable, TreatWarningsAsErrors
 ├── Directory.Packages.props     # Central Package Management
 ├── README.md                    # Project documentation & overview
-├── AGENTS.md                    # Core architecture rules & AI coding guidelines
 ├── docs/
 │   └── hrms_v1_schema.sql       # Reference production database schema
 ├── src/
@@ -395,7 +394,6 @@ dotnet test
 
 ## 📖 Documentation & References
 
-- 📘 [AGENTS.md](AGENTS.md) - Architecture guidelines, module boundaries, and conventions.
 - 🗄️ [Database Schema Reference](docs/hrms_v1_schema.sql) - Production reference T-SQL DDL script.
 - 🌐 [ASP.NET Core Documentation](https://learn.microsoft.com/aspnet/core/)
 - 📦 [Entity Framework Core Documentation](https://learn.microsoft.com/ef/core/)
