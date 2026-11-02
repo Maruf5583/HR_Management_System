@@ -296,43 +296,52 @@ else
 
                                         if (dayData != null)
                                         {
-                                            switch (dayData.Status)
+                                            if (dayData.IsUpcoming && dayData.Status != Hrms.Attendance.Domain.Enums.AttendanceStatus.Weekend && dayData.Status != Hrms.Attendance.Domain.Enums.AttendanceStatus.Holiday)
                                             {
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Present:
-                                                    bgClass = "bg-success-subtle bg-opacity-25";
-                                                    badgeClass = "badge bg-success text-white";
-                                                    statusText = "Present";
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Late:
-                                                    bgClass = "bg-warning-subtle bg-opacity-25";
-                                                    badgeClass = "badge bg-warning text-dark";
-                                                    statusText = $"Late ({dayData.LateMinutes}m)";
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.HalfDay:
-                                                    bgClass = "bg-info-subtle bg-opacity-25";
-                                                    badgeClass = "badge bg-info text-dark";
-                                                    statusText = "Half Day";
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Absent:
-                                                    bgClass = "bg-danger-subtle bg-opacity-25";
-                                                    badgeClass = "badge bg-danger text-white";
-                                                    statusText = "Absent";
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.OnLeave:
-                                                    bgClass = "bg-primary-subtle bg-opacity-25";
-                                                    badgeClass = "badge bg-primary text-white";
-                                                    statusText = "Leave";
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Holiday:
-                                                    bgClass = "bg-light";
-                                                    badgeClass = "badge bg-secondary text-white";
-                                                    statusText = "Holiday";
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Weekend:
-                                                    bgClass = "bg-light";
-                                                    badgeClass = "badge bg-light text-muted border";
-                                                    statusText = "Weekend";
-                                                    break;
+                                                bgClass = "bg-white";
+                                                badgeClass = "badge bg-light text-secondary border";
+                                                statusText = "Upcoming";
+                                            }
+                                            else
+                                            {
+                                                switch (dayData.Status)
+                                                {
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Present:
+                                                        bgClass = "bg-success-subtle bg-opacity-25";
+                                                        badgeClass = "badge bg-success text-white";
+                                                        statusText = "Present";
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Late:
+                                                        bgClass = "bg-warning-subtle bg-opacity-25";
+                                                        badgeClass = "badge bg-warning text-dark";
+                                                        statusText = $"Late ({dayData.LateMinutes}m)";
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.HalfDay:
+                                                        bgClass = "bg-info-subtle bg-opacity-25";
+                                                        badgeClass = "badge bg-info text-dark";
+                                                        statusText = "Half Day";
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Absent:
+                                                        bgClass = "bg-danger-subtle bg-opacity-25";
+                                                        badgeClass = "badge bg-danger text-white";
+                                                        statusText = "Absent";
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.OnLeave:
+                                                        bgClass = "bg-primary-subtle bg-opacity-25";
+                                                        badgeClass = "badge bg-primary text-white";
+                                                        statusText = "Leave";
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Holiday:
+                                                        bgClass = "bg-light";
+                                                        badgeClass = "badge bg-secondary text-white";
+                                                        statusText = "Holiday";
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Weekend:
+                                                        bgClass = "bg-light";
+                                                        badgeClass = "badge bg-light text-muted border";
+                                                        statusText = "Weekend";
+                                                        break;
+                                                }
                                             }
                                         }
 
@@ -421,29 +430,36 @@ else
                                             }
                                         </td>
                                         <td>
-                                            @switch (day.Status)
+                                            @if (day.IsUpcoming && day.Status != Hrms.Attendance.Domain.Enums.AttendanceStatus.Weekend && day.Status != Hrms.Attendance.Domain.Enums.AttendanceStatus.Holiday)
                                             {
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Present:
-                                                    <span class="badge bg-success-subtle text-success">Present</span>
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Late:
-                                                    <span class="badge bg-warning-subtle text-warning-emphasis">Late</span>
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.HalfDay:
-                                                    <span class="badge bg-info-subtle text-info-emphasis">Half Day</span>
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Absent:
-                                                    <span class="badge bg-danger-subtle text-danger">Absent</span>
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.OnLeave:
-                                                    <span class="badge bg-primary-subtle text-primary">On Leave</span>
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Holiday:
-                                                    <span class="badge bg-secondary-subtle text-secondary">Holiday</span>
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Weekend:
-                                                    <span class="badge bg-light text-muted border">Weekend</span>
-                                                    break;
+                                                <span class="badge bg-light text-secondary border">Upcoming</span>
+                                            }
+                                            else
+                                            {
+                                                switch (day.Status)
+                                                {
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Present:
+                                                        <span class="badge bg-success-subtle text-success">Present</span>
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Late:
+                                                        <span class="badge bg-warning-subtle text-warning-emphasis">Late</span>
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.HalfDay:
+                                                        <span class="badge bg-info-subtle text-info-emphasis">Half Day</span>
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Absent:
+                                                        <span class="badge bg-danger-subtle text-danger">Absent</span>
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.OnLeave:
+                                                        <span class="badge bg-primary-subtle text-primary">On Leave</span>
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Holiday:
+                                                        <span class="badge bg-secondary-subtle text-secondary">Holiday</span>
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Weekend:
+                                                        <span class="badge bg-light text-muted border">Weekend</span>
+                                                        break;
+                                                }
                                             }
                                         </td>
                                         <td class="pe-4 text-muted small">@(day.Note ?? "-")</td>

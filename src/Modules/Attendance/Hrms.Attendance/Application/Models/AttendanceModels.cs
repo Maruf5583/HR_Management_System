@@ -84,7 +84,8 @@ public record EmployeeAttendanceDayDto(
     int WorkedMinutes,
     AttendanceStatus Status,
     string? Note,
-    string? ShiftName
+    string? ShiftName,
+    bool IsUpcoming = false
 );
 
 public record EmployeeMonthlyReportDto(
