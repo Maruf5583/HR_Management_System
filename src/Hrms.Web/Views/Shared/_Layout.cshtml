@@ -1,6 +1,7 @@
 @inject Hrms.Settings.Contracts.ISettingsReader SettingsReader
 @inject Hrms.Leave.Application.Queries.Approvals.IGetApprovalsHandler ApprovalsHandler
 @inject Hrms.Employees.Contracts.IEmployeeLookup EmployeeLookup
+@inject Hrms.Employees.Application.Services.IBankDetailService BankDetailService
 @{
     string companyName = "HRMS";
     string? companyLogo = null;
@@ -56,6 +57,19 @@
         photoUrl = userPhotoKey.StartsWith("/") || userPhotoKey.StartsWith("http")
             ? userPhotoKey
             : "/" + (userPhotoKey.StartsWith("uploads/") ? userPhotoKey : "uploads/" + userPhotoKey);
+    }
+
+    int pendingBankApprovalsCount = 0;
+    if (CurrentUser.IsAuthenticated && CurrentUser.HasPermission(Permissions.Employees.Manage))
+    {
+        try
+        {
+            pendingBankApprovalsCount = await BankDetailService.GetPendingCountAsync();
+        }
+        catch
+        {
+            // Fallback
+        }
     }
 
     int pendingApprovalsCount = 0;
@@ -217,6 +231,17 @@
                                    asp-area="Employees" asp-controller="Grades" asp-action="Index">
                                     <i class="bi bi-sort-numeric-up"></i>
                                     <span>Grades & Scales</span>
+                                </a>
+                            </li>
+                            <li class="sidebar-nav-item">
+                                <a class="sidebar-nav-link @(currentArea == "Employees" && currentController == "BankApprovals" ? "active" : "")"
+                                   asp-area="Employees" asp-controller="BankApprovals" asp-action="Index">
+                                    <i class="bi bi-bank"></i>
+                                    <span>Bank Approvals</span>
+                                    @if (pendingBankApprovalsCount > 0)
+                                    {
+                                        <span class="badge bg-danger rounded-pill ms-auto px-2">@pendingBankApprovalsCount</span>
+                                    }
                                 </a>
                             </li>
                         }

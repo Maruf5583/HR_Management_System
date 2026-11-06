@@ -30,6 +30,7 @@ public class Employee : AuditableEntity, IAuditableEntity
     public Designation? Designation { get; set; }
     public Grade? Grade { get; set; }
     public Department? Department => Designation?.Department;
+    public ICollection<EmployeeBankDetail> BankDetails { get; set; } = new List<EmployeeBankDetail>();
 
     public string FullName => $"{FirstName} {LastName}".Trim();
 }

@@ -44,6 +44,7 @@ public class GetEmployeeAttendanceHandler : IGetEmployeeAttendanceHandler
 
         var tzId = await _settingsReader.GetStringAsync(SettingKeys.CompanyTimezone, cancellationToken) ?? "Asia/Dhaka";
         var timeZone = TimeZoneInfo.FindSystemTimeZoneById(tzId);
+        var todayLocal = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZone));
 
         var records = await _context.AttendanceDays
             .AsNoTracking()
@@ -88,11 +89,33 @@ public class GetEmployeeAttendanceHandler : IGetEmployeeAttendanceHandler
                     WorkedMinutes: record.WorkedMinutes,
                     Status: record.Status,
                     Note: record.Note,
-                    ShiftName: shift?.ShiftName
+                    ShiftName: shift?.ShiftName,
+                    IsUpcoming: false
                 ));
             }
             else
             {
+                bool isHoliday = await _calendarQuery.IsHolidayAsync(date, cancellationToken);
+                bool isWorkingDay = await _calendarQuery.IsWorkingDayAsync(date, cancellationToken);
+                bool isUpcoming = date > todayLocal;
+
+                AttendanceStatus status;
+                if (isHoliday)
+                {
+                    status = AttendanceStatus.Holiday;
+                    if (!isUpcoming) holiday++;
+                }
+                else if (!isWorkingDay)
+                {
+                    status = AttendanceStatus.Weekend;
+                    if (!isUpcoming) weekend++;
+                }
+                else
+                {
+                    status = AttendanceStatus.Absent;
+                    if (!isUpcoming) absent++;
+                }
+
                 dayDtos.Add(new EmployeeAttendanceDayDto(
                     WorkDate: date,
                     DayOfWeek: date.DayOfWeek.ToString(),
@@ -100,9 +123,10 @@ public class GetEmployeeAttendanceHandler : IGetEmployeeAttendanceHandler
                     CheckOutTime: null,
                     LateMinutes: 0,
                     WorkedMinutes: 0,
-                    Status: AttendanceStatus.Absent,
+                    Status: status,
                     Note: null,
-                    ShiftName: shift?.ShiftName
+                    ShiftName: shift?.ShiftName,
+                    IsUpcoming: isUpcoming
                 ));
             }
         }

@@ -20,6 +20,7 @@ public class EmployeesController : Controller
     private readonly IDesignationService _designationService;
     private readonly IUserService _userService;
     private readonly IRoleService _roleService;
+    private readonly IBankDetailService _bankDetailService;
     private readonly ICurrentUser _currentUser;
 
     public EmployeesController(
@@ -28,6 +29,7 @@ public class EmployeesController : Controller
         IDesignationService designationService,
         IUserService userService,
         IRoleService roleService,
+        IBankDetailService bankDetailService,
         ICurrentUser currentUser)
     {
         _employeeService = employeeService;
@@ -35,6 +37,7 @@ public class EmployeesController : Controller
         _designationService = designationService;
         _userService = userService;
         _roleService = roleService;
+        _bankDetailService = bankDetailService;
         _currentUser = currentUser;
     }
 
@@ -71,6 +74,7 @@ public class EmployeesController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        ViewBag.BankProfile = await _bankDetailService.GetEmployeeBankProfileAsync(employee.EmployeeId);
         return View(employee);
     }
 
@@ -89,6 +93,7 @@ public class EmployeesController : Controller
             return View("NoLinkedEmployee");
         }
 
+        ViewBag.BankProfile = await _bankDetailService.GetEmployeeBankProfileAsync(employee.EmployeeId);
         return View(employee);
     }
 

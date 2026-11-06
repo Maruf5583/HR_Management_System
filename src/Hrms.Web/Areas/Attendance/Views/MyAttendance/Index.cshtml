@@ -68,9 +68,9 @@ else
                     {
                         @if (Model.Session.ShiftHasEnded)
                         {
-                            <span class="small fw-semibold text-warning">
-                                <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                Your shift has ended. If you've finished for the day, please clock out.
+                            <span class="small fw-semibold text-warning-emphasis">
+                                <i class="bi bi-clock-history me-1"></i>
+                                Scheduled shift ended (@(Model.Session.ShiftName): @Model.Session.ShiftStart?.ToString(@"hh\:mm") - @Model.Session.ShiftEnd?.ToString(@"hh\:mm")). You are currently working overtime.
                             </span>
                         }
                         else
@@ -87,17 +87,33 @@ else
                             @(Model.Session.CheckOutLocalFormatted). Total worked: @(Model.Session.WorkedMinutesToday / 60)h @(Model.Session.WorkedMinutesToday % 60)m
                         </span>
                     }
+                    else if (Model.Session?.CanClockIn == false)
+                    {
+                        <span class="small text-warning-emphasis fw-medium">
+                            <i class="bi bi-exclamation-circle me-1"></i>
+                            @(Model.Session.ClockInBlockedReason ?? "Clock-in is outside your shift hours.")
+                        </span>
+                    }
                 </div>
 
                 <div class="d-flex align-items-center gap-2">
                     @if (Model.Session == null || !Model.Session.HasClockedIn)
                     {
-                        <form asp-action="ClockIn" method="post" class="d-inline">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-success px-4 py-2 rounded-pill fw-semibold shadow-sm">
-                                <i class="bi bi-play-circle-fill me-1"></i> Start Work
-                            </button>
-                        </form>
+                        @if (Model.Session?.CanClockIn == false)
+                        {
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 rounded-pill small">
+                                <i class="bi bi-lock-fill me-1"></i> Outside Shift Hours
+                            </span>
+                        }
+                        else
+                        {
+                            <form asp-action="ClockIn" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-success px-4 py-2 rounded-pill fw-semibold shadow-sm">
+                                    <i class="bi bi-play-circle-fill me-1"></i> Start Work
+                                </button>
+                            </form>
+                        }
                     }
                     else if (!Model.Session.HasClockedOut)
                     {
@@ -275,10 +291,10 @@ else
                                         var dayNum = currentDay;
                                         var dayData = rep?.Days?.FirstOrDefault(d => d.WorkDate.Day == dayNum);
                                         string bgClass = "bg-white";
-                                        string badgeClass = "badge bg-secondary-subtle text-secondary";
-                                        string statusText = "-";
+                                        string badgeClass = "";
+                                        string statusText = "";
 
-                                        if (dayData != null)
+                                        if (dayData != null && !dayData.IsUpcoming)
                                         {
                                             switch (dayData.Status)
                                             {
@@ -325,7 +341,10 @@ else
                                                 <span class="fw-bold small @(dayData?.WorkDate == DateOnly.FromDateTime(DateTime.UtcNow) ? "badge bg-primary rounded-circle" : "text-dark")">@dayNum</span>
                                             </div>
                                             <div class="mt-2">
-                                                <span class="@badgeClass" style="font-size: 10px;">@statusText</span>
+                                                @if (!string.IsNullOrEmpty(statusText))
+                                                {
+                                                    <span class="@badgeClass" style="font-size: 10px;">@statusText</span>
+                                                }
                                             </div>
                                         </td>
                                         currentDay++;
@@ -364,7 +383,7 @@ else
                         <tbody>
                             @if (Model.Report?.Days != null && Model.Report.Days.Count > 0)
                             {
-                                foreach (var day in Model.Report.Days.OrderByDescending(d => d.WorkDate))
+                                foreach (var day in Model.Report.Days.OrderBy(d => d.WorkDate))
                                 {
                                     int overtimeMins = Math.Max(0, day.WorkedMinutes - 480);
                                     <tr>
@@ -405,29 +424,36 @@ else
                                             }
                                         </td>
                                         <td>
-                                            @switch (day.Status)
+                                            @if (day.IsUpcoming)
                                             {
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Present:
-                                                    <span class="badge bg-success-subtle text-success">Present</span>
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Late:
-                                                    <span class="badge bg-warning-subtle text-warning-emphasis">Late</span>
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.HalfDay:
-                                                    <span class="badge bg-info-subtle text-info-emphasis">Half Day</span>
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Absent:
-                                                    <span class="badge bg-danger-subtle text-danger">Absent</span>
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.OnLeave:
-                                                    <span class="badge bg-primary-subtle text-primary">On Leave</span>
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Holiday:
-                                                    <span class="badge bg-secondary-subtle text-secondary">Holiday</span>
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Weekend:
-                                                    <span class="badge bg-light text-muted border">Weekend</span>
-                                                    break;
+                                                <span class="text-muted">-</span>
+                                            }
+                                            else
+                                            {
+                                                switch (day.Status)
+                                                {
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Present:
+                                                        <span class="badge bg-success-subtle text-success">Present</span>
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Late:
+                                                        <span class="badge bg-warning-subtle text-warning-emphasis">Late</span>
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.HalfDay:
+                                                        <span class="badge bg-info-subtle text-info-emphasis">Half Day</span>
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Absent:
+                                                        <span class="badge bg-danger-subtle text-danger">Absent</span>
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.OnLeave:
+                                                        <span class="badge bg-primary-subtle text-primary">On Leave</span>
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Holiday:
+                                                        <span class="badge bg-secondary-subtle text-secondary">Holiday</span>
+                                                        break;
+                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Weekend:
+                                                        <span class="badge bg-light text-muted border">Weekend</span>
+                                                        break;
+                                                }
                                             }
                                         </td>
                                         <td class="pe-4 text-muted small">@(day.Note ?? "-")</td>
