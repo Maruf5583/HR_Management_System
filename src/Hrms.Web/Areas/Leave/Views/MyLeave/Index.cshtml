@@ -232,11 +232,11 @@ else
                                     <div class="row g-3 mb-3">
                                         <div class="col-md-6">
                                             <label asp-for="Apply.StartDate" class="form-label fw-semibold">Start Date <span class="text-danger">*</span></label>
-                                            <input asp-for="Apply.StartDate" type="date" class="form-control bg-light border-0" required />
+                                            <input asp-for="Apply.StartDate" type="date" class="form-control bg-light border-0" min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
                                         </div>
                                         <div class="col-md-6">
                                             <label asp-for="Apply.EndDate" class="form-label fw-semibold">End Date <span class="text-danger">*</span></label>
-                                            <input asp-for="Apply.EndDate" type="date" class="form-control bg-light border-0" required />
+                                            <input asp-for="Apply.EndDate" type="date" class="form-control bg-light border-0" min="@DateTime.Today.ToString("yyyy-MM-dd")" required />
                                         </div>
                                     </div>
 
