@@ -2,6 +2,7 @@ using Hrms.Attendance.Application.Commands.SaveDailySheet;
 using Hrms.Attendance.Application.Commands.UpdateAttendanceRecord;
 using Hrms.Attendance.Application.Models;
 using Hrms.Attendance.Application.Queries.GetDailySheet;
+using Hrms.Attendance.Domain.Enums;
 using Hrms.Shared.Abstractions;
 using Hrms.Shared.Constants;
 using Hrms.Web.Areas.Attendance.Models;
@@ -36,10 +37,16 @@ public class DailySheetController : Controller
 
     [Authorize(Policy = Permissions.Attendance.ViewAll)]
     [HttpGet]
-    public async Task<IActionResult> Index(DateOnly? date)
+    public async Task<IActionResult> Index(DateOnly? date, AttendanceStatus? status = null)
     {
         var workDate = date ?? _clock.TodayLocal;
         var sheetDto = await _dailySheetHandler.HandleAsync(new GetDailySheetQuery(workDate));
+
+        var items = sheetDto.Items.AsEnumerable();
+        if (status.HasValue)
+        {
+            items = items.Where(i => i.Status == status.Value);
+        }
 
         var viewModel = new DailySheetViewModel
         {
@@ -48,7 +55,8 @@ public class DailySheetController : Controller
             HolidayName = sheetDto.HolidayName,
             IsWeeklyOff = sheetDto.IsWeeklyOff,
             CanManage = _currentUser.HasPermission(Permissions.Attendance.Manage),
-            Items = sheetDto.Items.Select(i => new DailySheetRowViewModel
+            FilterStatus = status,
+            Items = items.Select(i => new DailySheetRowViewModel
             {
                 EmployeeId = i.EmployeeId,
                 EmployeeCode = i.EmployeeCode,

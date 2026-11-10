@@ -1,6 +1,7 @@
 @model HolidayListViewModel
 @{
     ViewData["Title"] = "Holidays Calendar";
+    ViewData["Subtitle"] = "View statutory government holidays and organization-specific days off";
     var months = new[] { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
     var viewDate = new DateTime(Model.ViewYear, Model.ViewMonth, 1);
     var firstDayOfWeek = (int)viewDate.DayOfWeek; // 0 = Sunday
@@ -13,23 +14,6 @@
 
 <partial name="_CalendarNav" />
 
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-    <div>
-        <h4 class="fw-bold mb-1"><i class="bi bi-calendar-event me-2 text-primary"></i>Holidays Management</h4>
-        <p class="text-muted small mb-0">View statutory government holidays and organization-specific days off</p>
-    </div>
-    @if (CurrentUser.HasPermission(Permissions.Holidays.Manage))
-    {
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-outline-primary d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#multiDayModal">
-                <i class="bi bi-calendar-range"></i> Add Multi-Day Vacation
-            </button>
-            <a asp-action="Create" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm">
-                <i class="bi bi-plus-lg"></i> Add Single Holiday
-            </a>
-        </div>
-    }
-</div>
 
 @if (TempData["SuccessMessage"] != null)
 {
@@ -47,12 +31,12 @@
 }
 
 <!-- Filters Bar with Quick Month & Year Stepper -->
-<div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+<div class="card border-0 shadow-xs mb-4" style="border: 1px solid #eaecf0 !important; border-radius: 14px; background: #ffffff;">
     <div class="card-body py-3">
         <form method="get" class="row g-3 align-items-center">
             <div class="col-auto">
-                <label class="form-label small fw-semibold text-muted mb-0 me-2"><i class="bi bi-calendar-month me-1"></i>Month:</label>
-                <select name="month" class="form-select form-select-sm d-inline-block w-auto" onchange="this.form.submit()">
+                <label class="form-label small fw-semibold text-secondary mb-0 me-2">Month:</label>
+                <select name="month" class="form-select form-select-sm d-inline-block" style="width: auto; min-width: 160px;" onchange="this.form.submit()">
                     @for (int m = 1; m <= 12; m++)
                     {
                         <option value="@m" selected="@(m == Model.ViewMonth)">@months[m - 1]</option>
@@ -60,8 +44,8 @@
                 </select>
             </div>
             <div class="col-auto">
-                <label class="form-label small fw-semibold text-muted mb-0 me-2"><i class="bi bi-calendar3 me-1"></i>Year:</label>
-                <select name="year" class="form-select form-select-sm d-inline-block w-auto" onchange="this.form.submit()">
+                <label class="form-label small fw-semibold text-secondary mb-0 me-2">Year:</label>
+                <select name="year" class="form-select form-select-sm d-inline-block" style="width: auto; min-width: 120px;" onchange="this.form.submit()">
                     @foreach (var y in Model.AvailableYears)
                     {
                         <option value="@y" selected="@(y == Model.SelectedYear)">@y</option>
@@ -70,7 +54,7 @@
             </div>
             <div class="col-auto">
                 <label class="form-label small fw-semibold text-muted mb-0 me-2">Type:</label>
-                <select name="type" class="form-select form-select-sm d-inline-block w-auto" onchange="this.form.submit()">
+                <select name="type" class="form-select form-select-sm d-inline-block" style="width: auto; min-width: 140px;" onchange="this.form.submit()">
                     <option value="">All Types</option>
                     <option value="Government" selected="@(Model.SelectedType == HolidayType.Government)">Government</option>
                     <option value="Company" selected="@(Model.SelectedType == HolidayType.Company)">Company</option>
@@ -84,27 +68,39 @@
                     </a>
                 </div>
             }
+            @if (CurrentUser.HasPermission(Permissions.Holidays.Manage))
+            {
+                <div class="col-auto ms-auto d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary shadow-xs px-3 fw-semibold rounded-3" data-bs-toggle="modal" data-bs-target="#multiDayModal" style="height: 40px; font-size: 0.875rem; white-space: nowrap;">
+                        Add multi-day vacation
+                    </button>
+                    <a asp-action="Create" class="btn btn-primary px-3 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center gap-1.5" style="height: 40px; font-size: 0.875rem; white-space: nowrap;">
+                        <i class="bi bi-plus-lg"></i>
+                        <span>Add holiday</span>
+                    </a>
+                </div>
+            }
         </form>
     </div>
 </div>
 
-<div class="row g-4">
+<div class="row g-4 align-items-start">
     <!-- Visual Calendar View -->
     <div class="col-lg-7">
-        <div class="card border-0 shadow-sm h-100" style="border-radius: 14px;">
+        <div class="card border-0 shadow-xs" style="border: 1px solid #eaecf0 !important; border-radius: 14px; background: #ffffff;">
             <div class="card-header bg-white py-3 border-0">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="fw-bold mb-0 text-dark">
                         <i class="bi bi-calendar3 me-2 text-primary"></i>@months[Model.ViewMonth - 1] @Model.ViewYear
                     </h6>
                     <div class="btn-group btn-group-sm">
-                        <a asp-action="Index" asp-route-year="@prevMonthYear" asp-route-month="@prevMonth" asp-route-type="@Model.SelectedType" class="btn btn-outline-secondary" title="Previous Month">
+                        <a asp-action="Index" asp-route-year="@prevMonthYear" asp-route-month="@prevMonth" asp-route-type="@Model.SelectedType" class="btn btn-light border text-secondary shadow-xs" title="Previous Month">
                             <i class="bi bi-chevron-left"></i> Prev
                         </a>
-                        <a asp-action="Index" asp-route-year="@DateTime.UtcNow.Year" asp-route-month="@DateTime.UtcNow.Month" class="btn btn-outline-primary">
+                        <a asp-action="Index" asp-route-year="@DateTime.UtcNow.Year" asp-route-month="@DateTime.UtcNow.Month" class="btn btn-primary shadow-xs">
                             Current Month
                         </a>
-                        <a asp-action="Index" asp-route-year="@nextMonthYear" asp-route-month="@nextMonth" asp-route-type="@Model.SelectedType" class="btn btn-outline-secondary" title="Next Month">
+                        <a asp-action="Index" asp-route-year="@nextMonthYear" asp-route-month="@nextMonth" asp-route-type="@Model.SelectedType" class="btn btn-light border text-secondary shadow-xs" title="Next Month">
                             Next <i class="bi bi-chevron-right"></i>
                         </a>
                     </div>
@@ -220,7 +216,7 @@
 
     <!-- Tabular List View with Single & Multiple / Bulk Delete -->
     <div class="col-lg-5">
-        <div class="card border-0 shadow-sm h-100" style="border-radius: 14px;">
+        <div class="card border-0 shadow-xs" style="border: 1px solid #eaecf0 !important; border-radius: 14px; background: #ffffff;">
             <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
                 <div>
                     <h6 class="fw-bold mb-0 text-dark">
@@ -229,95 +225,96 @@
                 </div>
                 @if (CurrentUser.HasPermission(Permissions.Holidays.Manage))
                 {
-                    <div>
-                        <!-- Multiple Delete Trigger Button -->
-                        <button type="button" id="btnDeleteSelected" class="btn btn-sm btn-danger d-none shadow-sm" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal">
-                            <i class="bi bi-trash me-1"></i>Delete Selected (<span id="selectedCount">0</span>)
-                        </button>
-                    </div>
+                    <button type="button" class="btn btn-sm btn-danger d-none align-items-center gap-1 shadow-xs px-2.5 py-1" id="bulkDeleteTriggerBtn" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal">
+                        <i class="bi bi-trash"></i>
+                        <span>Delete Selected (<span id="selectedCountBadge">0</span>)</span>
+                    </button>
                 }
             </div>
             <div class="card-body p-0">
-                <!-- Form for Multiple / Bulk Deletion -->
-                <form id="bulkDeleteForm" asp-action="DeleteMultiple" method="post">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="returnYear" value="@Model.ViewYear" />
-                    <input type="hidden" name="returnMonth" value="@Model.ViewMonth" />
-
-                    <div class="table-responsive" style="max-height: 520px; overflow-y: auto;">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light sticky-top">
+                <div class="table-responsive" style="max-height: 520px; overflow-y: auto;">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                @if (CurrentUser.HasPermission(Permissions.Holidays.Manage))
+                                {
+                                    <th class="ps-3" style="width: 36px;">
+                                        <input type="checkbox" class="form-check-input" id="selectAllHolidays" title="Select All Holidays" />
+                                    </th>
+                                }
+                                <th class="@(CurrentUser.HasPermission(Permissions.Holidays.Manage) ? "" : "ps-3")">Date</th>
+                                <th>Holiday Name</th>
+                                <th>Type</th>
+                                @if (CurrentUser.HasPermission(Permissions.Holidays.Manage))
+                                {
+                                    <th class="text-end pe-3">Actions</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.Holidays.Any())
+                            {
+                                <tr>
+                                    <td colspan="@(CurrentUser.HasPermission(Permissions.Holidays.Manage) ? 5 : 4)" class="text-center py-5 text-muted">
+                                        <i class="bi bi-calendar-x fs-1 d-block mb-2"></i>
+                                        No holidays recorded for @Model.SelectedYear.
+                                    </td>
+                                </tr>
+                            }
+                            @foreach (var h in Model.Holidays)
+                            {
+                                var sameNameHolidays = Model.Holidays.Where(x => string.Equals(x.Name.Trim(), h.Name.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+                                var isMultiDay = sameNameHolidays.Count > 1;
                                 <tr>
                                     @if (CurrentUser.HasPermission(Permissions.Holidays.Manage))
                                     {
-                                        <th style="width: 40px;" class="ps-3">
-                                            <input type="checkbox" id="selectAllHolidays" class="form-check-input" title="Select All Holidays" />
-                                        </th>
+                                        <td class="ps-3">
+                                            <input type="checkbox" class="form-check-input holiday-checkbox" name="holidayIds" value="@h.HolidayId" form="bulkDeleteForm" />
+                                        </td>
                                     }
-                                    <th class="@(CurrentUser.HasPermission(Permissions.Holidays.Manage) ? "" : "ps-3")">Date</th>
-                                    <th>Holiday Name</th>
-                                    <th>Type</th>
+                                    <td class="@(CurrentUser.HasPermission(Permissions.Holidays.Manage) ? "" : "ps-3") text-nowrap">
+                                        <div class="fw-bold text-dark">@h.HolidayDate.ToString("MMM dd")</div>
+                                        <div class="text-muted small" style="font-size: 0.75rem;">@h.HolidayDate.DayOfWeek</div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                                            <span class="fw-semibold text-dark">@h.Name</span>
+                                            @if (isMultiDay)
+                                            {
+                                                <span class="badge bg-light text-muted border px-1.5 py-0.5 rounded-pill" style="font-size: 0.68rem;" title="Part of a @sameNameHolidays.Count day series">
+                                                    @sameNameHolidays.Count days
+                                                </span>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (h.Type == HolidayType.Government)
+                                        {
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">Govt</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">Company</span>
+                                        }
+                                    </td>
                                     @if (CurrentUser.HasPermission(Permissions.Holidays.Manage))
                                     {
-                                        <th class="text-end pe-3">Actions</th>
+                                        <td class="text-end pe-3 text-nowrap">
+                                            <!-- Single Edit -->
+                                            <a asp-action="Edit" asp-route-id="@h.HolidayId" class="btn btn-sm btn-outline-secondary me-1" title="Edit / Change">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <!-- Delete Trigger Button -->
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteSingleModal-@h.HolidayId" title="@(isMultiDay ? "Delete single date or full series" : "Delete holiday")">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </td>
                                     }
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @if (!Model.Holidays.Any())
-                                {
-                                    <tr>
-                                        <td colspan="5" class="text-center py-5 text-muted">
-                                            <i class="bi bi-calendar-x fs-1 d-block mb-2"></i>
-                                            No holidays recorded for @Model.SelectedYear.
-                                        </td>
-                                    </tr>
-                                }
-                                @foreach (var h in Model.Holidays)
-                                {
-                                    <tr>
-                                        @if (CurrentUser.HasPermission(Permissions.Holidays.Manage))
-                                        {
-                                            <td class="ps-3">
-                                                <input type="checkbox" name="holidayIds" value="@h.HolidayId" class="holiday-checkbox form-check-input" />
-                                            </td>
-                                        }
-                                        <td class="@(CurrentUser.HasPermission(Permissions.Holidays.Manage) ? "" : "ps-3") text-nowrap">
-                                            <div class="fw-bold text-dark">@h.HolidayDate.ToString("MMM dd")</div>
-                                            <div class="text-muted small" style="font-size: 0.75rem;">@h.HolidayDate.DayOfWeek</div>
-                                        </td>
-                                        <td>
-                                            <span class="fw-semibold text-dark">@h.Name</span>
-                                        </td>
-                                        <td>
-                                            @if (h.Type == HolidayType.Government)
-                                            {
-                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">Govt</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">Company</span>
-                                            }
-                                        </td>
-                                        @if (CurrentUser.HasPermission(Permissions.Holidays.Manage))
-                                        {
-                                            <td class="text-end pe-3 text-nowrap">
-                                                <!-- Single Edit -->
-                                                <a asp-action="Edit" asp-route-id="@h.HolidayId" class="btn btn-sm btn-outline-secondary me-1" title="Edit / Change">
-                                                    <i class="bi bi-pencil"></i>
-                                                </a>
-                                                <!-- Single Delete Trigger Button -->
-                                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteSingleModal-@h.HolidayId" title="Single Delete">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </td>
-                                        }
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
+                            }
+                        </tbody>
+                    </table>
                     </div>
-                </form>
             </div>
         </div>
     </div>
@@ -329,11 +326,14 @@
 
 @if (CurrentUser.HasPermission(Permissions.Holidays.Manage))
 {
-    <!-- Single Delete Modals for Each Holiday in Table -->
+    <!-- Delete Modals for Each Holiday in Table -->
     @foreach (var h in Model.Holidays)
     {
+        var sameNameHolidays = Model.Holidays.Where(x => string.Equals(x.Name.Trim(), h.Name.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+        var isMultiDay = sameNameHolidays.Count > 1;
+
         <div class="modal fade" id="deleteSingleModal-@h.HolidayId" tabindex="-1" aria-hidden="true" style="white-space: normal;">
-            <div class="modal-dialog modal-dialog-centered text-start" style="max-width: 440px;">
+            <div class="modal-dialog modal-dialog-centered text-start" style="max-width: @(isMultiDay ? "520px" : "440px");">
                 <div class="modal-content border-0 shadow" style="border-radius: 14px;">
                     <div class="modal-header border-0 pb-0">
                         <h6 class="modal-title fw-bold text-danger d-flex align-items-center gap-2">
@@ -342,18 +342,51 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body py-3" style="white-space: normal; word-break: break-word;">
-                        <p class="text-secondary mb-0" style="font-size: 0.95rem; line-height: 1.5;">
-                            Are you sure you want to delete holiday <strong>'@h.Name'</strong> on <strong>@h.HolidayDate.ToString("yyyy-MM-dd")</strong>?
-                        </p>
+                        @if (isMultiDay)
+                        {
+                            <div class="p-3 rounded-3 bg-light border mb-3">
+                                <div class="fw-bold text-dark mb-1">
+                                    <i class="bi bi-calendar-range text-primary me-1"></i>'@h.Name' is a Multi-Day Vacation
+                                </div>
+                                <div class="text-secondary small">
+                                    Total: <strong>@sameNameHolidays.Count days</strong> (@sameNameHolidays.Min(x => x.HolidayDate).ToString("MMM dd") – @sameNameHolidays.Max(x => x.HolidayDate).ToString("MMM dd")).
+                                </div>
+                            </div>
+                            <p class="text-secondary mb-0" style="font-size: 0.95rem;">
+                                Choose whether you want to remove <strong>only this single date (@h.HolidayDate.ToString("yyyy-MM-dd"))</strong> or remove the <strong>entire '@h.Name' series (all @sameNameHolidays.Count days)</strong> at once.
+                            </p>
+                        }
+                        else
+                        {
+                            <p class="text-secondary mb-0" style="font-size: 0.95rem; line-height: 1.5;">
+                                Are you sure you want to delete holiday <strong>'@h.Name'</strong> on <strong>@h.HolidayDate.ToString("yyyy-MM-dd")</strong>?
+                            </p>
+                        }
                     </div>
-                    <div class="modal-footer border-0 pt-0 d-flex justify-content-end gap-2">
+                    <div class="modal-footer border-0 pt-0 d-flex flex-wrap justify-content-end gap-2">
                         <button type="button" class="btn btn-sm btn-light px-3" data-bs-dismiss="modal">Cancel</button>
+
                         <form asp-action="Delete" asp-route-id="@h.HolidayId" method="post" class="d-inline m-0">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="returnYear" value="@Model.ViewYear" />
                             <input type="hidden" name="returnMonth" value="@Model.ViewMonth" />
-                            <button type="submit" class="btn btn-sm btn-danger px-3 fw-semibold">Confirm Delete</button>
+                            <button type="submit" class="btn btn-sm @(isMultiDay ? "btn-outline-danger" : "btn-danger") px-3 fw-semibold">
+                                @(isMultiDay ? $"Delete Only {h.HolidayDate:MMM dd}" : "Confirm Delete")
+                            </button>
                         </form>
+
+                        @if (isMultiDay)
+                        {
+                            <form asp-action="DeleteGroup" method="post" class="d-inline m-0">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="holidayName" value="@h.Name" />
+                                <input type="hidden" name="returnYear" value="@Model.ViewYear" />
+                                <input type="hidden" name="returnMonth" value="@Model.ViewMonth" />
+                                <button type="submit" class="btn btn-sm btn-danger px-3 fw-semibold">
+                                    <i class="bi bi-trash me-1"></i>Delete All @sameNameHolidays.Count Days
+                                </button>
+                            </form>
+                        }
                     </div>
                 </div>
             </div>
@@ -525,42 +558,54 @@
     </div>
 </div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const selectAll = document.getElementById("selectAllHolidays");
-        const checkboxes = document.querySelectorAll(".holiday-checkbox");
-        const btnDeleteSelected = document.getElementById("btnDeleteSelected");
-        const selectedCountSpan = document.getElementById("selectedCount");
-        const modalCountSpan = document.getElementById("modalSelectedCount");
+<form id="bulkDeleteForm" asp-action="DeleteMultiple" method="post" class="d-none">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="returnYear" value="@Model.ViewYear" />
+    <input type="hidden" name="returnMonth" value="@Model.ViewMonth" />
+</form>
 
-        function updateSelection() {
-            const checked = document.querySelectorAll(".holiday-checkbox:checked");
-            const count = checked.length;
-            if (selectedCountSpan) selectedCountSpan.textContent = count;
-            if (modalCountSpan) modalCountSpan.textContent = count;
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const selectAll = document.getElementById('selectAllHolidays');
+            const checkboxes = document.querySelectorAll('.holiday-checkbox');
+            const bulkBtn = document.getElementById('bulkDeleteTriggerBtn');
+            const countBadge = document.getElementById('selectedCountBadge');
+            const modalCount = document.getElementById('modalSelectedCount');
 
-            if (btnDeleteSelected) {
-                if (count > 0) {
-                    btnDeleteSelected.classList.remove("d-none");
-                } else {
-                    btnDeleteSelected.classList.add("d-none");
+            function updateBulkDeleteState() {
+                const checked = document.querySelectorAll('.holiday-checkbox:checked');
+                const checkedCount = checked.length;
+                if (bulkBtn) {
+                    if (checkedCount > 0) {
+                        bulkBtn.classList.remove('d-none');
+                        bulkBtn.classList.add('d-inline-flex');
+                    } else {
+                        bulkBtn.classList.add('d-none');
+                        bulkBtn.classList.remove('d-inline-flex');
+                    }
+                }
+                if (countBadge) countBadge.textContent = checkedCount;
+                if (modalCount) modalCount.textContent = checkedCount;
+
+                if (selectAll) {
+                    selectAll.checked = checkboxes.length > 0 && checkedCount === checkboxes.length;
+                    selectAll.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
                 }
             }
+
             if (selectAll) {
-                selectAll.checked = checkboxes.length > 0 && count === checkboxes.length;
-                selectAll.indeterminate = count > 0 && count < checkboxes.length;
+                selectAll.addEventListener('change', function () {
+                    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+                    updateBulkDeleteState();
+                });
             }
-        }
 
-        if (selectAll) {
-            selectAll.addEventListener("change", function () {
-                checkboxes.forEach(cb => cb.checked = selectAll.checked);
-                updateSelection();
+            checkboxes.forEach(cb => {
+                cb.addEventListener('change', updateBulkDeleteState);
             });
-        }
-
-        checkboxes.forEach(cb => {
-            cb.addEventListener("change", updateSelection);
         });
-    });
-</script>
+    </script>
+}
+
+

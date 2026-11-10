@@ -1,57 +1,120 @@
 @model IReadOnlyList<LeaveTypeDto>
 @{
     ViewData["Title"] = "Leave Types";
+    ViewData["Subtitle"] = "Manage leave categories, standard entitlements, paid/unpaid status, and document requirements";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h4 class="fw-bold mb-1"><i class="bi bi-tags me-2 text-primary"></i>Leave Types</h4>
-        <p class="text-muted small mb-0">Manage leave categories, entitlements, and status</p>
-    </div>
-    @if (CurrentUser.HasPermission(Permissions.Leave.Manage))
-    {
-        <a asp-action="Create" class="btn btn-primary shadow-sm">
-            <i class="bi bi-plus-lg me-1"></i> Add Leave Type
-        </a>
-    }
-</div>
 
 @if (TempData["SuccessMessage"] != null)
 {
-    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-3" role="alert" style="border-radius: 12px; background-color: #ecfdf3; color: #027a48;">
         <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
 @if (TempData["ErrorMessage"] != null)
 {
-    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-3" role="alert" style="border-radius: 12px; background-color: #fef3f2; color: #b42318;">
         <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
 
-<div class="card border-0 shadow-sm rounded-4">
+<!-- EmplowHR-Inspired Unified Filter Bar -->
+<div class="table-filter-bar mb-3">
+    <!-- Instant Search Input -->
+    <div class="table-search-box">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" id="leaveTypeSearchInput" class="table-search-input" placeholder="Search leave type by name or code..." oninput="filterLeaveTypesTable()" />
+    </div>
+
+    <!-- Status Dropdown Pill -->
+    <div class="dropdown">
+        <button class="filter-pill-dropdown" id="statusFilterBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span id="selectedStatusText">All Statuses</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search status..." autocomplete="off" />
+            </div>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                <li>
+                    <a class="dropdown-item active" href="javascript:void(0)" onclick="setStatusFilter('', 'All Statuses', this)">
+                        <span>All Statuses</span>
+                        <i class="bi bi-check2"></i>
+                    </a>
+                </li>
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatusFilter('Active', 'Active', this)"><span>Active</span></a></li>
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setStatusFilter('Inactive', 'Inactive', this)"><span>Inactive</span></a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Paid / Unpaid Pill -->
+    <div class="dropdown">
+        <button class="filter-pill-dropdown" id="paidFilterBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span id="selectedPaidText">All Payment Types</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search type..." autocomplete="off" />
+            </div>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                <li>
+                    <a class="dropdown-item active" href="javascript:void(0)" onclick="setPaidFilter('', 'All Payment Types', this)">
+                        <span>All Payment Types</span>
+                        <i class="bi bi-check2"></i>
+                    </a>
+                </li>
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setPaidFilter('paid', 'Paid Leave', this)"><span>Paid Leave</span></a></li>
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setPaidFilter('unpaid', 'Unpaid Leave', this)"><span>Unpaid Leave</span></a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Reset Filter Button -->
+    <button type="button" class="btn-reset-filters d-none" id="resetFiltersBtn" onclick="resetAllLeaveTypeFilters()" title="Reset all filters">
+        <i class="bi bi-arrow-counterclockwise"></i>
+        <span>Reset</span>
+    </button>
+
+    <div class="d-flex align-items-center gap-3 ms-auto">
+        @if (CurrentUser.HasPermission(Permissions.Leave.Manage))
+        {
+            <a asp-action="Create" class="btn btn-primary px-3 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center gap-1.5" style="height: 40px; font-size: 0.875rem; white-space: nowrap;">
+                <i class="bi bi-plus-lg"></i>
+                <span>Add leave type</span>
+            </a>
+        }
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="card border-0 shadow-sm" style="border-radius: 14px; border: 1px solid #eaecf0 !important;">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light text-muted small">
-                    <tr>
-                        <th class="ps-4 py-3">NAME</th>
-                        <th class="py-3">CODE</th>
-                        <th class="py-3">TYPE</th>
-                        <th class="py-3 text-center">DAYS PER YEAR</th>
-                        <th class="py-3 text-center">DOC REQUIRED</th>
-                        <th class="py-3 text-center">STATUS</th>
-                        <th class="pe-4 py-3 text-end">ACTIONS</th>
+            <table class="table table-hover align-middle mb-0" id="leaveTypesTable">
+                <thead style="background-color: #f8fafc; border-bottom: 1px solid #eaecf0;">
+                    <tr class="text-secondary small fw-semibold" style="font-size: 0.78rem; letter-spacing: 0.01em;">
+                        <th class="ps-4 py-2.5">Name</th>
+                        <th class="py-2.5">Code</th>
+                        <th class="py-2.5">Type</th>
+                        <th class="py-2.5 text-center">Days Per Year</th>
+                        <th class="py-2.5 text-center">Doc Required</th>
+                        <th class="py-2.5 text-center">Status</th>
+                        <th class="pe-4 py-2.5 text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (Model == null || !Model.Any())
                     {
-                        <tr>
+                        <tr id="emptyRow">
                             <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                                <i class="bi bi-inbox fs-1 d-block mb-2 text-muted"></i>
                                 No leave types found. Click <strong>Add Leave Type</strong> to create one.
                             </td>
                         </tr>
@@ -60,20 +123,30 @@
                     {
                         foreach (var item in Model)
                         {
-                            <tr>
-                                <td class="ps-4 fw-bold text-dark">@item.Name</td>
-                                <td><span class="badge bg-secondary-subtle text-secondary font-monospace">@item.Code</span></td>
+                            var paidStr = item.IsPaid ? "paid" : "unpaid";
+                            <tr class="leave-type-row" data-name="@item.Name.ToLowerInvariant()" data-code="@item.Code.ToLowerInvariant()" data-status="@item.Status" data-paid="@paidStr">
+                                <td class="ps-4 fw-semibold text-dark">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-3 bg-light border p-2 text-primary" style="width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="bi bi-calendar2-heart"></i>
+                                        </div>
+                                        <span>@item.Name</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-secondary border font-monospace px-2 py-1">@item.Code</span>
+                                </td>
                                 <td>
                                     @if (item.IsPaid)
                                     {
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle">Paid</span>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Paid</span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Unpaid</span>
+                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">Unpaid</span>
                                     }
                                 </td>
-                                <td class="text-center fw-semibold">@item.DaysPerYear.ToString("0.#")</td>
+                                <td class="text-center fw-bold text-dark">@item.DaysPerYear.ToString("0.#")</td>
                                 <td class="text-center">
                                     @if (item.RequiresDocument)
                                     {
@@ -81,39 +154,156 @@
                                     }
                                     else
                                     {
-                                        <span class="text-muted small">No</span>
+                                        <span class="text-muted small">—</span>
                                     }
                                 </td>
                                 <td class="text-center">
-                                    @if (item.Status == LeaveTypeStatus.Active)
-                                    {
-                                        <span class="badge bg-success-subtle text-success">Active</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-danger-subtle text-danger">Inactive</span>
-                                    }
+                                    <partial name="_StatusChip" model="@(item.Status == LeaveTypeStatus.Active ? "Active" : "Inactive")" />
                                 </td>
                                 <td class="pe-4 text-end">
                                     @if (CurrentUser.HasPermission(Permissions.Leave.Manage))
                                     {
-                                        <a asp-action="Edit" asp-route-id="@item.LeaveTypeId" class="btn btn-sm btn-outline-primary me-1" title="Edit">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <form asp-action="ToggleStatus" asp-route-id="@item.LeaveTypeId" method="post" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm @(item.Status == LeaveTypeStatus.Active ? "btn-outline-secondary" : "btn-outline-success")"
-                                                    title="@(item.Status == LeaveTypeStatus.Active ? "Deactivate" : "Activate")">
-                                                <i class="bi @(item.Status == LeaveTypeStatus.Active ? "bi-pause-circle" : "bi-play-circle")"></i>
+                                        <div class="dropdown">
+                                            <button type="button" class="btn btn-sm btn-light border-0 px-2 py-1 text-muted" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false" title="Actions">
+                                                <i class="bi bi-three-dots-vertical"></i>
                                             </button>
-                                        </form>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 py-1" style="border-radius: 10px; min-width: 140px;">
+                                                <li>
+                                                    <a asp-action="Edit" asp-route-id="@item.LeaveTypeId" class="dropdown-item py-1.5 small d-flex align-items-center gap-2">
+                                                        <i class="bi bi-pencil text-muted"></i>
+                                                        <span>Edit</span>
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider my-1"></li>
+                                                <li>
+                                                    <form asp-action="ToggleStatus" asp-route-id="@item.LeaveTypeId" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="dropdown-item py-1.5 small @(item.Status == LeaveTypeStatus.Active ? "text-danger" : "text-success") d-flex align-items-center gap-2">
+                                                            <i class="bi @(item.Status == LeaveTypeStatus.Active ? "bi-pause-circle" : "bi-play-circle")"></i>
+                                                            <span>@(item.Status == LeaveTypeStatus.Active ? "Deactivate" : "Activate")</span>
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     }
                                 </td>
                             </tr>
                         }
                     }
+                    <tr id="noResultsRow" class="d-none">
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-search fs-2 d-block mb-2 text-muted"></i>
+                            No leave types match your current search and filter criteria.
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
+    <!-- Clean Table Footer with Count -->
+    <div class="d-flex justify-content-between align-items-center px-4 py-2.5 bg-white border-top text-muted small" style="border-color: #eaecf0 !important;">
+        <span>Showing <strong class="text-dark tabular-nums" id="recordsCounter">@(Model?.Count ?? 0)</strong> of <strong class="text-dark tabular-nums">@(Model?.Count ?? 0)</strong> leave types</span>
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        let currentStatusFilter = '';
+        let currentPaidFilter = '';
+
+        function setStatusFilter(status, displayText, element) {
+            currentStatusFilter = status;
+            document.getElementById('selectedStatusText').textContent = displayText;
+            document.querySelectorAll('#statusFilterBtn + .dropdown-menu .dropdown-item').forEach(el => {
+                el.classList.remove('active');
+                const check = el.querySelector('.bi-check2');
+                if (check) check.remove();
+            });
+            element.classList.add('active');
+            if (!element.querySelector('.bi-check2')) {
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-check2';
+                element.appendChild(icon);
+            }
+            filterLeaveTypesTable();
+        }
+
+        function setPaidFilter(paid, displayText, element) {
+            currentPaidFilter = paid;
+            document.getElementById('selectedPaidText').textContent = displayText;
+            document.querySelectorAll('#paidFilterBtn + .dropdown-menu .dropdown-item').forEach(el => {
+                el.classList.remove('active');
+                const check = el.querySelector('.bi-check2');
+                if (check) check.remove();
+            });
+            element.classList.add('active');
+            if (!element.querySelector('.bi-check2')) {
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-check2';
+                element.appendChild(icon);
+            }
+            filterLeaveTypesTable();
+        }
+
+        function filterLeaveTypesTable() {
+            const query = document.getElementById('leaveTypeSearchInput').value.trim().toLowerCase();
+            const rows = document.querySelectorAll('.leave-type-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const name = row.getAttribute('data-name') || '';
+                const code = row.getAttribute('data-code') || '';
+                const status = row.getAttribute('data-status') || '';
+                const paid = row.getAttribute('data-paid') || '';
+
+                const matchesSearch = !query || name.includes(query) || code.includes(query);
+                const matchesStatus = !currentStatusFilter || status === currentStatusFilter;
+                const matchesPaid = !currentPaidFilter || paid === currentPaidFilter;
+
+                if (matchesSearch && matchesStatus && matchesPaid) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const resetBtn = document.getElementById('resetFiltersBtn');
+            if (resetBtn) {
+                if (query || currentStatusFilter || currentPaidFilter) {
+                    resetBtn.classList.remove('d-none');
+                } else {
+                    resetBtn.classList.add('d-none');
+                }
+            }
+
+            const counter = document.getElementById('recordsCounter');
+            if (counter) {
+                counter.innerHTML = `<strong>${visibleCount}</strong> leave types`;
+            }
+
+            const noResults = document.getElementById('noResultsRow');
+            if (noResults) {
+                if (visibleCount === 0 && rows.length > 0) {
+                    noResults.classList.remove('d-none');
+                } else {
+                    noResults.classList.add('d-none');
+                }
+            }
+        }
+
+        function resetAllLeaveTypeFilters() {
+            const searchInput = document.getElementById('leaveTypeSearchInput');
+            if (searchInput) searchInput.value = '';
+
+            const firstStatusItem = document.querySelector('#statusFilterBtn + .dropdown-menu .dropdown-item');
+            if (firstStatusItem) setStatusFilter('', 'All Statuses', firstStatusItem);
+
+            const firstPaidItem = document.querySelector('#paidFilterBtn + .dropdown-menu .dropdown-item');
+            if (firstPaidItem) setPaidFilter('', 'All Payment Types', firstPaidItem);
+
+            filterLeaveTypesTable();
+        }
+    </script>
+}

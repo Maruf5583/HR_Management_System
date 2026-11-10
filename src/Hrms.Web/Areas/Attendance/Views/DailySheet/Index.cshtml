@@ -1,34 +1,38 @@
 @model DailySheetViewModel
 @{
     ViewData["Title"] = $"Daily Attendance - {Model.WorkDate:yyyy-MM-dd}";
+    ViewData["Subtitle"] = "Record and review daily check-ins, check-outs, and calculated attendance";
     var prevDate = Model.WorkDate.AddDays(-1);
     var nextDate = Model.WorkDate.AddDays(1);
     var today = DateOnly.FromDateTime(DateTime.Today);
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h4 class="fw-bold mb-1"><i class="bi bi-calendar-check me-2 text-primary"></i>Daily Attendance Sheet</h4>
-        <p class="text-muted small mb-0">Record and review daily check-ins, check-outs, and calculated attendance</p>
-    </div>
-    <div class="d-flex align-items-center gap-2">
-        <a asp-action="Index" asp-route-date="@prevDate.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary btn-sm" title="Previous Day">
-            <i class="bi bi-chevron-left"></i>
+<!-- Action Bar (Right-Aligned, Clean Text Only, No Redundant Headings) -->
+<div class="d-flex justify-content-end align-items-center gap-2 mb-3">
+    <a asp-action="Index" asp-route-date="@prevDate.ToString("yyyy-MM-dd")" class="btn btn-sm btn-light border text-secondary px-2.5 py-1.5 rounded-3 shadow-xs" title="Previous Day">
+        <i class="bi bi-chevron-left"></i>
+    </a>
+    <form method="get" class="d-inline-flex gap-2 align-items-center">
+        <input type="date" name="date" class="form-control form-control-sm shadow-sm" value="@Model.WorkDate.ToString("yyyy-MM-dd")" onchange="this.form.submit()" />
+    </form>
+    <a asp-action="Index" asp-route-date="@nextDate.ToString("yyyy-MM-dd")" class="btn btn-sm btn-light border text-secondary px-2.5 py-1.5 rounded-3 shadow-xs" title="Next Day">
+        <i class="bi bi-chevron-right"></i>
+    </a>
+    @if (Model.WorkDate != today)
+    {
+        <a asp-action="Index" asp-route-date="@today.ToString("yyyy-MM-dd")" class="btn btn-sm btn-primary px-3 py-1.5 rounded-3 shadow-xs ms-2">
+            Today
         </a>
-        <form method="get" class="d-inline-flex gap-2 align-items-center">
-            <input type="date" name="date" class="form-control form-control-sm shadow-sm" value="@Model.WorkDate.ToString("yyyy-MM-dd")" onchange="this.form.submit()" />
-        </form>
-        <a asp-action="Index" asp-route-date="@nextDate.ToString("yyyy-MM-dd")" class="btn btn-outline-secondary btn-sm" title="Next Day">
-            <i class="bi bi-chevron-right"></i>
-        </a>
-        @if (Model.WorkDate != today)
-        {
-            <a asp-action="Index" asp-route-date="@today.ToString("yyyy-MM-dd")" class="btn btn-outline-primary btn-sm ms-2">
-                Today
-            </a>
-        }
-    </div>
+    }
 </div>
+
+@if (Model.FilterStatus.HasValue)
+{
+    <div class="alert alert-info border-0 shadow-sm rounded-3 py-2 px-3 mb-3 d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-funnel-fill me-1"></i> Showing attendance records filtered by: <strong class="badge bg-primary text-white ms-1">@Model.FilterStatus</strong></span>
+        <a asp-action="Index" asp-route-date="@Model.WorkDate.ToString("yyyy-MM-dd")" class="btn btn-sm btn-outline-dark py-0 px-2 text-decoration-none">Clear Filter</a>
+    </div>
+}
 
 @if (TempData["SuccessMessage"] != null)
 {
@@ -68,32 +72,71 @@
     @Html.AntiForgeryToken()
     <input type="hidden" name="WorkDate" value="@Model.WorkDate.ToString("yyyy-MM-dd")" />
 
-    <div class="card border-0 shadow-sm rounded-4 mb-4">
-        <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+    <!-- Table Filter Toolbar with Search and Searchable Status Dropdown -->
+    <div class="table-filter-bar mb-3">
+        <div class="table-search-box" style="min-width: 260px;">
+            <i class="bi bi-search search-icon"></i>
+            <input type="text" id="dailySearchInput" class="table-search-input" placeholder="Filter by employee name, code, shift..." onkeyup="filterDailySheet()" oninput="filterDailySheet()" autocomplete="off" />
+        </div>
+
+        <div class="dropdown">
+            <button class="filter-pill-dropdown" type="button" id="statusFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                <span id="selectedStatusText">All Statuses</span>
+                <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+            </button>
+            <div class="dropdown-menu filter-dropdown-menu shadow-sm" style="min-width: 210px;">
+                <div class="filter-dropdown-search">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="filter-dropdown-search-input" placeholder="Search status..." autocomplete="off" />
+                </div>
+                <ul class="filter-dropdown-list list-unstyled mb-0">
+                    <li><a class="dropdown-item active" href="javascript:void(0)" onclick="setDailyStatusFilter('', 'All Statuses', this)">All Statuses</a></li>
+                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="setDailyStatusFilter('Present', 'Present', this)">Present</a></li>
+                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="setDailyStatusFilter('Late', 'Late', this)">Late</a></li>
+                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="setDailyStatusFilter('HalfDay', 'Half Day', this)">Half Day</a></li>
+                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="setDailyStatusFilter('Absent', 'Absent', this)">Absent</a></li>
+                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="setDailyStatusFilter('OnLeave', 'On Leave', this)">On Leave</a></li>
+                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="setDailyStatusFilter('Holiday', 'Holiday', this)">Holiday</a></li>
+                    <li><a class="dropdown-item" href="javascript:void(0)" onclick="setDailyStatusFilter('Weekend', 'Weekend', this)">Weekend</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <button type="button" id="resetDailyFiltersBtn" class="btn btn-sm btn-light border text-secondary px-2.5 py-1.5 rounded-3 shadow-xs d-none align-items-center gap-1" onclick="resetAllDailyFilters()">
+            <i class="bi bi-x-circle me-1"></i> Reset
+        </button>
+        <div class="table-records-counter ms-auto" id="dailyRecordsCounter">
+            <strong>@Model.Items.Count</strong> active employees
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-xs mb-4" style="border: 1px solid #eaecf0 !important; border-radius: 14px; background: #ffffff;">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center" style="border-color: #eaecf0 !important;">
             <div class="d-flex align-items-center gap-2">
                 <span class="fw-semibold text-dark">Active Employees (@Model.Items.Count)</span>
                 <span class="badge bg-light text-muted border">@Model.WorkDate.ToString("dddd, MMMM dd, yyyy")</span>
             </div>
             @if (Model.CanManage)
             {
-                <button type="submit" class="btn btn-primary shadow-sm px-4">
-                    <i class="bi bi-save me-1"></i> Save Sheet
+                <button type="submit" class="btn btn-primary px-3 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center gap-1.5" style="height: 40px; font-size: 0.875rem;">
+                    <i class="bi bi-floppy"></i>
+                    <span>Save Sheet</span>
                 </button>
             }
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light text-muted small">
-                        <tr>
-                            <th class="ps-4 py-3" style="min-width: 200px;">EMPLOYEE</th>
-                            <th class="py-3" style="min-width: 140px;">ASSIGNED SHIFT</th>
-                            <th class="py-3" style="width: 140px;">CHECK IN</th>
-                            <th class="py-3" style="width: 140px;">CHECK OUT</th>
-                            <th class="py-3 text-center" style="width: 120px;">STATUS</th>
-                            <th class="py-3" style="min-width: 150px;">TIME METRICS</th>
-                            <th class="py-3" style="min-width: 180px;">NOTE</th>
-                            <th class="py-3 pe-4 text-end" style="width: 90px;">ACTIONS</th>
+                <table class="table table-hover align-middle mb-0 table-sticky-first">
+                    <thead style="background-color: #f8fafc; border-bottom: 1px solid #eaecf0;">
+                        <tr class="text-secondary small fw-semibold" style="font-size: 0.78rem; letter-spacing: 0.01em;">
+                            <th class="ps-4 py-2.5" style="min-width: 200px;">Employee</th>
+                            <th class="py-2.5" style="min-width: 140px;">Assigned Shift</th>
+                            <th class="py-2.5" style="width: 140px;">Check In</th>
+                            <th class="py-2.5" style="width: 140px;">Check Out</th>
+                            <th class="py-2.5 text-center" style="width: 120px;">Status</th>
+                            <th class="py-2.5" style="min-width: 150px;">Time Metrics</th>
+                            <th class="py-2.5" style="min-width: 180px;">Note</th>
+                            <th class="py-2.5 pe-4 text-end" style="width: 90px;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -111,7 +154,7 @@
                             for (int i = 0; i < Model.Items.Count; i++)
                             {
                                 var item = Model.Items[i];
-                                <tr class="@(item.IsReadonly ? "table-light" : "")">
+                                <tr class="daily-sheet-row @(item.IsReadonly ? "table-light" : "")" data-emp="@item.FullName.ToLowerInvariant() @item.EmployeeCode.ToLowerInvariant() @(item.ShiftName?.ToLowerInvariant() ?? "")" data-status="@item.Status">
                                     <td class="ps-4 py-3">
                                         <input type="hidden" name="Items[@i].EmployeeId" value="@item.EmployeeId" />
                                         <div class="fw-semibold text-dark">@item.FullName</div>
@@ -162,30 +205,7 @@
                                         }
                                     </td>
                                     <td class="text-center">
-                                        @switch (item.Status)
-                                        {
-                                            case AttendanceStatus.Present:
-                                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Present</span>
-                                                break;
-                                            case AttendanceStatus.Late:
-                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">Late</span>
-                                                break;
-                                            case AttendanceStatus.HalfDay:
-                                                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-1">Half Day</span>
-                                                break;
-                                            case AttendanceStatus.Absent:
-                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">Absent</span>
-                                                break;
-                                            case AttendanceStatus.OnLeave:
-                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">On Leave</span>
-                                                break;
-                                            case AttendanceStatus.Holiday:
-                                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">Holiday</span>
-                                                break;
-                                            case AttendanceStatus.Weekend:
-                                                <span class="badge bg-light text-muted border px-2 py-1">Weekend</span>
-                                                break;
-                                        }
+                                        <partial name="_StatusChip" model="@item.Status.ToString()" />
                                     </td>
                                     <td>
                                         @if (item.WorkedMinutes > 0 || item.LateMinutes > 0)
@@ -224,7 +244,7 @@
                                     <td class="pe-4 text-end">
                                         @if (item.AttendanceDayId.HasValue && Model.CanManage && !item.IsReadonly)
                                         {
-                                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                            <button type="button" class="btn btn-sm btn-light border text-secondary px-2.5 py-1.5 rounded-3 shadow-xs"
                                                     title="Edit Record with Note"
                                                     onclick="openEditModal('@item.AttendanceDayId.Value', '@item.FullName', '@item.EmployeeCode', '@(item.CheckInTime?.ToString("HH:mm"))', '@(item.CheckOutTime?.ToString("HH:mm"))', '@item.Note', '@item.RowVersionBase64')">
                                                 <i class="bi bi-pencil"></i>
@@ -237,6 +257,12 @@
                                     </td>
                                 </tr>
                             }
+                            <tr id="noDailyResultsRow" class="d-none">
+                                <td colspan="8" class="text-center py-5 text-muted">
+                                    <i class="bi bi-search fs-2 d-block mb-2 text-secondary opacity-50"></i>
+                                    No employees match your search and filter criteria.
+                                </td>
+                            </tr>
                         }
                     </tbody>
                 </table>
@@ -244,9 +270,11 @@
         </div>
         @if (Model.CanManage && Model.Items.Count > 0)
         {
-            <div class="card-footer bg-white border-0 py-3 text-end">
-                <button type="submit" class="btn btn-primary shadow-sm px-4">
-                    <i class="bi bi-save me-1"></i> Save Sheet
+            <div class="card-footer bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center border-top" style="border-color: #eaecf0 !important;">
+                <span class="text-muted small">Total <strong>@Model.Items.Count</strong> active employees</span>
+                <button type="submit" class="btn btn-primary px-4 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center gap-1.5" style="height: 40px; font-size: 0.875rem;">
+                    <i class="bi bi-floppy"></i>
+                    <span>Save Sheet</span>
                 </button>
             </div>
         }
@@ -303,6 +331,101 @@
 
 @section Scripts {
     <script>
+function filterDropdownMenuOptions(input) {
+            const query = input.value.toLowerCase();
+            const list = input.closest('.dropdown-menu').querySelectorAll('.filter-dropdown-list li');
+            list.forEach(li => {
+                const text = li.textContent.toLowerCase();
+                li.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        let currentDailyStatusFilter = '';
+
+        function setDailyStatusFilter(status, displayText, element) {
+            currentDailyStatusFilter = status.toLowerCase();
+            document.getElementById('selectedStatusText').textContent = displayText;
+            const btn = document.getElementById('statusFilterBtn');
+            if (btn) {
+                if (status) {
+                    btn.classList.add('is-filtered');
+                } else {
+                    btn.classList.remove('is-filtered');
+                }
+            }
+            document.querySelectorAll('#statusFilterBtn + .dropdown-menu .dropdown-item').forEach(el => {
+                el.classList.remove('active');
+                const check = el.querySelector('.bi-check2');
+                if (check) check.remove();
+            });
+            element.classList.add('active');
+            if (!element.querySelector('.bi-check2')) {
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-check2';
+                element.appendChild(icon);
+            }
+            filterDailySheet();
+        }
+
+        function filterDailySheet() {
+            const query = document.getElementById('dailySearchInput').value.trim().toLowerCase();
+            const rows = document.querySelectorAll('.daily-sheet-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const emp = row.getAttribute('data-emp') || '';
+                const status = (row.getAttribute('data-status') || '').toLowerCase();
+
+                const matchesSearch = !query || emp.includes(query);
+                const matchesStatus = !currentDailyStatusFilter || status === currentDailyStatusFilter;
+
+                if (matchesSearch && matchesStatus) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const resetBtn = document.getElementById('resetDailyFiltersBtn');
+            if (resetBtn) {
+                if (query || currentDailyStatusFilter) {
+                    resetBtn.classList.remove('d-none');
+                    resetBtn.classList.add('d-inline-flex');
+                } else {
+                    resetBtn.classList.add('d-none');
+                    resetBtn.classList.remove('d-inline-flex');
+                }
+            }
+
+            const counter = document.getElementById('dailyRecordsCounter');
+            if (counter) {
+                counter.innerHTML = `<strong>${visibleCount}</strong> active employees`;
+            }
+
+            const noResults = document.getElementById('noDailyResultsRow');
+            if (noResults) {
+                if (visibleCount === 0 && rows.length > 0) {
+                    noResults.classList.remove('d-none');
+                } else {
+                    noResults.classList.add('d-none');
+                }
+            }
+        }
+
+        function resetAllDailyFilters() {
+            const searchInput = document.getElementById('dailySearchInput');
+            if (searchInput) searchInput.value = '';
+
+            const btn = document.getElementById('statusFilterBtn');
+            if (btn) btn.classList.remove('is-filtered');
+
+            const firstStatusItem = document.querySelector('#statusFilterBtn + .dropdown-menu .dropdown-item');
+            if (firstStatusItem) setDailyStatusFilter('', 'All Statuses', firstStatusItem);
+
+            filterDailySheet();
+        }
+
         function openEditModal(id, name, code, checkIn, checkOut, note, rowVersion) {
             document.getElementById('editAttendanceDayId').value = id;
             document.getElementById('editEmployeeName').innerText = name;

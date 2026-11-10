@@ -1,99 +1,193 @@
 @model ShiftAssignmentListViewModel
 @{
-    ViewData["Title"] = "Shift Assignments Management";
+    ViewData["Title"] = "Employee Shift Assignments";
+    ViewData["Subtitle"] = "Assign employees to work shifts, schedule transfers, and track shift history";
 }
 
 <partial name="_CalendarNav" />
 
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-    <div>
-        <h4 class="fw-bold mb-1"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Employee Shift Assignments</h4>
-        <p class="text-muted small mb-0">Assign employees to work shifts, schedule transfers, and track shift history</p>
-    </div>
-    <div class="d-flex gap-2">
-        <a asp-controller="Shifts" asp-action="Index" class="btn btn-outline-primary d-flex align-items-center gap-2">
-            <i class="bi bi-clock-history"></i> Work Shifts
-        </a>
-        <a asp-action="Assign" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm">
-            <i class="bi bi-plus-lg"></i> Assign Shift
-        </a>
-    </div>
-</div>
 
 @if (TempData["SuccessMessage"] != null)
 {
-    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-3" role="alert" style="border-radius: 12px; background-color: #ecfdf3; color: #027a48;">
         <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
 @if (TempData["ErrorMessage"] != null)
 {
-    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-3" role="alert" style="border-radius: 12px; background-color: #fef3f2; color: #b42318;">
         <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
 
-<!-- Filters Bar -->
-<div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
-    <div class="card-body py-3">
-        <form method="get" class="row g-3 align-items-center">
-            <div class="col-md-4">
-                <label class="form-label small fw-semibold text-muted mb-1">Filter by Shift:</label>
-                <select name="shiftId" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="">All Shifts</option>
-                    @foreach (var s in Model.Shifts)
-                    {
-                        <option value="@s.ShiftId" selected="@(s.ShiftId == Model.SelectedShiftId)">@s.Name</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label small fw-semibold text-muted mb-1">Filter by Employee:</label>
-                <select name="employeeId" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="">All Employees</option>
-                    @foreach (var e in Model.Employees)
-                    {
-                        <option value="@e.EmployeeId" selected="@(e.EmployeeId == Model.SelectedEmployeeId)">@e.FullName (@e.EmployeeCode)</option>
-                    }
-                </select>
-            </div>
-            @if (Model.SelectedShiftId.HasValue || Model.SelectedEmployeeId.HasValue)
-            {
-                <div class="col-md-4 d-flex align-items-end">
-                    <a asp-action="Index" class="btn btn-sm btn-light border text-muted">
-                        <i class="bi bi-x-circle me-1"></i>Reset Filters
-                    </a>
+<!-- Top 4 Summary KPI Cards (Matching EmplowHR Reference Layout) -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm p-3 h-100" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">TOTAL ASSIGNED</span>
+                <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background-color: #f4f3ff; color: #7c3aed;">
+                    <i class="bi bi-person-lines-fill" style="font-size: 0.95rem;"></i>
                 </div>
-            }
-        </form>
+            </div>
+            <div class="fw-bold text-dark mb-1" style="font-size: 1.75rem; line-height: 1.2;">@Model.Assignments.Count</div>
+            <div class="text-muted small" style="font-size: 0.76rem;">Total roster records</div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm p-3 h-100" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">ACTIVE ON SHIFT</span>
+                <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background-color: #ecfdf3; color: #12b76a;">
+                    <span class="rounded-circle" style="width: 8px; height: 8px; background-color: #12b76a;"></span>
+                </div>
+            </div>
+            <div class="fw-bold text-dark mb-1" style="font-size: 1.75rem; line-height: 1.2;">@Model.Assignments.Count(a => a.IsCurrent)</div>
+            <div class="text-muted small" style="font-size: 0.76rem;">Currently active staff</div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm p-3 h-100" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">PAST / EXPIRED</span>
+                <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background-color: #fef0c7; color: #f79009;">
+                    <i class="bi bi-clock-history" style="font-size: 0.95rem;"></i>
+                </div>
+            </div>
+            <div class="fw-bold text-dark mb-1" style="font-size: 1.75rem; line-height: 1.2;">@Model.Assignments.Count(a => !a.IsCurrent)</div>
+            <div class="text-muted small" style="font-size: 0.76rem;">Completed / historical</div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm p-3 h-100" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">TOTAL SHIFTS</span>
+                <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background-color: #f0f9ff; color: #0ba5ec;">
+                    <i class="bi bi-layers-fill" style="font-size: 0.95rem;"></i>
+                </div>
+            </div>
+            <div class="fw-bold text-dark mb-1" style="font-size: 1.75rem; line-height: 1.2;">@Model.Shifts.Count</div>
+            <div class="text-muted small" style="font-size: 0.76rem;">Configured shift types</div>
+        </div>
     </div>
 </div>
 
-<!-- Assignments Table -->
-<div class="card border-0 shadow-sm" style="border-radius: 14px;">
+<!-- EmplowHR-Inspired Unified Filter Bar -->
+<div class="table-filter-bar mb-3">
+    <!-- Instant Search Input -->
+    <div class="table-search-box">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" id="assignmentSearchInput" class="table-search-input" placeholder="Search by employee name or code..." oninput="filterAssignmentsTable()" />
+    </div>
+
+    <!-- Shift Pill Dropdown -->
+    <div class="dropdown">
+        <button class="filter-pill-dropdown" id="shiftFilterBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span id="selectedShiftText">All Shifts</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search shifts..." autocomplete="off" />
+            </div>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                <li>
+                    <a class="dropdown-item active" href="javascript:void(0)" onclick="setShiftFilter('', 'All Shifts', this)">
+                        <span>All Shifts</span>
+                        <i class="bi bi-check2"></i>
+                    </a>
+                </li>
+                @foreach (var s in Model.Shifts)
+                {
+                    <li>
+                        <a class="dropdown-item" href="javascript:void(0)" onclick="setShiftFilter('@s.Name', '@s.Name', this)">
+                            <span>@s.Name</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+
+    <!-- Status Pill Dropdown -->
+    <div class="dropdown">
+        <button class="filter-pill-dropdown" id="statusFilterBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span id="selectedStatusText">All Statuses</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search statuses..." autocomplete="off" />
+            </div>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                <li>
+                    <a class="dropdown-item active" href="javascript:void(0)" onclick="setStatusFilter('', 'All Statuses', this)">
+                        <span>All Statuses</span>
+                        <i class="bi bi-check2"></i>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="javascript:void(0)" onclick="setStatusFilter('active', 'Active Current', this)">
+                        <span>Active Current</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="javascript:void(0)" onclick="setStatusFilter('past', 'Closed / Past', this)">
+                        <span>Closed / Past</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Reset Filter Button -->
+    <button type="button" class="btn-reset-filters d-none" id="resetFiltersBtn" onclick="resetAllAssignmentFilters()" title="Reset all filters">
+        <i class="bi bi-arrow-counterclockwise"></i>
+        <span>Reset</span>
+    </button>
+
+    <!-- Actions (Counter in table footer) -->
+    <div class="d-flex align-items-center gap-2 ms-auto">
+        <a asp-controller="Shifts" asp-action="Index" class="btn btn-outline-secondary px-3 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center" style="height: 40px; font-size: 0.875rem; white-space: nowrap;">
+            Work Shifts
+        </a>
+        <a asp-action="Assign" class="btn btn-primary px-3 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center gap-1.5" style="height: 40px; font-size: 0.875rem; white-space: nowrap;">
+            <i class="bi bi-plus-lg"></i>
+            <span>Assign shift</span>
+        </a>
+    </div>
+</div>
+
+<!-- Assignments Table Card -->
+<div class="card border-0 shadow-sm" style="border-radius: 14px; border: 1px solid #eaecf0 !important;">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">Employee</th>
-                        <th>Assigned Shift</th>
-                        <th>Effective Period</th>
-                        <th>Status</th>
-                        <th class="text-end pe-4">Actions</th>
+            <table class="table table-hover align-middle mb-0" id="assignmentsTable">
+                <thead style="background-color: #f8fafc; border-bottom: 1px solid #eaecf0;">
+                    <tr class="text-secondary small fw-semibold" style="font-size: 0.78rem; letter-spacing: 0.01em;">
+                        <th class="ps-4 py-2.5">Employee</th>
+                        <th class="py-2.5">Assigned Shift</th>
+                        <th class="py-2.5">Effective Period</th>
+                        <th class="py-2.5">Status</th>
+                        <th class="text-end pe-4 py-2.5">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (!Model.Assignments.Any())
                     {
-                        <tr>
+                        <tr id="emptyRow">
                             <td colspan="5" class="text-center py-5 text-muted">
-                                <i class="bi bi-person-x fs-1 d-block mb-2"></i>
+                                <i class="bi bi-person-x fs-1 d-block mb-2 text-muted"></i>
                                 <h6 class="fw-semibold text-dark">No Shift Assignments Found</h6>
                                 <p class="small text-muted mb-3">No employees are currently assigned matching the filter criteria.</p>
-                                <a asp-action="Assign" class="btn btn-primary btn-sm px-3">
+                                <a asp-action="Assign" class="btn btn-primary btn-sm px-3 fw-semibold rounded-3">
                                     <i class="bi bi-plus-lg me-1"></i>Assign an Employee Now
                                 </a>
                             </td>
@@ -101,87 +195,106 @@
                     }
                     @foreach (var a in Model.Assignments)
                     {
-                        <tr>
+                        var statusStr = a.IsCurrent ? "active" : "past";
+                        <tr class="assignment-row" data-emp="@a.EmployeeName.ToLowerInvariant() @a.EmployeeCode.ToLowerInvariant()" data-shift="@a.ShiftName" data-status="@statusStr">
                             <td class="ps-4">
-                                <div class="fw-bold text-dark">@a.EmployeeName</div>
-                                <div class="text-muted small" style="font-size: 0.75rem;">@a.EmployeeCode</div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; font-size: 0.82rem;">
+                                        @(a.EmployeeName.Length > 0 ? a.EmployeeName.Substring(0, 1).ToUpper() : "E")
+                                    </div>
+                                    <div>
+                                        <div class="fw-semibold text-dark">@a.EmployeeName</div>
+                                        <div class="text-muted small font-monospace" style="font-size: 0.72rem;">@a.EmployeeCode</div>
+                                    </div>
+                                </div>
                             </td>
                             <td>
-                                <span class="badge bg-light text-dark border px-3 py-2 fw-semibold">
+                                <span class="badge bg-light text-dark border px-2 py-1 fw-semibold">
                                     <i class="bi bi-clock me-1 text-primary"></i>@a.ShiftName
                                 </span>
                             </td>
                             <td>
-                                <span class="fw-semibold">@a.EffectiveFrom.ToString("yyyy-MM-dd")</span>
+                                <span class="fw-semibold text-dark">@a.EffectiveFrom.ToString("yyyy-MM-dd")</span>
                                 <span class="text-muted mx-1">to</span>
-                                <span class="fw-semibold">@(a.EffectiveTo?.ToString("yyyy-MM-dd") ?? "Ongoing")</span>
+                                <span class="fw-semibold text-dark">@(a.EffectiveTo?.ToString("yyyy-MM-dd") ?? "Ongoing")</span>
                             </td>
                             <td>
-                                @if (a.IsCurrent)
-                                {
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
-                                        <i class="bi bi-check-circle me-1"></i>Active Current
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-light text-muted border px-2 py-1">Closed / Past</span>
-                                }
+                                <partial name="_StatusChip" model='@(a.IsCurrent ? "Active" : "Closed")' />
                             </td>
                             <td class="text-end pe-4 text-nowrap">
-                                <!-- View Details Trigger -->
-                                <button type="button" class="btn btn-sm btn-outline-secondary me-1" data-bs-toggle="modal" data-bs-target="#viewModal-@a.ShiftAssignmentId" title="View Assignment Details">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-
-                                <!-- Edit Assignment -->
-                                <a asp-action="Edit" asp-route-id="@a.ShiftAssignmentId" class="btn btn-sm btn-outline-primary me-1" title="Edit Assignment Dates">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-
-                                @if (a.IsCurrent)
-                                {
-                                    <!-- Transfer -->
-                                    <a asp-action="Transfer" asp-route-employeeId="@a.EmployeeId" class="btn btn-sm btn-outline-info me-1 text-dark" title="Transfer to Another Shift">
-                                        <i class="bi bi-arrow-left-right me-1"></i>Transfer
-                                    </a>
-
-                                    <!-- End Shift Trigger -->
-                                    <button type="button" class="btn btn-sm btn-outline-warning text-dark me-1" data-bs-toggle="modal" data-bs-target="#endModal-@a.ShiftAssignmentId" title="End / Close Assignment">
-                                        <i class="bi bi-stop-circle"></i> End
+                                <div class="dropdown text-end">
+                                    <button class="btn btn-sm btn-light border-0 text-muted p-1 rounded-2" type="button" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false" title="Actions" style="width: 32px; height: 32px;">
+                                        <i class="bi bi-three-dots-vertical"></i>
                                     </button>
-                                }
-
-                                <!-- Delete Trigger Button -->
-                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal-@a.ShiftAssignmentId" title="Delete / Remove from Shift">
-                                    <i class="bi bi-trash"></i>
-                                </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border py-1" style="min-width: 175px; border-radius: 10px; font-size: 0.82rem;">
+                                        <li>
+                                            <button type="button" class="dropdown-item py-1.5 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#viewModal-@a.ShiftAssignmentId">
+                                                <i class="bi bi-eye text-muted"></i>
+                                                <span>View Details</span>
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item py-1.5 d-flex align-items-center gap-2" asp-action="Edit" asp-route-id="@a.ShiftAssignmentId">
+                                                <i class="bi bi-pencil text-muted"></i>
+                                                <span>Edit Dates</span>
+                                            </a>
+                                        </li>
+                                        @if (a.IsCurrent)
+                                        {
+                                            <li>
+                                                <a class="dropdown-item py-1.5 d-flex align-items-center gap-2 text-primary" asp-action="Transfer" asp-route-employeeId="@a.EmployeeId">
+                                                    <i class="bi bi-arrow-left-right text-primary"></i>
+                                                    <span>Transfer Shift</span>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <button type="button" class="dropdown-item py-1.5 d-flex align-items-center gap-2 text-warning-emphasis" data-bs-toggle="modal" data-bs-target="#endModal-@a.ShiftAssignmentId">
+                                                    <i class="bi bi-stop-circle text-warning"></i>
+                                                    <span>End Assignment</span>
+                                                </button>
+                                            </li>
+                                        }
+                                        <li><hr class="dropdown-divider my-1"></li>
+                                        <li>
+                                            <button type="button" class="dropdown-item py-1.5 d-flex align-items-center gap-2 text-danger" data-bs-toggle="modal" data-bs-target="#deleteModal-@a.ShiftAssignmentId">
+                                                <i class="bi bi-trash text-danger"></i>
+                                                <span>Delete Assignment</span>
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
                             </td>
                         </tr>
                     }
+                    <tr id="noResultsRow" class="d-none">
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-search fs-2 d-block mb-2 text-muted"></i>
+                            No shift assignments match your current search and filter criteria.
+                        </td>
+                    </tr>
                 </tbody>
             </table>
+        </div>
+        <div class="card-footer bg-white border-0 py-3 px-4 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 border-top" style="border-color: #eaecf0 !important;">
+            <span class="text-muted small" id="recordsCounter">Showing <strong>@Model.Assignments.Count</strong> shift assignments</span>
         </div>
     </div>
 </div>
 
-<!-- ========================================== -->
-<!-- ALL MODALS PLACED OUTSIDE TABLE FOR CLEAN WRAPPING -->
-<!-- ========================================== -->
-
+<!-- Modals -->
 @foreach (var a in Model.Assignments)
 {
     <!-- View Details Modal -->
-    <div class="modal fade" id="viewModal-@a.ShiftAssignmentId" tabindex="-1" aria-hidden="true" style="white-space: normal;">
+    <div class="modal fade" id="viewModal-@a.ShiftAssignmentId" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered text-start" style="max-width: 460px;">
-            <div class="modal-content border-0 shadow" style="border-radius: 14px;">
-                <div class="modal-header border-0 pb-0">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 14px;">
+                <div class="modal-header border-bottom py-3">
                     <h6 class="modal-title fw-bold d-flex align-items-center gap-2">
                         <i class="bi bi-info-circle text-primary fs-5"></i> Shift Assignment Details
                     </h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body py-3" style="white-space: normal;">
+                <div class="modal-body py-3">
                     <div class="list-group list-group-flush border-0">
                         <div class="list-group-item d-flex justify-content-between px-0 py-2">
                             <span class="text-muted small">Employee:</span>
@@ -200,20 +313,22 @@
                             <span class="fw-semibold">@(a.EffectiveTo?.ToString("yyyy-MM-dd") ?? "Ongoing (Indefinite)")</span>
                         </div>
                         <div class="list-group-item d-flex justify-content-between px-0 py-2">
-                            <span class="text-muted small">Assignment Status:</span>
-                            <span class="badge @(a.IsCurrent ? "bg-success-subtle text-success" : "bg-light text-muted")">@(a.IsCurrent ? "Active Current" : "Closed")</span>
-                        </div>
-                        <div class="list-group-item d-flex justify-content-between px-0 py-2">
-                            <span class="text-muted small">Assigned On:</span>
-                            <span class="text-muted small">@a.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm UTC")</span>
+                            <span class="text-muted small">Status:</span>
+                            <span>
+                                @if (a.IsCurrent)
+                                {
+                                    <span class="status-badge-dot status-active">Active Current</span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge-dot status-neutral">Closed / Past</span>
+                                }
+                            </span>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-0 pt-0 d-flex justify-content-end gap-2">
-                    <a asp-action="Edit" asp-route-id="@a.ShiftAssignmentId" class="btn btn-sm btn-primary px-3">
-                        <i class="bi bi-pencil me-1"></i>Edit Dates
-                    </a>
-                    <button type="button" class="btn btn-sm btn-light px-3" data-bs-dismiss="modal">Close</button>
+                <div class="modal-footer border-top py-2">
+                    <button type="button" class="btn btn-light btn-sm rounded-3" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -222,27 +337,32 @@
     @if (a.IsCurrent)
     {
         <!-- End Assignment Modal -->
-        <div class="modal fade" id="endModal-@a.ShiftAssignmentId" tabindex="-1" aria-hidden="true" style="white-space: normal;">
+        <div class="modal fade" id="endModal-@a.ShiftAssignmentId" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered text-start" style="max-width: 440px;">
-                <div class="modal-content border-0 shadow" style="border-radius: 14px;">
+                <div class="modal-content border-0 shadow-lg" style="border-radius: 14px;">
                     <form asp-action="End" method="post">
                         @Html.AntiForgeryToken()
-                        <input type="hidden" name="shiftAssignmentId" value="@a.ShiftAssignmentId" />
-                        <div class="modal-header border-0 pb-0">
+                        <input type="hidden" name="assignmentId" value="@a.ShiftAssignmentId" />
+                        <div class="modal-header border-bottom py-3">
                             <h6 class="modal-title fw-bold text-dark d-flex align-items-center gap-2">
-                                <i class="bi bi-stop-circle text-warning fs-5"></i> Close Shift Assignment
+                                <i class="bi bi-stop-circle text-warning fs-5"></i> End Shift Assignment
                             </h6>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <div class="modal-body py-3" style="white-space: normal; word-break: break-word;">
-                            <p class="text-secondary small mb-3">
-                                Select the last effective date for <strong>@a.EmployeeName</strong> on <strong>@a.ShiftName</strong>:
+                        <div class="modal-body py-3">
+                            <p class="text-muted small mb-3">
+                                End <strong>@a.EmployeeName</strong>'s assignment to <strong>@a.ShiftName</strong>.
                             </p>
-                            <input type="date" name="effectiveTo" class="form-control" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" min="@a.EffectiveFrom.ToString("yyyy-MM-dd")" required />
+                            <div>
+                                <label class="form-label small fw-semibold text-muted">End Date (Inclusive):</label>
+                                <input type="date" name="endDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                            </div>
                         </div>
-                        <div class="modal-footer border-0 pt-0 d-flex justify-content-end gap-2">
-                            <button type="button" class="btn btn-sm btn-light px-3" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-sm btn-warning text-dark px-3 fw-semibold">Confirm End</button>
+                        <div class="modal-footer border-top py-2">
+                            <button type="button" class="btn btn-light btn-sm rounded-3" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-warning btn-sm text-dark fw-semibold rounded-3">
+                                <i class="bi bi-stop-circle me-1"></i> Confirm End Date
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -250,30 +370,133 @@
         </div>
     }
 
-    <!-- Delete / Remove Assignment Modal -->
-    <div class="modal fade" id="deleteModal-@a.ShiftAssignmentId" tabindex="-1" aria-hidden="true" style="white-space: normal;">
+    <!-- Delete Assignment Modal -->
+    <div class="modal fade" id="deleteModal-@a.ShiftAssignmentId" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered text-start" style="max-width: 440px;">
-            <div class="modal-content border-0 shadow" style="border-radius: 14px;">
-                <form asp-action="Delete" method="post">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@a.ShiftAssignmentId" />
-                    <div class="modal-header border-0 pb-0">
-                        <h6 class="modal-title fw-bold text-danger d-flex align-items-center gap-2">
-                            <i class="bi bi-exclamation-triangle fs-5"></i> Delete Assignment
-                        </h6>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body py-3" style="white-space: normal; word-break: break-word;">
-                        <p class="text-secondary mb-0" style="font-size: 0.95rem; line-height: 1.5;">
-                            Are you sure you want to remove <strong>@a.EmployeeName</strong> from shift <strong>@a.ShiftName</strong>?
-                        </p>
-                    </div>
-                    <div class="modal-footer border-0 pt-0 d-flex justify-content-end gap-2">
-                        <button type="button" class="btn btn-sm btn-light px-3" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-sm btn-danger px-3 fw-semibold">Confirm Delete</button>
-                    </div>
-                </form>
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 14px;">
+                <div class="modal-header border-bottom py-3">
+                    <h6 class="modal-title fw-bold text-danger d-flex align-items-center gap-2">
+                        <i class="bi bi-trash3-fill fs-5"></i> Delete Assignment Record
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="text-muted small mb-0">
+                        Are you sure you want to delete the assignment of <strong>@a.EmployeeName</strong> to <strong>@a.ShiftName</strong>?
+                    </p>
+                </div>
+                <div class="modal-footer border-top py-2">
+                    <button type="button" class="btn btn-light btn-sm rounded-3" data-bs-dismiss="modal">Cancel</button>
+                    <form asp-action="Delete" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="assignmentId" value="@a.ShiftAssignmentId" />
+                        <button type="submit" class="btn btn-danger btn-sm rounded-3">
+                            <i class="bi bi-trash me-1"></i> Confirm Delete
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
+}
+
+@section Scripts {
+    <script>
+        let currentShiftFilter = '';
+        let currentStatusFilter = '';
+
+        function setShiftFilter(shiftName, displayText, element) {
+            currentShiftFilter = shiftName.toLowerCase();
+            document.getElementById('selectedShiftText').textContent = displayText;
+            document.querySelectorAll('#shiftFilterBtn + .dropdown-menu .dropdown-item').forEach(el => {
+                el.classList.remove('active');
+                const check = el.querySelector('.bi-check2');
+                if (check) check.remove();
+            });
+            element.classList.add('active');
+            if (!element.querySelector('.bi-check2')) {
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-check2';
+                element.appendChild(icon);
+            }
+            filterAssignmentsTable();
+        }
+
+        function setStatusFilter(status, displayText, element) {
+            currentStatusFilter = status;
+            document.getElementById('selectedStatusText').textContent = displayText;
+            document.querySelectorAll('#statusFilterBtn + .dropdown-menu .dropdown-item').forEach(el => {
+                el.classList.remove('active');
+                const check = el.querySelector('.bi-check2');
+                if (check) check.remove();
+            });
+            element.classList.add('active');
+            if (!element.querySelector('.bi-check2')) {
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-check2';
+                element.appendChild(icon);
+            }
+            filterAssignmentsTable();
+        }
+
+        function filterAssignmentsTable() {
+            const searchInput = document.getElementById('assignmentSearchInput');
+            const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            const rows = document.querySelectorAll('.assignment-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const emp = row.getAttribute('data-emp') || '';
+                const shift = (row.getAttribute('data-shift') || '').toLowerCase();
+                const status = row.getAttribute('data-status') || '';
+
+                const matchesSearch = !query || emp.includes(query);
+                const matchesShift = !currentShiftFilter || shift === currentShiftFilter;
+                const matchesStatus = !currentStatusFilter || status === currentStatusFilter;
+
+                if (matchesSearch && matchesShift && matchesStatus) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const resetBtn = document.getElementById('resetFiltersBtn');
+            if (resetBtn) {
+                if (query || currentShiftFilter || currentStatusFilter) {
+                    resetBtn.classList.remove('d-none');
+                } else {
+                    resetBtn.classList.add('d-none');
+                }
+            }
+
+            const counter = document.getElementById('recordsCounter');
+            if (counter) {
+                counter.innerHTML = `<strong>${visibleCount}</strong> assignments`;
+            }
+
+            const noResults = document.getElementById('noResultsRow');
+            if (noResults) {
+                if (visibleCount === 0 && rows.length > 0) {
+                    noResults.classList.remove('d-none');
+                } else {
+                    noResults.classList.add('d-none');
+                }
+            }
+        }
+
+        function resetAllAssignmentFilters() {
+            const searchInput = document.getElementById('assignmentSearchInput');
+            if (searchInput) searchInput.value = '';
+
+            const firstShiftItem = document.querySelector('#shiftFilterBtn + .dropdown-menu .dropdown-item');
+            if (firstShiftItem) setShiftFilter('', 'All Shifts', firstShiftItem);
+
+            const firstStatusItem = document.querySelector('#statusFilterBtn + .dropdown-menu .dropdown-item');
+            if (firstStatusItem) setStatusFilter('', 'All Statuses', firstStatusItem);
+
+            filterAssignmentsTable();
+        }
+    </script>
 }

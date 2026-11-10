@@ -11,8 +11,11 @@ public interface IEmployeeService
     Task<Result<Guid>> CreateEmployeeAsync(CreateEmployeeModel model, CancellationToken cancellationToken = default);
     Task<Result> UpdateEmployeeAsync(UpdateEmployeeModel model, CancellationToken cancellationToken = default);
     Task<Result> ChangeStatusAsync(ChangeEmployeeStatusModel model, CancellationToken cancellationToken = default);
+    Task<Result> UpdatePersonalDetailsAsync(Guid employeeId, DateOnly? dateOfBirth, string? gender, string? address, CancellationToken cancellationToken = default);
+    Task<Result> UpdateContactDetailsAsync(Guid employeeId, string? phone, string? emergencyContactName, string? emergencyContactPhone, CancellationToken cancellationToken = default);
     Task<Result<string>> UploadPhotoAsync(UploadPhotoModel model, CancellationToken cancellationToken = default);
     Task<Result> RemovePhotoAsync(Guid employeeId, CancellationToken cancellationToken = default);
+    Task<Result> DeleteEmployeeAsync(Guid employeeId, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<LookupItemDto>> GetActiveDepartmentsDropdownAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<LookupItemDto>> GetActiveDesignationsDropdownAsync(Guid departmentId, CancellationToken cancellationToken = default);

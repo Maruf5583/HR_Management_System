@@ -65,6 +65,10 @@ public class ReviewAttendanceCorrectionHandler : IReviewAttendanceCorrectionHand
         request.ReviewRemarks = command.Remarks;
 
         var employeeUserId = await _identityService.GetUserIdByEmployeeIdAsync(request.EmployeeId, cancellationToken);
+        if (employeeUserId.HasValue && employeeUserId.Value == command.ReviewedByUserId)
+        {
+            return Result.Failure(Error.Validation("You cannot approve or reject your own attendance regularization request. An independent HR manager or Administrator must review it."));
+        }
 
         if (command.Approve)
         {

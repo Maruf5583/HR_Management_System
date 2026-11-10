@@ -40,6 +40,7 @@ public static class AttendanceModule
         services.AddScoped<IEndBreakHandler, EndBreakHandler>();
         services.AddScoped<IClockOutHandler, ClockOutHandler>();
         services.AddScoped<ISubmitAttendanceCorrectionHandler, SubmitAttendanceCorrectionHandler>();
+        services.AddScoped<ICancelAttendanceCorrectionHandler, CancelAttendanceCorrectionHandler>();
         services.AddScoped<IReviewAttendanceCorrectionHandler, ReviewAttendanceCorrectionHandler>();
 
         // Validators

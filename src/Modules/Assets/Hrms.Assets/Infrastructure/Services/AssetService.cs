@@ -416,4 +416,212 @@ public class AssetService : IAssetService
 
         return result.OrderBy(a => a.AssetTag).ToList();
     }
+
+    public async Task<Result<Guid>> ReportAssetIssueAsync(CreateAssetRequestCommand command, CancellationToken ct = default)
+    {
+        if (command.AssetId == Guid.Empty)
+        {
+            return Result.Failure<Guid>(new Error("Asset.Required", "Asset ID is required."));
+        }
+
+        if (string.IsNullOrWhiteSpace(command.Description))
+        {
+            return Result.Failure<Guid>(new Error("Description.Required", "Please provide a description of the issue."));
+        }
+
+        var asset = await _assetRepository.GetByIdAsync(command.AssetId, ct);
+        if (asset == null)
+        {
+            return Result.Failure<Guid>(new Error("Asset.NotFound", "The specified asset was not found."));
+        }
+
+        var request = AssetRequest.Create(
+            command.AssetId,
+            command.EmployeeId,
+            string.IsNullOrWhiteSpace(command.IssueType) ? "Malfunction" : command.IssueType,
+            command.Description,
+            _clock.UtcNow);
+
+        _dbContext.AssetRequests.Add(request);
+        await _dbContext.SaveChangesAsync(ct);
+
+        return Result.Success(request.RequestId);
+    }
+
+    public async Task<IReadOnlyList<AssetRequestDto>> GetMyAssetRequestsAsync(Guid employeeId, CancellationToken ct = default)
+    {
+        var requests = await _dbContext.AssetRequests
+            .AsNoTracking()
+            .Include(r => r.Asset)
+            .Where(r => r.EmployeeId == employeeId)
+            .OrderByDescending(r => r.CreatedAtUtc)
+            .ToListAsync(ct);
+
+        return requests.Select(r => new AssetRequestDto
+        {
+            RequestId = r.RequestId,
+            AssetId = r.AssetId,
+            AssetTag = r.Asset?.AssetTag ?? "N/A",
+            AssetName = r.Asset?.Name ?? "N/A",
+            Category = r.Asset?.Category ?? AssetCategory.Other,
+            EmployeeId = r.EmployeeId,
+            IssueType = r.IssueType,
+            Description = r.Description,
+            Status = r.Status,
+            AdminNotes = r.AdminNotes,
+            CreatedAtUtc = r.CreatedAtUtc,
+            ResolvedAtUtc = r.ResolvedAtUtc
+        }).ToList();
+    }
+
+    public async Task<Result> CancelAssetRequestAsync(Guid requestId, Guid employeeId, CancellationToken ct = default)
+    {
+        var request = await _dbContext.AssetRequests
+            .FirstOrDefaultAsync(r => r.RequestId == requestId && r.EmployeeId == employeeId, ct);
+
+        if (request == null)
+        {
+            return Result.Failure(new Error("AssetRequest.NotFound", "Asset request not found."));
+        }
+
+        if (request.Status != AssetRequestStatus.Pending)
+        {
+            return Result.Failure(new Error("AssetRequest.NotPending", "Only pending requests can be cancelled. This request has already been reviewed or resolved."));
+        }
+
+        _dbContext.AssetRequests.Remove(request);
+        await _dbContext.SaveChangesAsync(ct);
+
+        return Result.Success();
+    }
+
+    public async Task<PagedResult<AssetRequestDto>> GetAssetRequestsAsync(string? search, AssetRequestStatus? status, int page, int pageSize, CancellationToken ct = default)
+    {
+        var query = _dbContext.AssetRequests
+            .AsNoTracking()
+            .Include(r => r.Asset)
+            .AsQueryable();
+
+        if (status.HasValue)
+        {
+            query = query.Where(r => r.Status == status.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            query = query.Where(r =>
+                (r.Asset != null && (r.Asset.AssetTag.ToLower().Contains(s) || r.Asset.Name.ToLower().Contains(s))) ||
+                r.IssueType.ToLower().Contains(s) ||
+                r.Description.ToLower().Contains(s));
+        }
+
+        var total = await query.CountAsync(ct);
+        var pageNumber = page < 1 ? 1 : page;
+        var size = pageSize < 1 ? 10 : pageSize;
+
+        var items = await query
+            .OrderByDescending(r => r.CreatedAtUtc)
+            .Skip((pageNumber - 1) * size)
+            .Take(size)
+            .ToListAsync(ct);
+
+        var employeeDropdown = await _employeeLookup.GetActiveEmployeesDropdownAsync(ct);
+        var empMap = employeeDropdown.ToDictionary(e => e.EmployeeId, e => e);
+
+        var dtos = items.Select(r =>
+        {
+            empMap.TryGetValue(r.EmployeeId, out var emp);
+            return new AssetRequestDto
+            {
+                RequestId = r.RequestId,
+                AssetId = r.AssetId,
+                AssetTag = r.Asset?.AssetTag ?? "N/A",
+                AssetName = r.Asset?.Name ?? "N/A",
+                Category = r.Asset?.Category ?? AssetCategory.Other,
+                EmployeeId = r.EmployeeId,
+                EmployeeName = emp?.FullName ?? "Staff Employee",
+                EmployeeCode = emp?.EmployeeCode ?? "-",
+                IssueType = r.IssueType,
+                Description = r.Description,
+                Status = r.Status,
+                AdminNotes = r.AdminNotes,
+                CreatedAtUtc = r.CreatedAtUtc,
+                ResolvedAtUtc = r.ResolvedAtUtc
+            };
+        }).ToList();
+
+        return new PagedResult<AssetRequestDto>(dtos, total, pageNumber, size);
+    }
+
+    public async Task<Result> ResolveAssetRequestAsync(ResolveAssetRequestCommand command, CancellationToken ct = default)
+    {
+        var request = await _dbContext.AssetRequests
+            .FirstOrDefaultAsync(r => r.RequestId == command.RequestId, ct);
+
+        if (request == null)
+        {
+            return Result.Failure(new Error("AssetRequest.NotFound", "The asset request was not found."));
+        }
+
+        request.Resolve(command.Status, command.AdminNotes, command.AdminUserId, _clock.UtcNow);
+        await _dbContext.SaveChangesAsync(ct);
+
+        return Result.Success();
+    }
+
+    public async Task<AssetDashboardMetricsDto> GetAssetDashboardMetricsAsync(CancellationToken ct = default)
+    {
+        var assets = await _dbContext.Assets.AsNoTracking().ToListAsync(ct);
+        var pendingCount = await _dbContext.AssetRequests.CountAsync(r => r.Status == AssetRequestStatus.Pending, ct);
+
+        var categoryCounts = Enum.GetValues<AssetCategory>()
+            .ToDictionary(c => c, c => assets.Count(a => a.Category == c));
+
+        var conditionCounts = Enum.GetValues<AssetCondition>()
+            .ToDictionary(c => c, c => assets.Count(a => a.Condition == c));
+
+        var recentRequestsPaged = await GetAssetRequestsAsync(null, null, 1, 5, ct);
+        var recentAssignments = await _dbContext.AssetAssignments
+            .AsNoTracking()
+            .Include(a => a.Asset)
+            .OrderByDescending(a => a.AssignedAtUtc)
+            .Take(5)
+            .ToListAsync(ct);
+
+        var employeeDropdown = await _employeeLookup.GetActiveEmployeesDropdownAsync(ct);
+        var empMap = employeeDropdown.ToDictionary(e => e.EmployeeId, e => e);
+
+        var assignmentDtos = recentAssignments.Select(a =>
+        {
+            empMap.TryGetValue(a.EmployeeId, out var emp);
+            return new AssetListItemDto
+            {
+                AssetId = a.AssetId,
+                AssetTag = a.Asset?.AssetTag ?? "N/A",
+                Name = a.Asset?.Name ?? "N/A",
+                Category = a.Asset?.Category ?? AssetCategory.Other,
+                Condition = a.Asset?.Condition ?? AssetCondition.Good,
+                Status = a.Asset?.Status ?? AssetStatus.Assigned,
+                CurrentEmployeeId = a.EmployeeId,
+                CurrentEmployeeName = emp?.FullName,
+                CurrentEmployeeCode = emp?.EmployeeCode,
+                AssignedAtUtc = a.AssignedAtUtc
+            };
+        }).ToList();
+
+        return new AssetDashboardMetricsDto
+        {
+            TotalAssets = assets.Count,
+            AssignedAssets = assets.Count(a => a.Status == AssetStatus.Assigned),
+            AvailableAssets = assets.Count(a => a.Status == AssetStatus.Available),
+            InRepairAssets = assets.Count(a => a.Status == AssetStatus.InRepair),
+            RetiredAssets = assets.Count(a => a.Status == AssetStatus.Retired),
+            PendingRequestsCount = pendingCount,
+            CategoryCounts = categoryCounts,
+            ConditionCounts = conditionCounts,
+            RecentRequests = recentRequestsPaged.Items.ToList(),
+            RecentAssignments = assignmentDtos
+        };
+    }
 }

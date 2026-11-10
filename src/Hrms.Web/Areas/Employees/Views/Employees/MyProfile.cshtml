@@ -9,83 +9,124 @@
     var currentForEdit = pendingBank ?? activeBank;
 }
 
-<div class="d-flex align-items-center justify-content-between mb-4">
-    <div>
-        <h4 class="fw-bold mb-0"><i class="bi bi-person-circle me-2 text-primary"></i>My Profile</h4>
-        <p class="text-muted small mb-0">Your employee records and company profile</p>
+<!-- Top Unified Self-Service Hub Navigation Tabs -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div class="d-inline-flex p-1 bg-white border rounded-3 shadow-xs" style="border-color: #eaecf0 !important;">
+        <a class="btn btn-sm btn-primary text-white rounded-2 px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs"
+           asp-area="Employees" asp-controller="Employees" asp-action="MyProfile">
+            <span>Personal Profile</span>
+        </a>
+        @if (CurrentUser.HasPermission(Permissions.Assets.ViewOwn))
+        {
+            <a class="btn btn-sm btn-link text-secondary text-decoration-none rounded-2 px-3 py-1.5 fw-medium d-inline-flex align-items-center gap-1.5"
+               asp-area="Assets" asp-controller="Assets" asp-action="My">
+                <span>My Assets</span>
+            </a>
+        }
+        @if (CurrentUser.HasPermission(Permissions.Attendance.ViewOwn))
+        {
+            <a class="btn btn-sm btn-link text-secondary text-decoration-none rounded-2 px-3 py-1.5 fw-medium d-inline-flex align-items-center gap-1.5"
+               asp-area="Attendance" asp-controller="MyAttendance" asp-action="Index">
+                <span>My Attendance</span>
+            </a>
+        }
+        @if (CurrentUser.HasPermission(Permissions.Leave.ViewOwn))
+        {
+            <a class="btn btn-sm btn-link text-secondary text-decoration-none rounded-2 px-3 py-1.5 fw-medium d-inline-flex align-items-center gap-1.5"
+               asp-area="Leave" asp-controller="MyLeave" asp-action="Index">
+                <span>My Leave</span>
+            </a>
+        }
     </div>
-    <span class="badge bg-light text-primary border font-monospace fs-6 px-3 py-2">@Model.EmployeeCode</span>
+    <span class="badge bg-light text-secondary border font-monospace px-3 py-1.5" style="border-color: #d0d5dd !important;">@Model.EmployeeCode</span>
 </div>
 
 <div class="row g-4">
     <!-- Left Column: Profile Card -->
     <div class="col-lg-4">
-        <div class="card border-0 shadow-sm text-center p-4 mb-4" style="border-radius: 12px;">
-            <div class="position-relative d-inline-block mx-auto mb-3">
-                @if (!string.IsNullOrWhiteSpace(Model.PhotoKey))
-                {
-                    <img src="/uploads/@Model.PhotoKey" alt="@Model.FullName" class="rounded-circle border shadow-sm" style="width: 140px; height: 140px; object-fit: cover;" />
-                }
-                else
-                {
-                    <div class="rounded-circle bg-primary-subtle text-primary border border-primary-subtle d-flex align-items-center justify-content-center fw-bold shadow-sm mx-auto" style="width: 140px; height: 140px; font-size: 3rem;">
-                        @initials.ToUpper()
+        <div class="card border-0 shadow-xs mb-4" style="border-radius: 14px; border: 1px solid #eaecf0 !important; background: #ffffff; overflow: hidden;">
+            <!-- Top Gradient Accent Banner -->
+            <div style="height: 64px; background: linear-gradient(135deg, #f4f3ff 0%, #ede9fe 100%); border-bottom: 1px solid #eaecf0;"></div>
+
+            <div class="card-body p-4 pt-0 text-center">
+                <!-- Avatar overlapping the banner -->
+                <div class="position-relative d-inline-block mx-auto mb-2" style="margin-top: -42px;">
+                    @if (!string.IsNullOrWhiteSpace(Model.PhotoKey))
+                    {
+                        <img src="/uploads/@Model.PhotoKey" alt="@Model.FullName" class="rounded-circle border shadow-xs" style="width: 88px; height: 88px; object-fit: cover; border: 3px solid #ffffff !important;" />
+                    }
+                    else
+                    {
+                        <div class="rounded-circle bg-primary-subtle text-primary border d-flex align-items-center justify-content-center fw-bold shadow-xs mx-auto" style="width: 88px; height: 88px; font-size: 2rem; border: 3px solid #ffffff !important;">
+                            @initials.ToUpper()
+                        </div>
+                    }
+                </div>
+
+                <h5 class="fw-semibold mb-0.5 text-dark">@Model.FullName</h5>
+                <div class="text-muted small mb-2">@Model.DesignationTitle</div>
+                <div class="mb-3">
+                    @switch (Model.Status)
+                    {
+                        case EmployeeStatus.Active:
+                            <span class="badge-status-dot badge-status-active">Active</span>
+                            break;
+                        case EmployeeStatus.OnNotice:
+                            <span class="badge-status-dot badge-status-warning">On Notice</span>
+                            break;
+                        case EmployeeStatus.Resigned:
+                            <span class="badge-status-dot badge-status-neutral">Resigned</span>
+                            break;
+                        case EmployeeStatus.Terminated:
+                            <span class="badge-status-dot badge-status-danger">Terminated</span>
+                            break;
+                    }
+                </div>
+
+                <div class="d-flex justify-content-center gap-2 mb-3">
+                    <button type="button" class="btn btn-sm btn-light border text-secondary px-3 py-1.5 fw-medium rounded-3 shadow-xs d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#uploadPhotoModal" style="border-color: #d0d5dd !important;">
+                        <i class="bi bi-camera"></i>
+                        <span>@(string.IsNullOrWhiteSpace(Model.PhotoKey) ? "Upload Photo" : "Change Photo")</span>
+                    </button>
+                    @if (!string.IsNullOrWhiteSpace(Model.PhotoKey))
+                    {
+                        <form asp-action="RemovePhoto" asp-route-id="@Model.EmployeeId" method="post" class="d-inline" data-confirm="Are you sure you want to remove your profile photo?" data-confirm-title="Remove Profile Photo" data-confirm-btn="Remove Photo">
+                            <button type="submit" class="btn btn-sm btn-light border text-danger p-1 px-2.5 rounded-3 shadow-xs" title="Remove Photo" style="border-color: #d0d5dd !important;">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    }
+                </div>
+
+                <!-- Structured Organizational Summary Box -->
+                <div class="p-3 rounded-3 text-start mb-3" style="background: #f8fafc; border: 1px solid #eaecf0;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Department:</span>
+                        <span class="fw-semibold text-dark small">@Model.DepartmentName</span>
                     </div>
-                }
-            </div>
-
-            <h5 class="fw-bold mb-1">@Model.FullName</h5>
-            <div class="text-muted mb-2">@Model.DesignationTitle</div>
-            <div class="mb-3">
-                @switch (Model.Status)
-                {
-                    case EmployeeStatus.Active:
-                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 fs-6">Active</span>
-                        break;
-                    case EmployeeStatus.OnNotice:
-                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1 fs-6">On Notice</span>
-                        break;
-                    case EmployeeStatus.Resigned:
-                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-1 fs-6">Resigned</span>
-                        break;
-                    case EmployeeStatus.Terminated:
-                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1 fs-6">Terminated</span>
-                        break;
-                }
-            </div>
-
-            <div class="d-flex justify-content-center gap-2 mt-2">
-                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadPhotoModal">
-                    <i class="bi bi-camera me-1"></i> @(string.IsNullOrWhiteSpace(Model.PhotoKey) ? "Upload Photo" : "Change Photo")
-                </button>
-                @if (!string.IsNullOrWhiteSpace(Model.PhotoKey))
-                {
-                    <form asp-action="RemovePhoto" asp-route-id="@Model.EmployeeId" method="post" class="d-inline" onsubmit="return confirm('Remove profile photo?');">
-                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove Photo">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </form>
-                }
-            </div>
-
-            <hr class="my-4" />
-
-            <div class="text-start">
-                <div class="mb-2">
-                    <small class="text-muted d-block">Department</small>
-                    <span class="fw-semibold">@Model.DepartmentName</span>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Grade:</span>
+                        <span class="fw-semibold text-dark small">@Model.GradeLevel (@Model.GradeCode)</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Employment:</span>
+                        <span class="badge bg-light text-secondary border fw-medium" style="font-size: 0.72rem;">@Model.EmploymentType</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">Base Salary:</span>
+                        <span class="fw-bold text-success font-monospace small">@Model.Salary.ToString("C2")</span>
+                    </div>
                 </div>
-                <div class="mb-2">
-                    <small class="text-muted d-block">Grade Level & Code</small>
-                    <span class="fw-semibold">@Model.GradeLevel (@Model.GradeCode)</span>
-                </div>
-                <div class="mb-2">
-                    <small class="text-muted d-block">Base Salary</small>
-                    <span class="fw-bold text-success font-monospace">@Model.Salary.ToString("C2")</span>
-                </div>
-                <div>
-                    <small class="text-muted d-block">Employment Type</small>
-                    <span class="badge bg-light text-secondary border">@Model.EmploymentType</span>
+
+                <!-- Profile Completion Indicator -->
+                <div class="text-start p-2.5 border rounded-3 bg-white" style="border-color: #eaecf0 !important;">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-semibold text-dark small" style="font-size: 0.78rem;">Profile Verification</span>
+                        <span class="fw-bold text-primary small" style="font-size: 0.78rem;">100%</span>
+                    </div>
+                    <div class="progress" style="height: 5px; background-color: #f2f4f7; border-radius: 9999px;">
+                        <div class="progress-bar rounded-pill bg-success" role="progressbar" style="width: 100%;"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -94,86 +135,95 @@
     <!-- Right Column: Details & Information -->
     <div class="col-lg-8">
         <!-- Personal Information -->
-        <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
-            <div class="card-header bg-white border-bottom py-3">
-                <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-person-lines-fill me-2"></i>Personal Information</h6>
+        <div class="card border-0 shadow-xs mb-4" style="border-radius: 14px; border: 1px solid #eaecf0 !important; background: #ffffff;">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center" style="border-color: #eaecf0 !important;">
+                <h6 class="fw-semibold mb-0 text-dark">Personal Information</h6>
+                <button type="button" class="btn btn-sm btn-light border text-secondary px-3 py-1.5 fw-medium rounded-3 shadow-xs d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#editPersonalModal" style="border-color: #d0d5dd !important;">
+                    <i class="bi bi-pencil-square"></i>
+                    <span>Edit Personal Details</span>
+                </button>
             </div>
             <div class="card-body p-4">
                 <div class="row g-3">
                     <div class="col-sm-6">
-                        <small class="text-muted d-block">Date of Birth</small>
-                        <span class="fw-medium">@(Model.DateOfBirth?.ToString("dd MMMM yyyy") ?? "Not recorded")</span>
+                        <small class="text-muted d-block" style="font-size: 0.76rem;">Date of Birth</small>
+                        <span class="fw-semibold text-dark">@(Model.DateOfBirth?.ToString("dd MMMM yyyy") ?? "Not recorded")</span>
                     </div>
                     <div class="col-sm-6">
-                        <small class="text-muted d-block">Gender</small>
-                        <span class="fw-medium">@(Model.Gender ?? "Not recorded")</span>
+                        <small class="text-muted d-block" style="font-size: 0.76rem;">Gender</small>
+                        <span class="fw-semibold text-dark">@(Model.Gender ?? "Not recorded")</span>
                     </div>
                     <div class="col-sm-6">
-                        <small class="text-muted d-block">Join Date</small>
-                        <span class="fw-medium">@Model.JoinDate.ToString("dd MMMM yyyy")</span>
+                        <small class="text-muted d-block" style="font-size: 0.76rem;">Join Date</small>
+                        <span class="fw-semibold text-dark">@Model.JoinDate.ToString("dd MMMM yyyy")</span>
                     </div>
                     @if (Model.ExitDate.HasValue)
                     {
                         <div class="col-sm-6">
-                            <small class="text-muted d-block text-danger">Exit Date</small>
+                            <small class="text-muted d-block text-danger" style="font-size: 0.76rem;">Exit Date</small>
                             <span class="fw-bold text-danger">@Model.ExitDate.Value.ToString("dd MMMM yyyy")</span>
                         </div>
                     }
                     <div class="col-12">
-                        <small class="text-muted d-block">Residential Address</small>
-                        <span class="fw-medium">@(string.IsNullOrWhiteSpace(Model.Address) ? "No address specified" : Model.Address)</span>
+                        <small class="text-muted d-block" style="font-size: 0.76rem;">Residential Address</small>
+                        <span class="fw-semibold text-dark">@(string.IsNullOrWhiteSpace(Model.Address) ? "No address specified" : Model.Address)</span>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Contact Information -->
-        <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
-            <div class="card-header bg-white border-bottom py-3">
-                <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-telephone-inbound me-2"></i>Contact & Emergency Details</h6>
+        <div class="card border-0 shadow-xs mb-4" style="border-radius: 14px; border: 1px solid #eaecf0 !important; background: #ffffff;">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center" style="border-color: #eaecf0 !important;">
+                <h6 class="fw-semibold mb-0 text-dark">Contact & Emergency Details</h6>
+                <button type="button" class="btn btn-sm btn-light border text-secondary px-3 py-1.5 fw-medium rounded-3 shadow-xs d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#editContactModal" style="border-color: #d0d5dd !important;">
+                    <i class="bi bi-pencil-square"></i>
+                    <span>Edit Contact Details</span>
+                </button>
             </div>
             <div class="card-body p-4">
                 <div class="row g-3">
                     <div class="col-sm-6">
-                        <small class="text-muted d-block">Work Email</small>
-                        <span class="fw-medium">@(Model.Email ?? "No email provided")</span>
+                        <small class="text-muted d-block" style="font-size: 0.76rem;">Work Email</small>
+                        <span class="fw-semibold text-dark">@(Model.Email ?? "No email provided")</span>
                     </div>
                     <div class="col-sm-6">
-                        <small class="text-muted d-block">Phone Number</small>
-                        <span class="fw-medium">@(Model.Phone ?? "No phone provided")</span>
+                        <small class="text-muted d-block" style="font-size: 0.76rem;">Phone Number</small>
+                        <span class="fw-semibold text-dark">@(Model.Phone ?? "No phone provided")</span>
                     </div>
                     <div class="col-sm-6">
-                        <small class="text-muted d-block">Emergency Contact Person</small>
-                        <span class="fw-medium">@(Model.EmergencyContactName ?? "Not specified")</span>
+                        <small class="text-muted d-block" style="font-size: 0.76rem;">Emergency Contact Person</small>
+                        <span class="fw-semibold text-dark">@(Model.EmergencyContactName ?? "Not specified")</span>
                     </div>
                     <div class="col-sm-6">
-                        <small class="text-muted d-block">Emergency Contact Phone</small>
-                        <span class="fw-medium">@(Model.EmergencyContactPhone ?? "Not specified")</span>
+                        <small class="text-muted d-block" style="font-size: 0.76rem;">Emergency Contact Phone</small>
+                        <span class="fw-semibold text-dark">@(Model.EmergencyContactPhone ?? "Not specified")</span>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Bank Details Section -->
-        <div class="card border-0 shadow-sm" style="border-radius: 12px;">
-            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <div class="card border-0 shadow-xs" style="border-radius: 14px; border: 1px solid #eaecf0 !important; background: #ffffff;">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center" style="border-color: #eaecf0 !important;">
                 <div class="d-flex align-items-center gap-2">
-                    <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-bank me-2"></i>Bank Details</h6>
+                    <h6 class="fw-semibold mb-0 text-dark">Bank Details</h6>
                     @if (pendingBank != null)
                     {
-                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">
-                            <i class="bi bi-hourglass-split me-1"></i>Pending Approval
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;">
+                            Pending Approval
                         </span>
                     }
                     else if (activeBank != null)
                     {
-                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
-                            <i class="bi bi-check-circle me-1"></i>Approved
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;">
+                            Approved
                         </span>
                     }
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editBankModal">
-                    <i class="bi bi-pencil me-1"></i> @(activeBank == null && pendingBank == null ? "Add Bank Details" : "Edit Bank Details")
+                <button type="button" class="btn btn-sm btn-light border text-secondary px-3 py-1.5 fw-medium rounded-3 shadow-xs d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#editBankModal" style="border-color: #d0d5dd !important;">
+                    <i class="bi bi-pencil"></i>
+                    <span>@(activeBank == null && pendingBank == null ? "Add Bank Details" : "Edit Bank Details")</span>
                 </button>
             </div>
             <div class="card-body p-4">
@@ -209,33 +259,33 @@
                     var displayBank = pendingBank ?? activeBank;
                     <div class="row g-3">
                         <div class="col-sm-6">
-                            <small class="text-muted d-block">Bank Name</small>
-                            <span class="fw-semibold">@displayBank!.BankName</span>
+                            <small class="text-muted d-block" style="font-size: 0.76rem;">Bank Name</small>
+                            <span class="fw-semibold text-dark">@displayBank!.BankName</span>
                         </div>
                         <div class="col-sm-6">
-                            <small class="text-muted d-block">Account Holder Name</small>
-                            <span class="fw-semibold">@displayBank.AccountHolderName</span>
+                            <small class="text-muted d-block" style="font-size: 0.76rem;">Account Holder Name</small>
+                            <span class="fw-semibold text-dark">@displayBank.AccountHolderName</span>
                         </div>
                         <div class="col-sm-6">
-                            <small class="text-muted d-block">Account Number</small>
-                            <span class="fw-bold font-monospace text-primary fs-6">@displayBank.AccountNumber</span>
+                            <small class="text-muted d-block" style="font-size: 0.76rem;">Account Number</small>
+                            <span class="fw-bold font-monospace text-primary">@displayBank.AccountNumber</span>
                         </div>
                         <div class="col-sm-6">
-                            <small class="text-muted d-block">Branch Name</small>
-                            <span class="fw-medium">@displayBank.BranchName</span>
+                            <small class="text-muted d-block" style="font-size: 0.76rem;">Branch Name</small>
+                            <span class="fw-semibold text-dark">@displayBank.BranchName</span>
                         </div>
                         @if (!string.IsNullOrWhiteSpace(displayBank.RoutingNumber))
                         {
                             <div class="col-sm-6">
-                                <small class="text-muted d-block">Routing Number</small>
-                                <span class="fw-medium font-monospace">@displayBank.RoutingNumber</span>
+                                <small class="text-muted d-block" style="font-size: 0.76rem;">Routing Number</small>
+                                <span class="fw-semibold font-monospace text-dark">@displayBank.RoutingNumber</span>
                             </div>
                         }
                         @if (!string.IsNullOrWhiteSpace(displayBank.SwiftCode))
                         {
                             <div class="col-sm-6">
-                                <small class="text-muted d-block">SWIFT Code</small>
-                                <span class="fw-medium font-monospace">@displayBank.SwiftCode</span>
+                                <small class="text-muted d-block" style="font-size: 0.76rem;">SWIFT Code</small>
+                                <span class="fw-semibold font-monospace text-dark">@displayBank.SwiftCode</span>
                             </div>
                         }
                     </div>
@@ -346,6 +396,91 @@
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-upload me-1"></i> Upload Photo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Personal Details Modal -->
+<div class="modal fade" id="editPersonalModal" tabindex="-1" aria-labelledby="editPersonalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 12px;">
+            <form asp-action="UpdatePersonalDetails" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="EmployeeId" value="@Model.EmployeeId" />
+                <div class="modal-header border-bottom py-3">
+                    <h5 class="modal-title fw-bold" id="editPersonalModalLabel">
+                        <i class="bi bi-pencil-square me-2 text-primary"></i>Edit Personal Details
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold small">Date of Birth</label>
+                            <input type="date" name="DateOfBirth" class="form-control" value="@(Model.DateOfBirth?.ToString("yyyy-MM-dd"))" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold small">Gender</label>
+                            <select name="Gender" class="form-select">
+                                <option value="">Select Gender</option>
+                                <option value="Male" selected="@(string.Equals(Model.Gender, "Male", StringComparison.OrdinalIgnoreCase))">Male</option>
+                                <option value="Female" selected="@(string.Equals(Model.Gender, "Female", StringComparison.OrdinalIgnoreCase))">Female</option>
+                                <option value="Other" selected="@(string.Equals(Model.Gender, "Other", StringComparison.OrdinalIgnoreCase))">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Residential Address</label>
+                        <textarea name="Address" class="form-control" rows="3" placeholder="Street, City, Postal Code">@Model.Address</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top py-2">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check2-circle me-1"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Contact & Emergency Details Modal -->
+<div class="modal fade" id="editContactModal" tabindex="-1" aria-labelledby="editContactModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 12px;">
+            <form asp-action="UpdateContactDetails" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="EmployeeId" value="@Model.EmployeeId" />
+                <div class="modal-header border-bottom py-3">
+                    <h5 class="modal-title fw-bold" id="editContactModalLabel">
+                        <i class="bi bi-pencil-square me-2 text-primary"></i>Edit Contact & Emergency Details
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small">Mobile Phone Number</label>
+                        <input type="text" name="Phone" class="form-control" value="@Model.Phone" placeholder="+880 1XXX-XXXXXX" />
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-sm-6 mb-3">
+                            <label class="form-label fw-semibold small">Emergency Contact Person</label>
+                            <input type="text" name="EmergencyContactName" class="form-control" value="@Model.EmergencyContactName" placeholder="Name (e.g. Spouse, Parent)" />
+                        </div>
+                        <div class="col-sm-6 mb-3">
+                            <label class="form-label fw-semibold small">Emergency Contact Phone</label>
+                            <input type="text" name="EmergencyContactPhone" class="form-control" value="@Model.EmergencyContactPhone" placeholder="Emergency Phone Number" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top py-2">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check2-circle me-1"></i> Save Changes
                     </button>
                 </div>
             </form>

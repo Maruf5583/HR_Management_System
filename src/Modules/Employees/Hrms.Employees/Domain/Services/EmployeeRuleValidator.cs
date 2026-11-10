@@ -12,6 +12,18 @@ public static class EmployeeRuleValidator
     private static readonly byte[] JpegHeader = { 0xFF, 0xD8, 0xFF };
     private static readonly byte[] PngHeader = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
 
+    public static Result ValidateDateOfBirth(DateOnly? dateOfBirth)
+    {
+        if (!dateOfBirth.HasValue) return Result.Success();
+
+        if (dateOfBirth.Value > DateOnly.FromDateTime(DateTime.Today.AddYears(-18)))
+        {
+            return Result.Failure("Employee must be at least 18 years of age.");
+        }
+
+        return Result.Success();
+    }
+
     public static Result ValidateExitDate(EmployeeStatus status, DateOnly joinDate, DateOnly? exitDate)
     {
         if (status is EmployeeStatus.Resigned or EmployeeStatus.Terminated)

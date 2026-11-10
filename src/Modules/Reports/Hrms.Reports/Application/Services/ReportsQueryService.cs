@@ -651,7 +651,7 @@ public class ReportsQueryService : IReportsQueryService
             .ToListAsync(cancellationToken);
 
         int presentDays = monthAttendance.Count(a => a.Status == AttendanceStatus.Present || a.Status == AttendanceStatus.Late || a.Status == AttendanceStatus.HalfDay);
-        int onTimeDays = monthAttendance.Count(a => a.Status == AttendanceStatus.Present);
+        int onTimeDays = monthAttendance.Count(a => a.Status == AttendanceStatus.Present && a.LateMinutes == 0);
         decimal onTimeRate = (presentDays > 0) ? Math.Round((decimal)onTimeDays / presentDays * 100, 1) : 100m;
 
         int totalWorkedMinutesInMonth = monthAttendance.Where(a => a.WorkedMinutes > 0).Sum(a => a.WorkedMinutes);

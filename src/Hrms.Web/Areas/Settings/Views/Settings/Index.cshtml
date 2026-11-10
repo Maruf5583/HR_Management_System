@@ -86,18 +86,18 @@
 
                         @if (!string.IsNullOrEmpty(Model.CompanyLogo))
                         {
-                            <div class="p-3 mb-3 rounded-3 border bg-light d-flex align-items-center justify-content-between">
+                            <div class="p-3 mb-3 rounded-3 border bg-light d-flex flex-wrap align-items-center justify-content-between gap-2">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="p-2 bg-white rounded-2 border shadow-xs" style="max-width: 140px; max-height: 50px;">
                                         <img src="@Model.CompanyLogo" alt="Current Logo" style="max-height: 36px; max-width: 120px; object-fit: contain;" />
                                     </div>
                                     <span class="small text-muted text-break">Active Logo</span>
                                 </div>
-                                <div class="form-check">
-                                    <input asp-for="RemoveLogo" class="form-check-input" id="removeLogoCheck" />
-                                    <label class="form-check-label small text-danger fw-semibold" for="removeLogoCheck">
-                                        Remove
-                                    </label>
+                                <div>
+                                    <button type="submit" asp-action="RemoveLogo" formnovalidate class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1.5 px-3 py-1.5 rounded-3 fw-medium shadow-xs" data-confirm="Are you sure you want to remove the active company logo?">
+                                        <i class="bi bi-trash3"></i>
+                                        <span>Remove</span>
+                                    </button>
                                 </div>
                             </div>
                         }
@@ -118,18 +118,18 @@
 
                         @if (!string.IsNullOrEmpty(Model.CompanyFavicon))
                         {
-                            <div class="p-3 mb-3 rounded-3 border bg-light d-flex align-items-center justify-content-between">
+                            <div class="p-3 mb-3 rounded-3 border bg-light d-flex flex-wrap align-items-center justify-content-between gap-2">
                                 <div class="d-flex align-items-center gap-3">
                                     <div class="p-2 bg-white rounded-2 border shadow-xs d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
                                         <img src="@Model.CompanyFavicon" alt="Current Favicon" style="width: 28px; height: 28px; object-fit: contain;" />
                                     </div>
                                     <span class="small text-muted text-break">Active Favicon</span>
                                 </div>
-                                <div class="form-check">
-                                    <input asp-for="RemoveFavicon" class="form-check-input" id="removeFaviconCheck" />
-                                    <label class="form-check-label small text-danger fw-semibold" for="removeFaviconCheck">
-                                        Remove
-                                    </label>
+                                <div>
+                                    <button type="submit" asp-action="RemoveFavicon" formnovalidate class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1.5 px-3 py-1.5 rounded-3 fw-medium shadow-xs" data-confirm="Are you sure you want to remove the active website favicon?">
+                                        <i class="bi bi-trash3"></i>
+                                        <span>Remove</span>
+                                    </button>
                                 </div>
                             </div>
                         }

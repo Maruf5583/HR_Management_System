@@ -306,9 +306,13 @@ public class IdentitySeeder
             var emp = await _dbContext.Employees.FirstOrDefaultAsync(e => e.Email == adminEmail);
             if (emp != null)
             {
-                adminUser.EmployeeId = emp.EmployeeId;
-                await _userManager.UpdateAsync(adminUser);
-                _logger.LogInformation("Linked Admin user {Email} to employee {Code}", adminEmail, emp.EmployeeCode);
+                var alreadyLinked = await _dbContext.Users.AnyAsync(u => u.EmployeeId == emp.EmployeeId && u.Id != adminUser.Id);
+                if (!alreadyLinked)
+                {
+                    adminUser.EmployeeId = emp.EmployeeId;
+                    await _userManager.UpdateAsync(adminUser);
+                    _logger.LogInformation("Linked Admin user {Email} to employee {Code}", adminEmail, emp.EmployeeCode);
+                }
             }
         }
 
@@ -318,9 +322,13 @@ public class IdentitySeeder
             var emp = await _dbContext.Employees.FirstOrDefaultAsync(e => e.Email == hrEmail);
             if (emp != null)
             {
-                hrUser.EmployeeId = emp.EmployeeId;
-                await _userManager.UpdateAsync(hrUser);
-                _logger.LogInformation("Linked HR user {Email} to employee {Code}", hrEmail, emp.EmployeeCode);
+                var alreadyLinked = await _dbContext.Users.AnyAsync(u => u.EmployeeId == emp.EmployeeId && u.Id != hrUser.Id);
+                if (!alreadyLinked)
+                {
+                    hrUser.EmployeeId = emp.EmployeeId;
+                    await _userManager.UpdateAsync(hrUser);
+                    _logger.LogInformation("Linked HR user {Email} to employee {Code}", hrEmail, emp.EmployeeCode);
+                }
             }
         }
 
@@ -330,9 +338,13 @@ public class IdentitySeeder
             var emp = await _dbContext.Employees.FirstOrDefaultAsync(e => e.Email == empEmail);
             if (emp != null)
             {
-                empUser.EmployeeId = emp.EmployeeId;
-                await _userManager.UpdateAsync(empUser);
-                _logger.LogInformation("Linked Employee user {Email} to employee {Code}", empEmail, emp.EmployeeCode);
+                var alreadyLinked = await _dbContext.Users.AnyAsync(u => u.EmployeeId == emp.EmployeeId && u.Id != empUser.Id);
+                if (!alreadyLinked)
+                {
+                    empUser.EmployeeId = emp.EmployeeId;
+                    await _userManager.UpdateAsync(empUser);
+                    _logger.LogInformation("Linked Employee user {Email} to employee {Code}", empEmail, emp.EmployeeCode);
+                }
             }
         }
     }

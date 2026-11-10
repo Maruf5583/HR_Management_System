@@ -2,683 +2,844 @@
 @{
     ViewData["Title"] = "My Attendance";
     var activeTab = Model.ActiveTab;
-    var currentMonthDate = new DateTime(Model.Year, Model.Month, 1);
+    var safeYear = Model.Year > 0 ? Model.Year : DateTime.Today.Year;
+    var safeMonth = (Model.Month >= 1 && Model.Month <= 12) ? Model.Month : DateTime.Today.Month;
+    var currentMonthDate = new DateTime(safeYear, safeMonth, 1);
     var prevMonth = currentMonthDate.AddMonths(-1);
     var nextMonth = currentMonthDate.AddMonths(1);
     var rep = Model.Report;
 }
 
-<div class="mb-4">
-    <!-- Top Tabs Navigation matching prototype -->
-    <ul class="nav nav-pills bg-white p-2 rounded-4 shadow-sm d-inline-flex border gap-1">
-        <li class="nav-item">
-            <a class="nav-link rounded-3 px-3 py-2 fw-semibold @(activeTab == "attendance" ? "active" : "text-muted")"
-               asp-action="Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month" asp-route-tab="attendance">
-                <i class="bi bi-clock me-1"></i> Attendance
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link rounded-3 px-3 py-2 fw-semibold @(activeTab == "timesheets" ? "active" : "text-muted")"
-               asp-action="Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month" asp-route-tab="timesheets">
-                <i class="bi bi-table me-1"></i> Timesheets
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link rounded-3 px-3 py-2 fw-semibold @(activeTab == "fix-attendance" ? "active" : "text-muted")"
-               asp-action="Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month" asp-route-tab="fix-attendance">
-                <i class="bi bi-pencil-square me-1"></i> Fix my attendance
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link rounded-3 px-3 py-2 fw-semibold @(activeTab == "shifts" ? "active" : "text-muted")"
-               asp-action="Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month" asp-route-tab="shifts">
-                <i class="bi bi-calendar3 me-1"></i> Shifts
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link rounded-3 px-3 py-2 fw-semibold @(activeTab == "overtime" ? "active" : "text-muted")"
-               asp-action="Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month" asp-route-tab="overtime">
-                <i class="bi bi-hourglass-split me-1"></i> Overtime
-            </a>
-        </li>
-    </ul>
-</div>
-
-@if (!Model.HasEmployee)
-{
-    <div class="alert alert-info border-0 shadow-sm rounded-4 p-4 text-center">
-        <i class="bi bi-person-x fs-1 d-block mb-3 text-info"></i>
-        <h5 class="fw-bold">No Employee Profile Linked</h5>
-        <p class="text-muted mb-0">Your account is not linked to an employee profile. Attendance tracking is available for active employees only.</p>
-    </div>
-}
-else
-{
-    @if (activeTab == "attendance")
-    {
-        <!-- Active Session Card -->
-        <div class="card border-0 border-start border-4 border-success shadow-sm rounded-4 p-4 mb-4 bg-white">
-            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-                <div>
-                    <h5 class="fw-bold text-dark mb-1">Active Session</h5>
-                    <p class="text-muted small mb-1">
-                        @(Model.Session?.CheckInLocalFormatted ?? "You have not started working yet today")
-                    </p>
-                    @if (Model.Session?.HasClockedIn == true && !Model.Session.HasClockedOut)
-                    {
-                        @if (Model.Session.ShiftHasEnded)
-                        {
-                            <span class="small fw-semibold text-warning-emphasis">
-                                <i class="bi bi-clock-history me-1"></i>
-                                Scheduled shift ended (@(Model.Session.ShiftName): @Model.Session.ShiftStart?.ToString(@"hh\:mm") - @Model.Session.ShiftEnd?.ToString(@"hh\:mm")). You are currently working overtime.
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="small text-muted">
-                                Your shift is in progress (@(Model.Session.ShiftName): @Model.Session.ShiftStart?.ToString(@"hh\:mm") - @Model.Session.ShiftEnd?.ToString(@"hh\:mm")).
-                            </span>
-                        }
-                    }
-                    else if (Model.Session?.HasClockedOut == true)
-                    {
-                        <span class="small text-success fw-semibold">
-                            <i class="bi bi-check-circle-fill me-1"></i>
-                            @(Model.Session.CheckOutLocalFormatted). Total worked: @(Model.Session.WorkedMinutesToday / 60)h @(Model.Session.WorkedMinutesToday % 60)m
-                        </span>
-                    }
-                    else if (Model.Session?.CanClockIn == false)
-                    {
-                        <span class="small text-warning-emphasis fw-medium">
-                            <i class="bi bi-exclamation-circle me-1"></i>
-                            @(Model.Session.ClockInBlockedReason ?? "Clock-in is outside your shift hours.")
-                        </span>
-                    }
-                </div>
-
-                <div class="d-flex align-items-center gap-2">
-                    @if (Model.Session == null || !Model.Session.HasClockedIn)
-                    {
-                        @if (Model.Session?.CanClockIn == false)
-                        {
-                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 rounded-pill small">
-                                <i class="bi bi-lock-fill me-1"></i> Outside Shift Hours
-                            </span>
-                        }
-                        else
-                        {
-                            <form asp-action="ClockIn" method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-success px-4 py-2 rounded-pill fw-semibold shadow-sm">
-                                    <i class="bi bi-play-circle-fill me-1"></i> Start Work
-                                </button>
-                            </form>
-                        }
-                    }
-                    else if (!Model.Session.HasClockedOut)
-                    {
-                        <span class="badge @(Model.Session.IsOnBreak ? "bg-warning-subtle text-warning border border-warning-subtle" : "bg-success-subtle text-success border border-success-subtle") rounded-pill px-3 py-2 fw-semibold fs-6">
-                            <i class="bi bi-circle-fill me-1" style="font-size: 8px;"></i> @Model.Session.StatusBadge
-                        </span>
-
-                        @if (Model.Session.IsOnBreak)
-                        {
-                            <form asp-action="EndBreak" method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-warning px-4 py-2 rounded-pill fw-semibold shadow-sm">
-                                    <i class="bi bi-cup-hot-fill me-1"></i> End Break
-                                </button>
-                            </form>
-                        }
-                        else
-                        {
-                            <form asp-action="StartBreak" method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-outline-secondary px-3 py-2 rounded-pill fw-semibold">
-                                    <i class="bi bi-cup-hot me-1"></i> Start Break
-                                </button>
-                            </form>
-                        }
-
-                        <form asp-action="ClockOut" method="post" class="d-inline">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-outline-danger px-3 py-2 rounded-pill fw-semibold">
-                                <i class="bi bi-box-arrow-right me-1"></i> Clock Out
-                            </button>
-                        </form>
-                    }
-                    else
-                    {
-                        <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3 py-2 fw-semibold">
-                            Completed
-                        </span>
-                    }
-                </div>
-            </div>
-
-            <!-- Breaks Today List -->
-            @if (Model.Session?.BreaksToday != null && Model.Session.BreaksToday.Count > 0)
+<div class="workspace-container">
+    <!-- Top Unified Self-Service Hub Navigation Tabs -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-3">
+        <div class="d-inline-flex p-1 bg-white border rounded-3 shadow-xs" style="border-color: #eaecf0 !important;">
+            @if (CurrentUser.HasPermission(Permissions.Employees.ViewOwn))
             {
-                <div class="mt-4 pt-3 border-top">
-                    <span class="text-muted fw-bold small text-uppercase" style="letter-spacing: 0.5px;">Breaks Today</span>
-                    <div class="d-flex flex-column gap-1 mt-2">
-                        @foreach (var brk in Model.Session.BreaksToday)
-                        {
-                            <div class="d-flex align-items-center gap-2 small text-secondary">
-                                <i class="bi bi-dot fs-5 text-muted"></i>
-                                <span class="font-monospace">@brk.StartLocal — @(brk.EndLocal ?? "Ongoing...")</span>
-                                <span class="badge bg-light text-muted border">@brk.Minutes min</span>
-                            </div>
-                        }
-                    </div>
-                </div>
+                <a class="btn btn-sm btn-link text-secondary text-decoration-none rounded-2 px-3 py-1.5 fw-medium d-inline-flex align-items-center gap-1.5"
+                   asp-area="Employees" asp-controller="Employees" asp-action="MyProfile">
+                    <span>Personal Profile</span>
+                </a>
+            }
+            @if (CurrentUser.HasPermission(Permissions.Assets.ViewOwn))
+            {
+                <a class="btn btn-sm btn-link text-secondary text-decoration-none rounded-2 px-3 py-1.5 fw-medium d-inline-flex align-items-center gap-1.5"
+                   asp-area="Assets" asp-controller="Assets" asp-action="My">
+                    <span>My Assets</span>
+                </a>
+            }
+            <a class="btn btn-sm btn-primary text-white rounded-2 px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs"
+               asp-area="Attendance" asp-controller="MyAttendance" asp-action="Index">
+                <span>My Attendance</span>
+            </a>
+            @if (CurrentUser.HasPermission(Permissions.Leave.ViewOwn))
+            {
+                <a class="btn btn-sm btn-link text-secondary text-decoration-none rounded-2 px-3 py-1.5 fw-medium d-inline-flex align-items-center gap-1.5"
+                   asp-area="Leave" asp-controller="MyLeave" asp-action="Index">
+                    <span>My Leave</span>
+                </a>
             }
         </div>
+    </div>
 
-        <!-- Month Navigator -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <a class="btn btn-light rounded-circle shadow-sm" asp-action="Index" asp-route-year="@prevMonth.Year" asp-route-month="@prevMonth.Month" asp-route-tab="attendance">
-                <i class="bi bi-chevron-left"></i>
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-xs border-0 rounded-3 mb-3" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-xs border-0 rounded-3 mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @{
+        var pendingCorrectionsCount = Model.MyRequests?.Count(r => r.Status == "Pending") ?? 0;
+    }
+
+    <!-- Attendance Sub-tabs Navigation -->
+    <div class="mb-4">
+        <div class="d-inline-flex p-1 bg-white border rounded-3 shadow-xs" style="border-color: #eaecf0 !important;">
+            <a class="btn btn-sm rounded-2 px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 @(activeTab == "attendance" ? "btn-primary text-white shadow-xs" : "btn-link text-secondary text-decoration-none")"
+               asp-action="Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month" asp-route-tab="attendance">
+                <span>Attendance</span>
             </a>
-            <h5 class="fw-bold mb-0 text-dark">@currentMonthDate.ToString("MMMM yyyy")</h5>
-            <a class="btn btn-light rounded-circle shadow-sm" asp-action="Index" asp-route-year="@nextMonth.Year" asp-route-month="@nextMonth.Month" asp-route-tab="attendance">
-                <i class="bi bi-chevron-right"></i>
+            <a class="btn btn-sm rounded-2 px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 @(activeTab == "timesheets" ? "btn-primary text-white shadow-xs" : "btn-link text-secondary text-decoration-none")"
+               asp-action="Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month" asp-route-tab="timesheets">
+                <span>Timesheets</span>
+            </a>
+            <a class="btn btn-sm rounded-2 px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 @(activeTab == "fix-attendance" ? "btn-primary text-white shadow-xs" : "btn-link text-secondary text-decoration-none")"
+               asp-action="Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month" asp-route-tab="fix-attendance">
+                <span>Fix My Attendance</span>
+                @if (pendingCorrectionsCount > 0)
+                {
+                    <span class="badge bg-warning text-dark ms-1 rounded-pill" style="font-size: 0.68rem;">@pendingCorrectionsCount</span>
+                }
+            </a>
+            <a class="btn btn-sm rounded-2 px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 @(activeTab == "shifts" ? "btn-primary text-white shadow-xs" : "btn-link text-secondary text-decoration-none")"
+               asp-action="Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month" asp-route-tab="shifts">
+                <span>Shifts</span>
+            </a>
+            <a class="btn btn-sm rounded-2 px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 @(activeTab == "overtime" ? "btn-primary text-white shadow-xs" : "btn-link text-secondary text-decoration-none")"
+               asp-action="Index" asp-route-year="@Model.Year" asp-route-month="@Model.Month" asp-route-tab="overtime">
+                <span>Overtime</span>
             </a>
         </div>
+    </div>
 
-        <!-- Metric Summary Cards -->
-        <div class="row g-3 mb-4">
-            <div class="col">
-                <div class="card border-0 shadow-sm rounded-4 text-center p-3 bg-white h-100">
-                    <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px;">Present Days</span>
-                    <h2 class="fw-bold text-success mb-0 mt-2">@(rep?.PresentDays ?? 0)</h2>
-                    <small class="text-muted mt-1">of @Model.WorkingDaysCount working</small>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card border-0 shadow-sm rounded-4 text-center p-3 bg-white h-100">
-                    <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px;">Late Days</span>
-                    <h2 class="fw-bold text-warning-emphasis mb-0 mt-2">@(rep?.LateDays ?? 0)</h2>
-                    <small class="text-muted mt-1">this month</small>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card border-0 shadow-sm rounded-4 text-center p-3 bg-white h-100">
-                    <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px;">Total Hours</span>
-                    <h2 class="fw-bold text-primary mb-0 mt-2">@(Model.TotalLoggedHours)h</h2>
-                    <small class="text-muted mt-1">logged</small>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card border-0 shadow-sm rounded-4 text-center p-3 bg-white h-100">
-                    <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px;">Overtime</span>
-                    <h2 class="fw-bold text-info-emphasis mb-0 mt-2">@(Model.TotalOvertimeHours)h</h2>
-                    <small class="text-muted mt-1">> 8h daily target</small>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card border-0 shadow-sm rounded-4 text-center p-3 bg-white h-100">
-                    <span class="text-muted small text-uppercase fw-semibold" style="letter-spacing: 0.5px;">Score</span>
-                    <h2 class="fw-bold text-dark mb-0 mt-2">@(Model.ScorePercent)%</h2>
-                    <small class="text-muted mt-1">punctuality</small>
-                </div>
-            </div>
-        </div>
-
-        <!-- Status Summary Badges row -->
-        <div class="d-flex flex-wrap justify-content-center gap-4 py-2 mb-4 bg-white rounded-4 shadow-sm border p-3">
-            <div class="text-center">
-                <div class="fw-bold text-success fs-5">@(rep?.PresentDays ?? 0)</div>
-                <small class="text-muted">Present</small>
-            </div>
-            <div class="vr"></div>
-            <div class="text-center">
-                <div class="fw-bold text-primary fs-5">@(rep?.OnLeaveDays ?? 0)</div>
-                <small class="text-muted">On leave</small>
-            </div>
-            <div class="vr"></div>
-            <div class="text-center">
-                <div class="fw-bold text-danger fs-5">@(rep?.AbsentDays ?? 0)</div>
-                <small class="text-muted">Absent</small>
-            </div>
-            <div class="vr"></div>
-            <div class="text-center">
-                <div class="fw-bold text-dark fs-5">@Model.TotalLoggedHours</div>
-                <small class="text-muted">Hours</small>
-            </div>
-            <div class="vr"></div>
-            <div class="text-center">
-                <div class="fw-bold text-warning-emphasis fs-5">@Model.TotalOvertimeHours</div>
-                <small class="text-muted">Overtime</small>
-            </div>
-        </div>
-
-        <!-- Monthly Calendar View -->
-        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
-            <h6 class="fw-bold mb-3 text-dark"><i class="bi bi-calendar4-week me-2 text-primary"></i>Monthly Overview</h6>
-            <div class="table-responsive">
-                <table class="table table-bordered text-center align-middle mb-0" style="table-layout: fixed;">
-                    <thead class="bg-light">
-                        <tr class="text-muted small">
-                            <th style="width: 14.28%;">Mon</th>
-                            <th style="width: 14.28%;">Tue</th>
-                            <th style="width: 14.28%;">Wed</th>
-                            <th style="width: 14.28%;">Thu</th>
-                            <th style="width: 14.28%;">Fri</th>
-                            <th style="width: 14.28%;">Sat</th>
-                            <th style="width: 14.28%;">Sun</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @{
-                            int daysInMonth = DateTime.DaysInMonth(Model.Year, Model.Month);
-                            var firstDayOfWeek = (int)currentMonthDate.DayOfWeek;
-                            // Convert Sunday (0) to 7 for Monday-first calendar
-                            int startCol = firstDayOfWeek == 0 ? 7 : firstDayOfWeek;
-                            int currentDay = 1;
-                        }
-                        @for (int row = 0; row < 6 && currentDay <= daysInMonth; row++)
-                        {
-                            <tr>
-                                @for (int col = 1; col <= 7; col++)
-                                {
-                                    if ((row == 0 && col < startCol) || currentDay > daysInMonth)
-                                    {
-                                        <td class="bg-light text-muted opacity-25 p-3"></td>
-                                    }
-                                    else
-                                    {
-                                        var dayNum = currentDay;
-                                        var dayData = rep?.Days?.FirstOrDefault(d => d.WorkDate.Day == dayNum);
-                                        string bgClass = "bg-white";
-                                        string badgeClass = "";
-                                        string statusText = "";
-
-                                        if (dayData != null && !dayData.IsUpcoming)
-                                        {
-                                            switch (dayData.Status)
-                                            {
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Present:
-                                                    bgClass = "bg-success-subtle bg-opacity-25";
-                                                    badgeClass = "badge bg-success text-white";
-                                                    statusText = "Present";
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Late:
-                                                    bgClass = "bg-warning-subtle bg-opacity-25";
-                                                    badgeClass = "badge bg-warning text-dark";
-                                                    statusText = $"Late ({dayData.LateMinutes}m)";
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.HalfDay:
-                                                    bgClass = "bg-info-subtle bg-opacity-25";
-                                                    badgeClass = "badge bg-info text-dark";
-                                                    statusText = "Half Day";
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Absent:
-                                                    bgClass = "bg-danger-subtle bg-opacity-25";
-                                                    badgeClass = "badge bg-danger text-white";
-                                                    statusText = "Absent";
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.OnLeave:
-                                                    bgClass = "bg-primary-subtle bg-opacity-25";
-                                                    badgeClass = "badge bg-primary text-white";
-                                                    statusText = "Leave";
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Holiday:
-                                                    bgClass = "bg-light";
-                                                    badgeClass = "badge bg-secondary text-white";
-                                                    statusText = "Holiday";
-                                                    break;
-                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Weekend:
-                                                    bgClass = "bg-light";
-                                                    badgeClass = "badge bg-light text-muted border";
-                                                    statusText = "Weekend";
-                                                    break;
-                                            }
-                                        }
-
-                                        <td class="@bgClass p-2" style="height: 70px;">
-                                            <div class="d-flex justify-content-between align-items-start">
-                                                <span class="fw-bold small @(dayData?.WorkDate == DateOnly.FromDateTime(DateTime.UtcNow) ? "badge bg-primary rounded-circle" : "text-dark")">@dayNum</span>
-                                            </div>
-                                            <div class="mt-2">
-                                                @if (!string.IsNullOrEmpty(statusText))
-                                                {
-                                                    <span class="@badgeClass" style="font-size: 10px;">@statusText</span>
-                                                }
-                                            </div>
-                                        </td>
-                                        currentDay++;
-                                    }
-                                }
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+    @if (!Model.HasEmployee)
+    {
+        <div class="workspace-card p-5 text-center">
+            <div class="workspace-empty-state">
+                <i class="bi bi-person-x workspace-empty-icon text-muted"></i>
+                <div class="fw-bold text-dark mb-1">No Employee Profile Linked</div>
+                <div class="text-muted small">Your account is not linked to an employee profile. Attendance tracking is available for active employees only.</div>
             </div>
         </div>
     }
-    else if (activeTab == "timesheets")
+    else
     {
-        <!-- Full Detailed Timesheet Table -->
-        <div class="card border-0 shadow-sm rounded-4">
-            <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
-                <span class="fw-semibold text-dark">Timesheet - @(new DateTime(Model.Year, Model.Month, 1).ToString("MMMM yyyy"))</span>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light text-muted small">
-                            <tr>
-                                <th class="ps-4 py-3" style="width: 140px;">DATE</th>
-                                <th class="py-3" style="width: 110px;">DAY</th>
-                                <th class="py-3" style="width: 120px;">CHECK IN</th>
-                                <th class="py-3" style="width: 120px;">CHECK OUT</th>
-                                <th class="py-3" style="width: 130px;">WORKED</th>
-                                <th class="py-3" style="width: 110px;">OVERTIME</th>
-                                <th class="py-3" style="width: 110px;">LATE</th>
-                                <th class="py-3" style="width: 120px;">STATUS</th>
-                                <th class="py-3 pe-4">NOTE</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (Model.Report?.Days != null && Model.Report.Days.Count > 0)
+        @if (activeTab == "attendance")
+        {
+            <div class="workspace-grid-2col">
+                <!-- Left Column: Sticky Stacked Cards -->
+                <div class="workspace-col-sticky d-flex flex-column gap-3">
+                    <!-- Card a: Today -->
+                    <div class="workspace-card">
+                        <div class="workspace-card-header">
+                            <div class="workspace-card-title">
+                                <i class="bi bi-clock-history text-primary"></i>
+                                <span>Today</span>
+                            </div>
+                            @if (Model.Session?.HasClockedIn == true && !Model.Session.HasClockedOut)
                             {
-                                foreach (var day in Model.Report.Days.OrderBy(d => d.WorkDate))
-                                {
-                                    int overtimeMins = Math.Max(0, day.WorkedMinutes - 480);
-                                    <tr>
-                                        <td class="ps-4 fw-semibold text-dark">@day.WorkDate.ToString("dd MMM yyyy")</td>
-                                        <td class="text-muted">@day.WorkDate.DayOfWeek.ToString()</td>
-                                        <td>@(day.CheckInTime?.ToString("hh:mm tt") ?? "-")</td>
-                                        <td>@(day.CheckOutTime?.ToString("hh:mm tt") ?? "-")</td>
-                                        <td>
-                                            @if (day.WorkedMinutes > 0)
-                                            {
-                                                <span class="fw-semibold text-dark">@(day.WorkedMinutes / 60)h @(day.WorkedMinutes % 60)m</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">-</span>
-                                            }
-                                        </td>
-                                        <td>
-                                            @if (overtimeMins > 0)
-                                            {
-                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
-                                                    +@(overtimeMins / 60)h @(overtimeMins % 60)m
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">-</span>
-                                            }
-                                        </td>
-                                        <td>
-                                            @if (day.LateMinutes > 0)
-                                            {
-                                                <span class="text-danger fw-semibold">@day.LateMinutes m</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">-</span>
-                                            }
-                                        </td>
-                                        <td>
-                                            @if (day.IsUpcoming)
-                                            {
-                                                <span class="text-muted">-</span>
-                                            }
-                                            else
-                                            {
-                                                switch (day.Status)
-                                                {
-                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Present:
-                                                        <span class="badge bg-success-subtle text-success">Present</span>
-                                                        break;
-                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Late:
-                                                        <span class="badge bg-warning-subtle text-warning-emphasis">Late</span>
-                                                        break;
-                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.HalfDay:
-                                                        <span class="badge bg-info-subtle text-info-emphasis">Half Day</span>
-                                                        break;
-                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Absent:
-                                                        <span class="badge bg-danger-subtle text-danger">Absent</span>
-                                                        break;
-                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.OnLeave:
-                                                        <span class="badge bg-primary-subtle text-primary">On Leave</span>
-                                                        break;
-                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Holiday:
-                                                        <span class="badge bg-secondary-subtle text-secondary">Holiday</span>
-                                                        break;
-                                                    case Hrms.Attendance.Domain.Enums.AttendanceStatus.Weekend:
-                                                        <span class="badge bg-light text-muted border">Weekend</span>
-                                                        break;
-                                                }
-                                            }
-                                        </td>
-                                        <td class="pe-4 text-muted small">@(day.Note ?? "-")</td>
-                                    </tr>
-                                }
+                                <span class="badge @(Model.Session.IsOnBreak ? "bg-warning-subtle text-warning-emphasis border border-warning-subtle" : "bg-success-subtle text-success border border-success-subtle") rounded-pill px-2.5 py-1">
+                                    <i class="bi bi-circle-fill me-1" style="font-size: 6px;"></i> @Model.Session.StatusBadge
+                                </span>
+                            }
+                            else if (Model.Session?.HasClockedOut == true)
+                            {
+                                <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2.5 py-1">Completed</span>
                             }
                             else
                             {
-                                <tr>
-                                    <td colspan="9" class="text-center py-5 text-muted">No timesheet records found for this month.</td>
-                                </tr>
+                                <span class="badge bg-light text-muted border rounded-pill px-2.5 py-1">Not Started</span>
                             }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    }
-    else if (activeTab == "fix-attendance")
-    {
-        <!-- Fix My Attendance / Regularization Requests -->
-        <div class="row g-4">
-            <div class="col-12 col-lg-5">
-                <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
-                    <h5 class="fw-bold text-dark mb-1"><i class="bi bi-pencil-square me-2 text-primary"></i>Request Attendance Regularization</h5>
-                    <p class="text-muted small mb-4">Forgot to start work or had wrong clock-in times? Submit a correction request for HR/Admin approval.</p>
-
-                    <form asp-action="SubmitCorrection" method="post">
-                        @Html.AntiForgeryToken()
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold small text-muted">Work Date <span class="text-danger">*</span></label>
-                            <input type="date" name="WorkDate" class="form-control rounded-3" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" max="@DateTime.UtcNow.ToString("yyyy-MM-dd")" required />
                         </div>
 
-                        <div class="row g-2 mb-3">
-                            <div class="col-6">
-                                <label class="form-label fw-semibold small text-muted">Check-In Time <span class="text-danger">*</span></label>
-                                <input type="time" name="CheckInTime" class="form-control rounded-3" value="09:00" required />
+                        <div class="workspace-card-body">
+                            <!-- Shift Schedule Line -->
+                            <div class="p-2.5 rounded-3 bg-light border border-light-subtle mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="text-muted small">Shift Schedule</span>
+                                    <span class="fw-semibold text-dark small">@(Model.Session?.ShiftName ?? "Standard Shift")</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted" style="font-size: 0.74rem;">Hours</span>
+                                    <span class="text-dark small fw-medium">
+                                        @(Model.Session?.ShiftStart?.ToString(@"hh\:mm") ?? "09:00") — @(Model.Session?.ShiftEnd?.ToString(@"hh\:mm") ?? "18:00")
+                                    </span>
+                                </div>
                             </div>
-                            <div class="col-6">
-                                <label class="form-label fw-semibold small text-muted">Check-Out Time</label>
-                                <input type="time" name="CheckOutTime" class="form-control rounded-3" value="18:00" />
-                            </div>
-                        </div>
 
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold small text-muted">Reason for Regularization <span class="text-danger">*</span></label>
-                            <textarea name="Reason" class="form-control rounded-3" rows="3" placeholder="Explain why you could not start work on time (e.g. system issue, client visit, forgot to click start work)..." required></textarea>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-semibold shadow-sm">
-                            <i class="bi bi-send-fill me-1"></i> Submit Request
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="col-12 col-lg-7">
-                <div class="card border-0 shadow-sm rounded-4 bg-white">
-                    <div class="card-header bg-white border-0 py-3">
-                        <span class="fw-bold text-dark"><i class="bi bi-clock-history me-2 text-primary"></i>My Regularization Requests</span>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
-                                <thead class="bg-light text-muted small">
-                                    <tr>
-                                        <th class="ps-3 py-3">DATE</th>
-                                        <th class="py-3">REQUESTED TIME</th>
-                                        <th class="py-3">REASON</th>
-                                        <th class="py-3">STATUS</th>
-                                        <th class="py-3 pe-3">REMARKS</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @if (Model.MyRequests.Count > 0)
+                            <!-- Session Status Text -->
+                            <div class="mb-3">
+                                @if (Model.Session?.HasClockedIn == true && !Model.Session.HasClockedOut)
+                                {
+                                    @if (Model.Session.ShiftHasEnded)
                                     {
-                                        foreach (var req in Model.MyRequests)
+                                        <div class="small text-warning-emphasis fw-medium mb-1">
+                                            <i class="bi bi-exclamation-circle me-1"></i> Shift ended. Working overtime.
+                                        </div>
+                                    }
+                                    <div class="text-muted small">
+                                        Clocked in at <strong class="text-dark">@(Model.Session.CheckInLocalFormatted ?? "-")</strong>
+                                    </div>
+                                }
+                                else if (Model.Session?.HasClockedOut == true)
+                                {
+                                    <div class="small text-success fw-medium mb-1">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Worked @(Model.Session.WorkedMinutesToday / 60)h @(Model.Session.WorkedMinutesToday % 60)m
+                                    </div>
+                                    <div class="text-muted small">
+                                        Out: <span class="text-dark">@(Model.Session.CheckOutLocalFormatted ?? "-")</span>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-muted small">You have not clocked in yet today.</div>
+                                }
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="pt-2 border-top">
+                                @if (Model.Session == null || !Model.Session.HasClockedIn)
+                                {
+                                    @if (Model.Session?.CanClockIn == false)
+                                    {
+                                        <button type="button" class="btn btn-secondary w-100 rounded-3 py-2 fw-semibold opacity-75 shadow-xs" disabled>
+                                            <i class="bi bi-lock-fill me-1"></i> Outside Shift Hours
+                                        </button>
+                                        <div class="text-muted text-center mt-1" style="font-size: 0.72rem;">
+                                            @(Model.Session.ClockInBlockedReason ?? "Clock-in is outside your shift hours.")
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="ClockIn" method="post" class="w-100">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-primary w-100 rounded-3 py-2 fw-semibold shadow-xs">
+                                                <i class="bi bi-play-circle-fill me-1"></i> Start Work
+                                            </button>
+                                        </form>
+                                    }
+                                }
+                                else if (!Model.Session.HasClockedOut)
+                                {
+                                    <div class="d-flex gap-2">
+                                        @if (Model.Session.IsOnBreak)
+                                        {
+                                            <form asp-action="EndBreak" method="post" class="flex-grow-1">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-warning w-100 rounded-3 py-2 fw-semibold shadow-xs">
+                                                    <i class="bi bi-cup-hot-fill me-1"></i> End Break
+                                                </button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <form asp-action="StartBreak" method="post" class="flex-grow-1">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-outline-secondary w-100 rounded-3 py-2 fw-semibold">
+                                                    <i class="bi bi-cup-hot me-1"></i> Break
+                                                </button>
+                                            </form>
+                                        }
+
+                                        <form asp-action="ClockOut" method="post" class="flex-grow-1">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline-danger w-100 rounded-3 py-2 fw-semibold">
+                                                <i class="bi bi-box-arrow-right me-1"></i> Clock Out
+                                            </button>
+                                        </form>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-center text-success py-1 small fw-semibold">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Today's Shift Completed
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Breaks Today -->
+                            @if (Model.Session?.BreaksToday != null && Model.Session.BreaksToday.Count > 0)
+                            {
+                                <div class="border-top pt-2.5 mt-3">
+                                    <span class="text-muted fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px;">BREAKS TODAY</span>
+                                    <div class="d-flex flex-column gap-1 mt-1.5">
+                                        @foreach (var brk in Model.Session.BreaksToday)
+                                        {
+                                            <div class="d-flex justify-content-between align-items-center text-secondary" style="font-size: 0.74rem;">
+                                                <span class="font-monospace">@brk.StartLocal — @(brk.EndLocal ?? "Ongoing...")</span>
+                                                <span class="badge bg-light text-muted border">@brk.Minutes min</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Card b: This month -->
+                    <div class="workspace-card">
+                        <div class="workspace-card-header">
+                            <div class="workspace-card-title">
+                                <i class="bi bi-calendar-check text-primary"></i>
+                                <span>This Month</span>
+                            </div>
+                            <span class="text-muted small fw-semibold">@currentMonthDate.ToString("MMM yyyy")</span>
+                        </div>
+                        <div class="workspace-card-body">
+                            <!-- 2x2 compact stats -->
+                            <div class="workspace-stat-grid mb-3">
+                                <div class="workspace-stat-tile">
+                                    <div class="workspace-stat-label">Present</div>
+                                    <div class="workspace-stat-value text-success">@(rep?.PresentDays ?? 0)</div>
+                                    <div class="text-muted" style="font-size: 0.7rem;">of @Model.WorkingDaysCount working</div>
+                                </div>
+                                <div class="workspace-stat-tile">
+                                    <div class="workspace-stat-label">Late</div>
+                                    <div class="workspace-stat-value text-warning-emphasis">@(rep?.LateDays ?? 0)</div>
+                                    <div class="text-muted" style="font-size: 0.7rem;">days</div>
+                                </div>
+                                <div class="workspace-stat-tile">
+                                    <div class="workspace-stat-label">On Leave</div>
+                                    <div class="workspace-stat-value text-primary">@(rep?.OnLeaveDays ?? 0)</div>
+                                    <div class="text-muted" style="font-size: 0.7rem;">days</div>
+                                </div>
+                                <div class="workspace-stat-tile">
+                                    <div class="workspace-stat-label">Absent</div>
+                                    <div class="workspace-stat-value text-danger">@(rep?.AbsentDays ?? 0)</div>
+                                    <div class="text-muted" style="font-size: 0.7rem;">days</div>
+                                </div>
+                            </div>
+
+                            <!-- Total Hours & Overtime Rows -->
+                            <div class="border-top pt-2.5 mb-3">
+                                <div class="d-flex justify-content-between align-items-center py-1">
+                                    <span class="text-muted small">Total Logged Hours</span>
+                                    <span class="fw-bold text-dark small">@(Model.TotalLoggedHours)h</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center py-1">
+                                    <div>
+                                        <span class="text-muted small d-block">Overtime</span>
+                                        <span class="text-muted" style="font-size: 0.7rem;">Beyond 8h/day</span>
+                                    </div>
+                                    <span class="fw-bold text-success small">+@(Model.TotalOvertimeHours)h</span>
+                                </div>
+                            </div>
+
+                            <!-- Punctuality Progress Bar -->
+                            <div class="border-top pt-2.5">
+                                <div class="d-flex justify-content-between align-items-center mb-1.5">
+                                    <span class="text-muted small">Punctuality Score</span>
+                                    <span class="fw-bold text-dark small">@(Model.ScorePercent)%</span>
+                                </div>
+                                <div class="progress" style="height: 6px; border-radius: 4px; background-color: #f1f5f9;">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: @(Model.ScorePercent)%;" aria-valuenow="@Model.ScorePercent" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Monthly Overview Calendar -->
+                <div class="d-flex flex-column gap-3">
+                    <div class="workspace-card">
+                        <div class="workspace-card-header">
+                            <div class="workspace-card-title">
+                                <i class="bi bi-calendar4-week text-primary"></i>
+                                <span>Monthly Overview</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <a class="btn btn-sm btn-light border p-1 d-inline-flex align-items-center justify-content-center" style="width: 28px; height: 28px; border-color: #eaecf0 !important;" asp-action="Index" asp-route-year="@prevMonth.Year" asp-route-month="@prevMonth.Month" asp-route-tab="attendance" title="Previous Month">
+                                    <i class="bi bi-chevron-left" style="font-size: 0.75rem;"></i>
+                                </a>
+                                <span class="fw-bold text-dark small px-1">@currentMonthDate.ToString("MMMM yyyy")</span>
+                                <a class="btn btn-sm btn-light border p-1 d-inline-flex align-items-center justify-content-center" style="width: 28px; height: 28px; border-color: #eaecf0 !important;" asp-action="Index" asp-route-year="@nextMonth.Year" asp-route-month="@nextMonth.Month" asp-route-tab="attendance" title="Next Month">
+                                    <i class="bi bi-chevron-right" style="font-size: 0.75rem;"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="workspace-card-body p-3">
+                            <!-- Legend Bar -->
+                            <div class="d-flex flex-wrap align-items-center gap-3 mb-3 pb-2.5 border-bottom text-muted" style="font-size: 0.74rem;">
+                                <span class="d-inline-flex align-items-center gap-1.5"><span class="rounded-circle" style="width: 8px; height: 8px; background: #12b76a;"></span> Present</span>
+                                <span class="d-inline-flex align-items-center gap-1.5"><span class="rounded-circle" style="width: 8px; height: 8px; background: #f79009;"></span> Late</span>
+                                <span class="d-inline-flex align-items-center gap-1.5"><span class="rounded-circle" style="width: 8px; height: 8px; background: #0ba5ec;"></span> Half Day</span>
+                                <span class="d-inline-flex align-items-center gap-1.5"><span class="rounded-circle" style="width: 8px; height: 8px; background: #f04438;"></span> Absent</span>
+                                <span class="d-inline-flex align-items-center gap-1.5"><span class="rounded-circle" style="width: 8px; height: 8px; background: #7c3aed;"></span> On Leave</span>
+                                <span class="d-inline-flex align-items-center gap-1.5"><span class="rounded-circle" style="width: 8px; height: 8px; background: #94a3b8;"></span> Holiday</span>
+                                <span class="d-inline-flex align-items-center gap-1.5"><span class="rounded-circle" style="width: 8px; height: 8px; background: #cbd5e1;"></span> Weekend</span>
+                            </div>
+
+                            <!-- Calendar Grid -->
+                            <div class="table-responsive">
+                                <table class="table table-bordered text-center align-middle mb-0" style="table-layout: fixed; border-color: #f1f5f9;">
+                                    <thead class="bg-light">
+                                        <tr class="text-muted small">
+                                            <th style="width: 14.28%; font-weight: 600; font-size: 0.75rem;">Mon</th>
+                                            <th style="width: 14.28%; font-weight: 600; font-size: 0.75rem;">Tue</th>
+                                            <th style="width: 14.28%; font-weight: 600; font-size: 0.75rem;">Wed</th>
+                                            <th style="width: 14.28%; font-weight: 600; font-size: 0.75rem;">Thu</th>
+                                            <th style="width: 14.28%; font-weight: 600; font-size: 0.75rem;">Fri</th>
+                                            <th style="width: 14.28%; font-weight: 600; font-size: 0.75rem;">Sat</th>
+                                            <th style="width: 14.28%; font-weight: 600; font-size: 0.75rem;">Sun</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @{
+                                            int daysInMonth = DateTime.DaysInMonth(Model.Year, Model.Month);
+                                            var firstDayOfWeek = (int)currentMonthDate.DayOfWeek;
+                                            int startCol = firstDayOfWeek == 0 ? 7 : firstDayOfWeek;
+                                            int currentDay = 1;
+                                            var todayUtc = DateOnly.FromDateTime(DateTime.Today);
+                                        }
+                                        @for (int row = 0; row < 6 && currentDay <= daysInMonth; row++)
                                         {
                                             <tr>
-                                                <td class="ps-3 fw-semibold text-dark">@req.WorkDate.ToString("dd MMM yyyy")</td>
-                                                <td class="small">
-                                                    @req.RequestedCheckInLocal
-                                                    @if (req.RequestedCheckOutLocal != null)
+                                                @for (int col = 1; col <= 7; col++)
+                                                {
+                                                    if ((row == 0 && col < startCol) || currentDay > daysInMonth)
                                                     {
-                                                        <span> — @req.RequestedCheckOutLocal</span>
-                                                    }
-                                                </td>
-                                                <td class="small text-muted" style="max-width: 200px;">@req.Reason</td>
-                                                <td>
-                                                    @if (req.Status == "Pending")
-                                                    {
-                                                        <span class="badge bg-warning-subtle text-warning-emphasis">Pending</span>
-                                                    }
-                                                    else if (req.Status == "Approved")
-                                                    {
-                                                        <span class="badge bg-success-subtle text-success">Approved</span>
+                                                        <td class="bg-light text-muted opacity-25 p-2" style="height: 68px;"></td>
                                                     }
                                                     else
                                                     {
-                                                        <span class="badge bg-danger-subtle text-danger">Rejected</span>
+                                                        var dayNum = currentDay;
+                                                        var dayData = rep?.Days?.FirstOrDefault(d => d.WorkDate.Day == dayNum);
+                                                        string bgClass = "bg-white";
+                                                        string badgeClass = "";
+                                                        string statusText = "";
+                                                        bool isToday = dayData?.WorkDate == todayUtc;
+
+                                                        if (dayData != null && !dayData.IsUpcoming)
+                                                        {
+                                                            switch (dayData.Status)
+                                                            {
+                                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Present:
+                                                                    bgClass = "bg-success-subtle bg-opacity-25";
+                                                                    badgeClass = "badge bg-success text-white";
+                                                                    statusText = "Present";
+                                                                    break;
+                                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Late:
+                                                                    bgClass = "bg-warning-subtle bg-opacity-25";
+                                                                    badgeClass = "badge bg-warning text-dark";
+                                                                    statusText = $"Late ({dayData.LateMinutes}m)";
+                                                                    break;
+                                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.HalfDay:
+                                                                    bgClass = "bg-info-subtle bg-opacity-25";
+                                                                    badgeClass = "badge bg-info text-dark";
+                                                                    statusText = "Half Day";
+                                                                    break;
+                                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Absent:
+                                                                    bgClass = "bg-danger-subtle bg-opacity-25";
+                                                                    badgeClass = "badge bg-danger text-white";
+                                                                    statusText = "Absent";
+                                                                    break;
+                                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.OnLeave:
+                                                                    bgClass = "bg-primary-subtle bg-opacity-25";
+                                                                    badgeClass = "badge bg-primary text-white";
+                                                                    statusText = "Leave";
+                                                                    break;
+                                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Holiday:
+                                                                    bgClass = "bg-light";
+                                                                    badgeClass = "badge bg-secondary text-white";
+                                                                    statusText = "Holiday";
+                                                                    break;
+                                                                case Hrms.Attendance.Domain.Enums.AttendanceStatus.Weekend:
+                                                                    bgClass = "bg-light";
+                                                                    badgeClass = "badge bg-light text-muted border";
+                                                                    statusText = "Weekend";
+                                                                    break;
+                                                            }
+                                                        }
+
+                                                        <td class="@bgClass p-2" style="height: 68px; vertical-align: top; @(isToday ? "outline: 2px solid var(--primary); outline-offset: -2px;" : "")">
+                                                            <div class="d-flex justify-content-between align-items-start">
+                                                                <span class="fw-bold small @(isToday ? "badge bg-primary rounded-circle" : "text-dark")">@dayNum</span>
+                                                            </div>
+                                                            <div class="mt-1.5">
+                                                                @if (!string.IsNullOrEmpty(statusText))
+                                                                {
+                                                                    <span class="@badgeClass" style="font-size: 9px; padding: 2px 5px;">@statusText</span>
+                                                                }
+                                                            </div>
+                                                        </td>
+                                                        currentDay++;
                                                     }
-                                                </td>
-                                                <td class="pe-3 small text-muted">@(req.ReviewRemarks ?? "-")</td>
+                                                }
                                             </tr>
                                         }
-                                    }
-                                    else
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (activeTab == "timesheets")
+        {
+            <!-- Timesheet Card -->
+            <div class="workspace-card">
+                <div class="workspace-card-header">
+                    <div class="workspace-card-title">
+                        <i class="bi bi-table text-primary"></i>
+                        <span>Timesheet - @(new DateTime(Model.Year, Model.Month, 1).ToString("MMMM yyyy"))</span>
+                    </div>
+                </div>
+                <div class="workspace-card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-muted small">
+                                <tr>
+                                    <th class="ps-4 py-3" style="width: 140px;">DATE</th>
+                                    <th class="py-3" style="width: 110px;">DAY</th>
+                                    <th class="py-3" style="width: 120px;">CHECK IN</th>
+                                    <th class="py-3" style="width: 120px;">CHECK OUT</th>
+                                    <th class="py-3" style="width: 130px;">WORKED</th>
+                                    <th class="py-3" style="width: 110px;">OVERTIME</th>
+                                    <th class="py-3" style="width: 110px;">LATE</th>
+                                    <th class="py-3" style="width: 120px;">STATUS</th>
+                                    <th class="py-3 pe-4">NOTE</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Report?.Days != null && Model.Report.Days.Count > 0)
+                                {
+                                    foreach (var day in Model.Report.Days.OrderBy(d => d.WorkDate))
                                     {
+                                        int overtimeMins = Math.Max(0, day.WorkedMinutes - 480);
                                         <tr>
-                                            <td colspan="5" class="text-center py-5 text-muted">No attendance regularization requests found.</td>
+                                            <td class="ps-4 fw-semibold text-dark">@day.WorkDate.ToString("dd MMM yyyy")</td>
+                                            <td class="text-muted">@day.WorkDate.DayOfWeek.ToString()</td>
+                                            <td>@(day.CheckInTime?.ToString("hh:mm tt") ?? "-")</td>
+                                            <td>@(day.CheckOutTime?.ToString("hh:mm tt") ?? "-")</td>
+                                            <td>
+                                                @if (day.WorkedMinutes > 0)
+                                                {
+                                                    <span class="fw-semibold text-dark">@(day.WorkedMinutes / 60)h @(day.WorkedMinutes % 60)m</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (overtimeMins > 0)
+                                                {
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                                                        +@(overtimeMins / 60)h @(overtimeMins % 60)m
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (day.LateMinutes > 0)
+                                                {
+                                                    <span class="text-danger fw-semibold">@day.LateMinutes m</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (day.IsUpcoming)
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                                else
+                                                {
+                                                    switch (day.Status)
+                                                    {
+                                                        case Hrms.Attendance.Domain.Enums.AttendanceStatus.Present:
+                                                            <span class="badge bg-success-subtle text-success">Present</span>
+                                                            break;
+                                                        case Hrms.Attendance.Domain.Enums.AttendanceStatus.Late:
+                                                            <span class="badge bg-warning-subtle text-warning-emphasis">Late</span>
+                                                            break;
+                                                        case Hrms.Attendance.Domain.Enums.AttendanceStatus.HalfDay:
+                                                            <span class="badge bg-info-subtle text-info-emphasis">Half Day</span>
+                                                            break;
+                                                        case Hrms.Attendance.Domain.Enums.AttendanceStatus.Absent:
+                                                            <span class="badge bg-danger-subtle text-danger">Absent</span>
+                                                            break;
+                                                        case Hrms.Attendance.Domain.Enums.AttendanceStatus.OnLeave:
+                                                            <span class="badge bg-primary-subtle text-primary">On Leave</span>
+                                                            break;
+                                                        case Hrms.Attendance.Domain.Enums.AttendanceStatus.Holiday:
+                                                            <span class="badge bg-secondary-subtle text-secondary">Holiday</span>
+                                                            break;
+                                                        case Hrms.Attendance.Domain.Enums.AttendanceStatus.Weekend:
+                                                            <span class="badge bg-light text-muted border">Weekend</span>
+                                                            break;
+                                                    }
+                                                }
+                                            </td>
+                                            <td class="pe-4 text-muted small">@(day.Note ?? "-")</td>
                                         </tr>
                                     }
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
-    else if (activeTab == "shifts")
-    {
-        <!-- Shift Overview Details -->
-        <div class="row g-4">
-            <div class="col-12 col-md-6">
-                <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
-                    <h5 class="fw-bold text-dark mb-3"><i class="bi bi-clock me-2 text-primary"></i>Assigned Shift Details</h5>
-                    <div class="d-flex flex-column gap-3">
-                        <div class="d-flex justify-content-between border-bottom pb-2">
-                            <span class="text-muted">Shift Name</span>
-                            <span class="fw-semibold text-dark">@(Model.Session?.ShiftName ?? "Standard Day Shift")</span>
-                        </div>
-                        <div class="d-flex justify-content-between border-bottom pb-2">
-                            <span class="text-muted">Shift Timings</span>
-                            <span class="fw-semibold text-dark">
-                                @(Model.Session?.ShiftStart?.ToString(@"hh\:mm") ?? "09:00") — @(Model.Session?.ShiftEnd?.ToString(@"hh\:mm") ?? "18:00")
-                            </span>
-                        </div>
-                        <div class="d-flex justify-content-between border-bottom pb-2">
-                            <span class="text-muted">Grace Period</span>
-                            <span class="badge bg-info-subtle text-info-emphasis rounded-pill px-3 py-1">@(Model.Session?.GraceMinutes ?? 15) Minutes</span>
-                        </div>
-                        <div class="d-flex justify-content-between border-bottom pb-2">
-                            <span class="text-muted">Standard Duty</span>
-                            <span class="fw-semibold text-dark">8 Hours (480 minutes)</span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span class="text-muted">Time Zone</span>
-                            <span class="fw-semibold text-dark">Asia/Dhaka</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-12 col-md-6">
-                <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
-                    <h5 class="fw-bold text-dark mb-3"><i class="bi bi-info-circle me-2 text-primary"></i>Shift Policy & Rules</h5>
-                    <ul class="text-muted small d-flex flex-column gap-2 mb-0 ps-3">
-                        <li><strong>Grace Period:</strong> Arriving within 15 minutes of shift start is marked on time (Present).</li>
-                        <li><strong>Late Check-in:</strong> Clocking in after 15 minutes grace will calculate exact late minutes and mark status as Late.</li>
-                        <li><strong>Half Day:</strong> Working fewer than 4 hours will count as a Half Day.</li>
-                        <li><strong>Standard Duty:</strong> 8 hours per working day. Any net working duration beyond 8 hours is credited as overtime.</li>
-                        <li><strong>Break Tracking:</strong> Use the "Start Break" and "End Break" buttons during breaks. Break durations are subtracted from total working time.</li>
-                        <li><strong>Forgotten Check-in:</strong> If you forget to clock in, submit a request under "Fix my attendance" tab for HR approval.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    }
-    else if (activeTab == "overtime")
-    {
-        <!-- Overtime Breakdown -->
-        <div class="card border-0 shadow-sm rounded-4 bg-white">
-            <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
-                <div>
-                    <h5 class="fw-bold text-dark mb-0"><i class="bi bi-hourglass-split me-2 text-primary"></i>Overtime Breakdown</h5>
-                    <small class="text-muted">Work hours exceeding standard 8h duty per day for @(new DateTime(Model.Year, Model.Month, 1).ToString("MMMM yyyy"))</small>
-                </div>
-                <div class="badge bg-primary fs-6 px-3 py-2 rounded-pill">
-                    Total Overtime: @(Model.TotalOvertimeHours) Hours
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light text-muted small">
-                            <tr>
-                                <th class="ps-4 py-3">DATE</th>
-                                <th class="py-3">DAY</th>
-                                <th class="py-3">WORKED HOURS</th>
-                                <th class="py-3">STANDARD DUTY</th>
-                                <th class="py-3">OVERTIME HOURS</th>
-                                <th class="py-3 pe-4">STATUS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @{
-                                var overtimeDays = Model.Report?.Days?.Where(d => d.WorkedMinutes > 480).OrderByDescending(d => d.WorkDate).ToList();
-                            }
-                            @if (overtimeDays != null && overtimeDays.Count > 0)
-                            {
-                                foreach (var d in overtimeDays)
+                                }
+                                else
                                 {
-                                    int extraMins = d.WorkedMinutes - 480;
                                     <tr>
-                                        <td class="ps-4 fw-semibold text-dark">@d.WorkDate.ToString("dd MMM yyyy")</td>
-                                        <td class="text-muted">@d.WorkDate.DayOfWeek.ToString()</td>
-                                        <td>@(d.WorkedMinutes / 60)h @(d.WorkedMinutes % 60)m</td>
-                                        <td class="text-muted">8h 00m</td>
-                                        <td class="fw-bold text-success">+@(extraMins / 60)h @(extraMins % 60)m</td>
-                                        <td class="pe-4"><span class="badge bg-success-subtle text-success">Logged</span></td>
+                                        <td colspan="9" class="text-center py-5 text-muted">
+                                            <div class="workspace-empty-state">
+                                                <i class="bi bi-calendar-x workspace-empty-icon text-muted"></i>
+                                                <div class="text-muted">No timesheet records found for this month.</div>
+                                            </div>
+                                        </td>
                                     </tr>
                                 }
-                            }
-                            else
-                            {
-                                <tr>
-                                    <td colspan="6" class="text-center py-5 text-muted">No overtime recorded for this month.</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-        </div>
+        }
+        else if (activeTab == "fix-attendance")
+        {
+            <!-- Fix Attendance Tab -->
+            <div class="workspace-grid-2col">
+                <div>
+                    <div class="workspace-card">
+                        <div class="workspace-card-header">
+                            <div class="workspace-card-title">
+                                <i class="bi bi-pencil-square text-primary"></i>
+                                <span>Request Regularization</span>
+                            </div>
+                        </div>
+                        <div class="workspace-card-body">
+                            <p class="text-muted small mb-3">Forgot to clock in or had wrong check-in times? Submit a correction request for HR/Admin approval.</p>
+
+                            <form asp-action="SubmitCorrection" method="post">
+                                @Html.AntiForgeryToken()
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold small text-muted">Work Date <span class="text-danger">*</span></label>
+                                    <input type="date" name="WorkDate" class="form-control rounded-3" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" max="@DateTime.UtcNow.ToString("yyyy-MM-dd")" required />
+                                </div>
+
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label fw-semibold small text-muted">Check-In Time <span class="text-danger">*</span></label>
+                                        <input type="time" name="CheckInTime" class="form-control rounded-3" value="09:00" required />
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label fw-semibold small text-muted">Check-Out Time</label>
+                                        <input type="time" name="CheckOutTime" class="form-control rounded-3" value="18:00" />
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold small text-muted">Reason for Regularization <span class="text-danger">*</span></label>
+                                    <textarea name="Reason" class="form-control rounded-3" rows="3" placeholder="Explain why you could not start work on time (e.g. system issue, client visit, forgot to click start work)..." required></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100 rounded-3 py-2 fw-semibold shadow-xs">
+                                    <i class="bi bi-send-fill me-1"></i> Submit Request
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="workspace-card">
+                        <div class="workspace-card-header">
+                            <div class="workspace-card-title">
+                                <i class="bi bi-clock-history text-primary"></i>
+                                <span>My Regularization Requests</span>
+                            </div>
+                        </div>
+                        <div class="workspace-card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="bg-light text-muted small">
+                                        <tr>
+                                            <th class="ps-3 py-3">DATE</th>
+                                            <th class="py-3">REQUESTED TIME</th>
+                                            <th class="py-3">REASON</th>
+                                            <th class="py-3">STATUS</th>
+                                            <th class="py-3">REMARKS</th>
+                                            <th class="py-3 pe-3 text-end">ACTION</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model.MyRequests != null && Model.MyRequests.Count > 0)
+                                        {
+                                            foreach (var req in Model.MyRequests)
+                                            {
+                                                <tr>
+                                                    <td class="ps-3 fw-semibold text-dark">@req.WorkDate.ToString("dd MMM yyyy")</td>
+                                                    <td class="small">
+                                                        @req.RequestedCheckInLocal
+                                                        @if (req.RequestedCheckOutLocal != null)
+                                                        {
+                                                            <span> — @req.RequestedCheckOutLocal</span>
+                                                        }
+                                                    </td>
+                                                    <td class="small text-muted" style="max-width: 180px;">@req.Reason</td>
+                                                    <td>
+                                                        @if (req.Status == "Pending")
+                                                        {
+                                                            <span class="badge bg-warning-subtle text-warning-emphasis">Pending</span>
+                                                        }
+                                                        else if (req.Status == "Approved")
+                                                        {
+                                                            <span class="badge bg-success-subtle text-success">Approved</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-danger-subtle text-danger">Rejected</span>
+                                                        }
+                                                    </td>
+                                                    <td class="small text-muted">@(req.ReviewRemarks ?? "-")</td>
+                                                    <td class="pe-3 text-end">
+                                                        @if (req.Status == "Pending")
+                                                        {
+                                                            <form asp-action="CancelCorrection" method="post" class="d-inline" data-confirm="Are you sure you want to cancel this pending regularization request?" data-confirm-title="Cancel Attendance Request" data-confirm-btn="Cancel Request">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="requestId" value="@req.RequestId" />
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger px-2.5 py-1 rounded-2" title="Cancel Request">
+                                                                    <i class="bi bi-x-circle me-1"></i>Cancel
+                                                                </button>
+                                                            </form>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted small">-</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="6" class="text-center py-5 text-muted">
+                                                    <div class="workspace-empty-state">
+                                                        <i class="bi bi-file-earmark-text workspace-empty-icon text-muted"></i>
+                                                        <div class="text-muted">No attendance regularization requests found.</div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (activeTab == "shifts")
+        {
+            <!-- Shifts Tab -->
+            <div class="workspace-grid-2col">
+                <div>
+                    <div class="workspace-card">
+                        <div class="workspace-card-header">
+                            <div class="workspace-card-title">
+                                <i class="bi bi-clock text-primary"></i>
+                                <span>Assigned Shift Details</span>
+                            </div>
+                        </div>
+                        <div class="workspace-card-body">
+                            <div class="d-flex flex-column gap-3">
+                                <div class="d-flex justify-content-between border-bottom pb-2">
+                                    <span class="text-muted small">Shift Name</span>
+                                    <span class="fw-semibold text-dark small">@(Model.Session?.ShiftName ?? "Standard Day Shift")</span>
+                                </div>
+                                <div class="d-flex justify-content-between border-bottom pb-2">
+                                    <span class="text-muted small">Shift Timings</span>
+                                    <span class="fw-semibold text-dark small">
+                                        @(Model.Session?.ShiftStart?.ToString(@"hh\:mm") ?? "09:00") — @(Model.Session?.ShiftEnd?.ToString(@"hh\:mm") ?? "18:00")
+                                    </span>
+                                </div>
+                                <div class="d-flex justify-content-between border-bottom pb-2">
+                                    <span class="text-muted small">Grace Period</span>
+                                    <span class="badge bg-info-subtle text-info-emphasis rounded-pill px-2.5 py-1">@(Model.Session?.GraceMinutes ?? 15) Minutes</span>
+                                </div>
+                                <div class="d-flex justify-content-between border-bottom pb-2">
+                                    <span class="text-muted small">Standard Duty</span>
+                                    <span class="fw-semibold text-dark small">8 Hours (480 minutes)</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted small">Time Zone</span>
+                                    <span class="fw-semibold text-dark small">Asia/Dhaka</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="workspace-card">
+                        <div class="workspace-card-header">
+                            <div class="workspace-card-title">
+                                <i class="bi bi-info-circle text-primary"></i>
+                                <span>Shift Policy & Rules</span>
+                            </div>
+                        </div>
+                        <div class="workspace-card-body">
+                            <ul class="text-muted small d-flex flex-column gap-2 mb-0 ps-3">
+                                <li><strong>Grace Period:</strong> Arriving within 15 minutes of shift start is marked on time (Present).</li>
+                                <li><strong>Late Check-in:</strong> Clocking in after 15 minutes grace will calculate exact late minutes and mark status as Late.</li>
+                                <li><strong>Half Day:</strong> Working fewer than 4 hours will count as a Half Day.</li>
+                                <li><strong>Standard Duty:</strong> 8 hours per working day. Any net working duration beyond 8 hours is credited as overtime.</li>
+                                <li><strong>Break Tracking:</strong> Use the "Start Break" and "End Break" buttons during breaks. Break durations are subtracted from total working time.</li>
+                                <li><strong>Forgotten Check-in:</strong> If you forget to clock in, submit a request under "Fix my attendance" tab for HR approval.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+        else if (activeTab == "overtime")
+        {
+            <!-- Overtime Tab -->
+            <div class="workspace-card">
+                <div class="workspace-card-header">
+                    <div>
+                        <div class="workspace-card-title mb-1">
+                            <i class="bi bi-hourglass-split text-primary"></i>
+                            <span>Overtime Breakdown</span>
+                        </div>
+                        <div class="text-muted" style="font-size: 0.74rem;">Work hours exceeding standard 8h duty per day for @(new DateTime(Model.Year, Model.Month, 1).ToString("MMMM yyyy"))</div>
+                    </div>
+                    <div class="badge bg-primary text-white fs-6 px-3 py-1.5 rounded-pill shadow-xs">
+                        Total: @(Model.TotalOvertimeHours) Hours
+                    </div>
+                </div>
+                <div class="workspace-card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-light text-muted small">
+                                <tr>
+                                    <th class="ps-4 py-3">DATE</th>
+                                    <th class="py-3">DAY</th>
+                                    <th class="py-3">WORKED HOURS</th>
+                                    <th class="py-3">STANDARD DUTY</th>
+                                    <th class="py-3">OVERTIME HOURS</th>
+                                    <th class="py-3 pe-4">STATUS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    var overtimeDays = Model.Report?.Days?.Where(d => d.WorkedMinutes > 480).OrderByDescending(d => d.WorkDate).ToList();
+                                }
+                                @if (overtimeDays != null && overtimeDays.Count > 0)
+                                {
+                                    foreach (var d in overtimeDays)
+                                    {
+                                        int extraMins = d.WorkedMinutes - 480;
+                                        <tr>
+                                            <td class="ps-4 fw-semibold text-dark">@d.WorkDate.ToString("dd MMM yyyy")</td>
+                                            <td class="text-muted">@d.WorkDate.DayOfWeek.ToString()</td>
+                                            <td>@(d.WorkedMinutes / 60)h @(d.WorkedMinutes % 60)m</td>
+                                            <td class="text-muted">8h 00m</td>
+                                            <td class="fw-bold text-success">+@(extraMins / 60)h @(extraMins % 60)m</td>
+                                            <td class="pe-4"><span class="badge bg-success-subtle text-success">Logged</span></td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5 text-muted">
+                                            <div class="workspace-empty-state">
+                                                <i class="bi bi-clock-history workspace-empty-icon text-muted"></i>
+                                                <div class="text-muted">No overtime recorded for this month.</div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
     }
-}
+</div>

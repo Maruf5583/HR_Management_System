@@ -1,84 +1,413 @@
-@model IReadOnlyList<MyAssetDto>
+@model Hrms.Web.Areas.Assets.Models.MyAssetsViewModel
 @{
     ViewData["Title"] = "My Assets";
 }
 
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-    <div>
-        <h4 class="fw-bold text-dark mb-1">My Allocated Equipment</h4>
-        <p class="text-muted small mb-0">Hardware, devices, and company assets assigned to your custody.</p>
+<div class="workspace-container">
+    <!-- Top Unified Self-Service Hub Navigation Tabs -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-3">
+        <div class="d-inline-flex p-1 bg-white border rounded-3 shadow-xs" style="border-color: #eaecf0 !important;">
+            @if (CurrentUser.HasPermission(Permissions.Employees.ViewOwn))
+            {
+                <a class="btn btn-sm btn-link text-secondary text-decoration-none rounded-2 px-3 py-1.5 fw-medium d-inline-flex align-items-center gap-1.5"
+                   asp-area="Employees" asp-controller="Employees" asp-action="MyProfile">
+                    <span>Personal Profile</span>
+                </a>
+            }
+            <a class="btn btn-sm btn-primary text-white rounded-2 px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-xs"
+               asp-area="Assets" asp-controller="Assets" asp-action="My">
+                <span>My Assets</span>
+            </a>
+            @if (CurrentUser.HasPermission(Permissions.Attendance.ViewOwn))
+            {
+                <a class="btn btn-sm btn-link text-secondary text-decoration-none rounded-2 px-3 py-1.5 fw-medium d-inline-flex align-items-center gap-1.5"
+                   asp-area="Attendance" asp-controller="MyAttendance" asp-action="Index">
+                    <span>My Attendance</span>
+                </a>
+            }
+            @if (CurrentUser.HasPermission(Permissions.Leave.ViewOwn))
+            {
+                <a class="btn btn-sm btn-link text-secondary text-decoration-none rounded-2 px-3 py-1.5 fw-medium d-inline-flex align-items-center gap-1.5"
+                   asp-area="Leave" asp-controller="MyLeave" asp-action="Index">
+                    <span>My Leave</span>
+                </a>
+            }
+        </div>
     </div>
-</div>
 
-<div class="row g-4">
-    @if (Model.Count == 0)
+    @if (TempData["SuccessMessage"] != null)
     {
-        <div class="col-12">
-            <div class="card-modern p-5 text-center text-muted">
-                <i class="bi bi-laptop fs-1 text-slate-400 d-block mb-3"></i>
-                <h5 class="fw-bold text-dark mb-1">No Assets Allocated</h5>
-                <p class="small text-muted mb-0">You currently do not have any company hardware or devices checked out to your profile.</p>
-            </div>
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-xs mb-3" role="alert" style="border-radius: 10px; background-color: #ecfdf3; color: #027a48;">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
-    else
+    @if (TempData["ErrorMessage"] != null)
     {
-        @foreach (var asset in Model)
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-xs mb-3" role="alert" style="border-radius: 10px; background-color: #fef3f2; color: #b42318;">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Section 1: Allocated Equipment -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-laptop text-primary me-2"></i>Allocated Equipment</h5>
+                <small class="text-muted">Hardware, devices, and company assets assigned to your custody</small>
+            </div>
+            <span class="badge bg-light text-secondary border fw-medium px-2.5 py-1">
+                @Model.AllocatedAssets.Count Allocated Item@(Model.AllocatedAssets.Count == 1 ? "" : "s")
+            </span>
+        </div>
+
+        @if (Model.AllocatedAssets.Count == 0)
         {
-            var categoryIcon = asset.Category switch
-            {
-                AssetCategory.Laptop => "bi-laptop",
-                AssetCategory.Monitor => "bi-display",
-                AssetCategory.Phone => "bi-phone",
-                AssetCategory.SIM => "bi-sim",
-                AssetCategory.IDCard => "bi-person-badge",
-                _ => "bi-box-seam"
-            };
-
-            var conditionBadgeClass = asset.Condition switch
-            {
-                AssetCondition.New => "badge-soft-success",
-                AssetCondition.Good => "badge-soft-primary",
-                AssetCondition.Fair => "badge-soft-warning",
-                AssetCondition.Damaged => "badge-soft-danger",
-                _ => "badge-soft-secondary"
-            };
-
-            <div class="col-md-6 col-xl-4">
-                <div class="card-modern h-100 p-4 d-flex flex-column justify-content-between">
-                    <div>
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <span class="proto-stat-icon-box proto-icon-purple">
-                                <i class="bi @categoryIcon"></i>
-                            </span>
-                            <span class="badge @conditionBadgeClass">@asset.Condition</span>
-                        </div>
-
-                        <div class="font-monospace fw-bold text-primary small mb-1">@asset.AssetTag</div>
-                        <h5 class="fw-bold text-dark mb-1">@asset.Name</h5>
-                        <div class="text-muted small mb-3">@asset.Category</div>
-
-                        <dl class="row small mb-0">
-                            <dt class="col-5 text-muted">Serial No:</dt>
-                            <dd class="col-7 font-monospace text-dark">@(asset.SerialNumber ?? "—")</dd>
-
-                            <dt class="col-5 text-muted">Issued Date:</dt>
-                            <dd class="col-7 text-dark">@asset.AssignedAtUtc.ToString("dd MMM yyyy")</dd>
-
-                            @if (!string.IsNullOrWhiteSpace(asset.Note))
-                            {
-                                <dt class="col-5 text-muted">Note:</dt>
-                                <dd class="col-7 text-dark">@asset.Note</dd>
-                            }
-                        </dl>
-                    </div>
-
-                    <div class="pt-3 mt-3 border-top small text-muted d-flex align-items-center gap-1">
-                        <i class="bi bi-shield-check text-success"></i>
-                        <span>Under your personal custody</span>
-                    </div>
+            <div class="workspace-card p-5 text-center">
+                <div class="workspace-empty-state">
+                    <i class="bi bi-laptop workspace-empty-icon text-muted"></i>
+                    <div class="fw-bold text-dark mb-1">No Assets Allocated</div>
+                    <div class="text-muted small">You currently do not have any company hardware or devices checked out to your profile.</div>
                 </div>
             </div>
         }
-    }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var asset in Model.AllocatedAssets)
+                {
+                    var categoryIcon = asset.Category switch
+                    {
+                        AssetCategory.Laptop => "bi-laptop",
+                        AssetCategory.Monitor => "bi-display",
+                        AssetCategory.Phone => "bi-phone",
+                        AssetCategory.SIM => "bi-sim",
+                        AssetCategory.IDCard => "bi-person-badge",
+                        _ => "bi-box-seam"
+                    };
+
+                    var conditionBadgeClass = asset.Condition switch
+                    {
+                        AssetCondition.New => "bg-success-subtle text-success border border-success-subtle",
+                        AssetCondition.Good => "bg-primary-subtle text-primary border border-primary-subtle",
+                        AssetCondition.Fair => "bg-warning-subtle text-warning-emphasis border border-warning-subtle",
+                        AssetCondition.Damaged => "bg-danger-subtle text-danger border border-danger-subtle",
+                        _ => "bg-light text-muted border"
+                    };
+
+                    <div class="col-md-6 col-xl-4 d-flex">
+                        <div class="workspace-card w-100 h-100 d-flex flex-column justify-content-between">
+                            <div class="p-3">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="rounded-3 bg-primary-subtle text-primary p-2 d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                        <i class="bi @categoryIcon fs-5"></i>
+                                    </span>
+                                    <span class="badge @conditionBadgeClass" style="font-size: 0.72rem;">@asset.Condition</span>
+                                </div>
+
+                                <div class="font-monospace fw-bold text-primary small mb-1">@asset.AssetTag</div>
+                                <h6 class="fw-bold text-dark mb-1">@asset.Name</h6>
+                                <div class="text-muted small mb-3">@asset.Category</div>
+
+                                <dl class="row small mb-0 g-1">
+                                    <dt class="col-5 text-muted">Serial No:</dt>
+                                    <dd class="col-7 font-monospace text-dark text-truncate">@(asset.SerialNumber ?? "—")</dd>
+
+                                    <dt class="col-5 text-muted">Issued Date:</dt>
+                                    <dd class="col-7 text-dark">@asset.AssignedAtUtc.ToString("dd MMM yyyy")</dd>
+
+                                    @if (!string.IsNullOrWhiteSpace(asset.Note))
+                                    {
+                                        <dt class="col-5 text-muted">Note:</dt>
+                                        <dd class="col-7 text-dark text-truncate" title="@asset.Note">@asset.Note</dd>
+                                    }
+                                </dl>
+                            </div>
+
+                            <div class="p-3 pt-0 border-top mt-2">
+                                <div class="d-flex align-items-center justify-content-between gap-2 pt-2">
+                                    <button type="button" class="btn btn-sm btn-light border d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#viewAssetModal-@asset.AssetId">
+                                        <i class="bi bi-eye"></i>
+                                        <span>View</span>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-warning d-inline-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#reportIssueModal-@asset.AssetId">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                        <span>Report Problem / Change</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- View Asset Details Modal -->
+                        <div class="modal fade text-start" id="viewAssetModal-@asset.AssetId" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content border-0 shadow rounded-4">
+                                    <div class="modal-header border-bottom py-3">
+                                        <h6 class="modal-title fw-bold text-dark mb-0">
+                                            <i class="bi bi-laptop text-primary me-2"></i>Asset Specifications
+                                        </h6>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body p-4">
+                                        <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded-3 mb-3 border">
+                                            <div>
+                                                <div class="font-monospace fw-bold text-primary">@asset.AssetTag</div>
+                                                <h6 class="fw-bold text-dark mb-0">@asset.Name</h6>
+                                            </div>
+                                            <span class="badge @conditionBadgeClass fs-6">@asset.Condition</span>
+                                        </div>
+
+                                        <dl class="row g-2 small mb-0">
+                                            <dt class="col-sm-4 text-muted">Category:</dt>
+                                            <dd class="col-sm-8 fw-semibold text-dark">@asset.Category</dd>
+
+                                            <dt class="col-sm-4 text-muted">Serial Number:</dt>
+                                            <dd class="col-sm-8 font-monospace text-dark">@(asset.SerialNumber ?? "Not specified")</dd>
+
+                                            <dt class="col-sm-4 text-muted">Assigned Date:</dt>
+                                            <dd class="col-sm-8 text-dark">@asset.AssignedAtUtc.ToString("dd MMMM yyyy, hh:mm tt")</dd>
+
+                                            <dt class="col-sm-4 text-muted">Handover Notes:</dt>
+                                            <dd class="col-sm-8 text-dark">@(string.IsNullOrWhiteSpace(asset.Note) ? "No notes recorded upon assignment." : asset.Note)</dd>
+
+                                            <dt class="col-sm-4 text-muted">Status:</dt>
+                                            <dd class="col-sm-8 text-success fw-semibold"><i class="bi bi-shield-check me-1"></i>Active in your custody</dd>
+                                        </dl>
+                                    </div>
+                                    <div class="modal-footer border-top py-2">
+                                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Report Problem / Request Replacement Modal -->
+                        <div class="modal fade text-start" id="reportIssueModal-@asset.AssetId" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content border-0 shadow rounded-4">
+                                    <form asp-action="ReportIssue" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="assetId" value="@asset.AssetId" />
+                                        <div class="modal-header border-bottom py-3">
+                                            <h6 class="modal-title fw-bold text-dark mb-0">
+                                                <i class="bi bi-tools text-warning me-2"></i>Report Problem / Request Change
+                                            </h6>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body p-4">
+                                            <div class="p-3 bg-light rounded-3 mb-3 border">
+                                                <small class="text-muted d-block" style="font-size: 0.72rem;">TARGET EQUIPMENT</small>
+                                                <strong class="text-dark font-monospace">@asset.AssetTag</strong> &bull; <span class="text-dark">@asset.Name</span>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold small text-muted">Request Type <span class="text-danger">*</span></label>
+                                                <select name="issueType" class="form-select" required>
+                                                    <option value="Malfunction">Hardware Malfunction / Broken</option>
+                                                    <option value="Damage">Physical Damage</option>
+                                                    <option value="Replacement">Request Replacement / Upgrade</option>
+                                                    <option value="Accessories">Missing Accessories / Charger</option>
+                                                    <option value="Return">Request Return / Handover</option>
+                                                    <option value="Other">Other Problem</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold small text-muted">Description of Issue / Request <span class="text-danger">*</span></label>
+                                                <textarea name="description" class="form-control" rows="4" placeholder="Describe the malfunction, damage details, or reason for requesting a change/replacement..." required></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer border-top py-2">
+                                            <button type="button" class="btn btn-sm btn-light border" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-sm btn-warning fw-semibold shadow-xs">
+                                                <i class="bi bi-send me-1"></i> Submit Request
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Section 2: My Equipment Requests & Issue Reports Table -->
+    <div class="mb-4">
+        <div class="workspace-card">
+            <div class="workspace-card-header">
+                <div class="workspace-card-title">
+                    <i class="bi bi-tools text-primary"></i>
+                    <span>My Equipment Requests & Issue Reports</span>
+                </div>
+                @{
+                    var pendingCount = Model.MyRequests.Count(r => r.Status == AssetRequestStatus.Pending);
+                }
+                @if (pendingCount > 0)
+                {
+                    <span class="badge bg-warning text-dark px-2.5 py-1 rounded-pill">
+                        @pendingCount Pending Review
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-light text-muted border px-2.5 py-1">
+                        @Model.MyRequests.Count Request@(Model.MyRequests.Count == 1 ? "" : "s") Total
+                    </span>
+                }
+            </div>
+
+            <div class="workspace-card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light text-muted small">
+                            <tr>
+                                <th class="ps-4 py-3" style="width: 170px;">EQUIPMENT</th>
+                                <th class="py-3" style="width: 140px;">TYPE</th>
+                                <th class="py-3">DESCRIPTION</th>
+                                <th class="py-3" style="width: 130px;">SUBMITTED</th>
+                                <th class="py-3 text-center" style="width: 120px;">STATUS</th>
+                                <th class="py-3" style="width: 170px;">ADMIN / IT REMARKS</th>
+                                <th class="pe-4 py-3 text-end" style="width: 130px;">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.MyRequests.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="7" class="text-center py-5 text-muted">
+                                        <div class="workspace-empty-state">
+                                            <i class="bi bi-check2-circle workspace-empty-icon text-muted"></i>
+                                            <div class="text-muted">You have not submitted any equipment problem or change requests yet.</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var req in Model.MyRequests)
+                                {
+                                    var reqBadgeClass = req.Status switch
+                                    {
+                                        AssetRequestStatus.Pending => "bg-warning-subtle text-warning-emphasis border border-warning-subtle",
+                                        AssetRequestStatus.UnderReview => "bg-info-subtle text-info-emphasis border border-info-subtle",
+                                        AssetRequestStatus.Resolved => "bg-success-subtle text-success border border-success-subtle",
+                                        AssetRequestStatus.Rejected => "bg-danger-subtle text-danger border border-danger-subtle",
+                                        _ => "bg-light text-muted"
+                                    };
+
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="font-monospace fw-bold text-primary small">@req.AssetTag</div>
+                                            <div class="text-dark small fw-medium text-truncate" style="max-width: 160px;" title="@req.AssetName">@req.AssetName</div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border px-2 py-1" style="font-size: 0.72rem;">@req.IssueType</span>
+                                        </td>
+                                        <td>
+                                            <div class="small text-muted text-truncate" style="max-width: 240px;" title="@req.Description">
+                                                @req.Description
+                                            </div>
+                                        </td>
+                                        <td class="small text-dark">
+                                            @req.CreatedAtUtc.ToString("dd MMM yyyy")
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge @reqBadgeClass px-2.5 py-1" style="font-size: 0.72rem;">@req.Status</span>
+                                        </td>
+                                        <td class="small text-muted">
+                                            @if (!string.IsNullOrWhiteSpace(req.AdminNotes))
+                                            {
+                                                <span class="text-dark fw-medium text-truncate d-block" style="max-width: 160px;" title="@req.AdminNotes">
+                                                    @req.AdminNotes
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted fst-italic">-</span>
+                                            }
+                                        </td>
+                                        <td class="pe-4 text-end">
+                                            <div class="d-inline-flex gap-1 align-items-center">
+                                                <button type="button" class="btn btn-sm btn-light border px-2 py-1" data-bs-toggle="modal" data-bs-target="#viewRequestModal-@req.RequestId" title="View Request Details">
+                                                    <i class="bi bi-eye"></i> View
+                                                </button>
+                                                @if (req.Status == AssetRequestStatus.Pending)
+                                                {
+                                                    <form asp-action="CancelRequest" method="post" class="d-inline" data-confirm="Are you sure you want to cancel this pending equipment request?" data-confirm-title="Cancel Equipment Request" data-confirm-btn="Cancel Request">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="requestId" value="@req.RequestId" />
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger px-2 py-1" title="Cancel Request">
+                                                            <i class="bi bi-x-circle"></i> Cancel
+                                                        </button>
+                                                    </form>
+                                                }
+                                            </div>
+
+                                            <!-- View Request Details Modal -->
+                                            <div class="modal fade text-start" id="viewRequestModal-@req.RequestId" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered">
+                                                    <div class="modal-content border-0 shadow rounded-4">
+                                                        <div class="modal-header border-bottom py-3">
+                                                            <h6 class="modal-title fw-bold text-dark mb-0">
+                                                                <i class="bi bi-file-text text-primary me-2"></i>Equipment Request Details
+                                                            </h6>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body p-4">
+                                                            <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded-3 mb-3 border">
+                                                                <div>
+                                                                    <div class="font-monospace fw-bold text-primary">@req.AssetTag</div>
+                                                                    <div class="fw-bold text-dark small mb-0">@req.AssetName</div>
+                                                                </div>
+                                                                <span class="badge @reqBadgeClass px-3 py-1.5 fs-6">@req.Status</span>
+                                                            </div>
+
+                                                            <dl class="row g-2 small mb-0">
+                                                                <dt class="col-sm-4 text-muted">Request Type:</dt>
+                                                                <dd class="col-sm-8 fw-semibold text-dark">@req.IssueType</dd>
+
+                                                                <dt class="col-sm-4 text-muted">Submitted Date:</dt>
+                                                                <dd class="col-sm-8 text-dark">@req.CreatedAtUtc.ToString("dd MMMM yyyy, hh:mm tt")</dd>
+
+                                                                <dt class="col-sm-4 text-muted">Your Description:</dt>
+                                                                <dd class="col-sm-8 text-dark" style="white-space: pre-wrap;">@req.Description</dd>
+
+                                                                <dt class="col-sm-4 text-muted">Admin / IT Remarks:</dt>
+                                                                <dd class="col-sm-8">
+                                                                    @if (!string.IsNullOrWhiteSpace(req.AdminNotes))
+                                                                    {
+                                                                        <span class="text-dark fw-medium">@req.AdminNotes</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="text-muted fst-italic">No remarks entered yet.</span>
+                                                                    }
+                                                                </dd>
+
+                                                                @if (req.ResolvedAtUtc.HasValue)
+                                                                {
+                                                                    <dt class="col-sm-4 text-muted">Resolved On:</dt>
+                                                                    <dd class="col-sm-8 text-dark">@req.ResolvedAtUtc.Value.ToString("dd MMMM yyyy, hh:mm tt")</dd>
+                                                                }
+                                                            </dl>
+                                                        </div>
+                                                        <div class="modal-footer border-top py-2">
+                                                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

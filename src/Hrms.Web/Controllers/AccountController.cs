@@ -125,15 +125,36 @@ public class AccountController : Controller
             return RedirectToAction("Login", "Account");
         }
 
-        var result = await _userService.ChangePasswordAsync(userId.Value, model.CurrentPassword, model.NewPassword);
-        if (result.IsFailure)
+        var user = await _userManager.FindByIdAsync(userId.Value.ToString());
+        if (user == null)
         {
-            ModelState.AddModelError(string.Empty, result.Error.Message);
+            return RedirectToAction("Login", "Account");
+        }
+
+        IdentityResult identityResult;
+        if (!string.IsNullOrWhiteSpace(model.CurrentPassword))
+        {
+            identityResult = await _userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
+        }
+        else
+        {
+            var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+            identityResult = await _userManager.ResetPasswordAsync(user, resetToken, model.NewPassword);
+        }
+
+        if (!identityResult.Succeeded)
+        {
+            foreach (var error in identityResult.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
             return View(model);
         }
 
+        await _signInManager.RefreshSignInAsync(user);
+
         TempData["SuccessMessage"] = "Your password has been changed successfully.";
-        return RedirectToAction("Index", "Home");
+        return RedirectToAction("MyProfile", "Employees", new { area = "Employees" });
     }
 
     [HttpGet]

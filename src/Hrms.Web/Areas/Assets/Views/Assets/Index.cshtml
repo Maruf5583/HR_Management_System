@@ -1,230 +1,545 @@
 @model PagedResult<AssetListItemDto>
 @{
-    ViewData["Title"] = "Assets Directory";
+    ViewData["Title"] = "Asset Inventory";
+    ViewData["Subtitle"] = "Track, allocate, and monitor physical equipment and workplace inventory";
     var search = ViewBag.Search as string;
     var currentCategory = ViewBag.Category as AssetCategory?;
     var currentStatus = ViewBag.Status as AssetStatus?;
+    var hasActiveFilters = !string.IsNullOrEmpty(search) || currentCategory.HasValue || currentStatus.HasValue;
+    var metrics = ViewBag.Metrics as AssetDashboardMetricsDto;
+    var totalCount = metrics?.TotalAssets ?? Model.TotalCount;
+    var deployedCount = metrics?.AssignedAssets ?? 0;
+    var inStockCount = metrics?.AvailableAssets ?? 0;
+    var issueCount = (metrics?.PendingRequestsCount ?? 0) + (metrics?.InRepairAssets ?? 0);
+    var pendingRequestsCount = metrics?.PendingRequestsCount ?? 0;
 }
 
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-    <div>
-        <h4 class="fw-bold text-dark mb-1">Company Assets Management</h4>
-        <p class="text-muted small mb-0">Track, allocate, and monitor physical equipment and workplace assets.</p>
+
+<!-- EmplowHR Top 4 Summary KPI Cards (Linear Style Crisp Surfaces) -->
+<div class="row g-2 g-md-3 mb-4">
+    <!-- TOTAL CARD -->
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-xs p-3 h-100" style="border-radius: 12px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Total Assets</span>
+                <span class="badge bg-light text-secondary border fw-medium" style="font-size: 0.68rem;">Inventory</span>
+            </div>
+            <div class="fw-bold text-dark mb-1" style="font-size: 1.65rem; line-height: 1.2;">@totalCount</div>
+            <div class="text-muted small" style="font-size: 0.74rem;">Registered equipment</div>
+        </div>
     </div>
-    @if (CurrentUser.HasPermission(Permissions.Assets.Manage))
+
+    <!-- ACTIVE / DEPLOYED CARD -->
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-xs p-3 h-100" style="border-radius: 12px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Deployed</span>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-medium" style="font-size: 0.68rem;">Assigned</span>
+            </div>
+            <div class="fw-bold text-primary mb-1" style="font-size: 1.65rem; line-height: 1.2;">@deployedCount</div>
+            <div class="text-muted small" style="font-size: 0.74rem;">In employee custody</div>
+        </div>
+    </div>
+
+    <!-- IN STOCK CARD -->
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-xs p-3 h-100" style="border-radius: 12px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">In Stock</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle fw-medium" style="font-size: 0.68rem;">Available</span>
+            </div>
+            <div class="fw-bold text-success mb-1" style="font-size: 1.65rem; line-height: 1.2;">@inStockCount</div>
+            <div class="text-muted small" style="font-size: 0.74rem;">Ready for allocation</div>
+        </div>
+    </div>
+
+    <!-- ISSUES / REPAIR CARD -->
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-xs p-3 h-100" style="border-radius: 12px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Issues / Repair</span>
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-medium" style="font-size: 0.68rem;">Action Due</span>
+            </div>
+            <div class="fw-bold text-warning-emphasis mb-1" style="font-size: 1.65rem; line-height: 1.2;">@issueCount</div>
+            <div class="text-muted small" style="font-size: 0.74rem;">Repairs &amp; pending requests</div>
+        </div>
+    </div>
+</div>
+
+<!-- EmplowHR-Inspired Unified Filter Bar (Clean No-Icon Dropdowns) -->
+<form method="get" class="table-filter-bar mb-3" id="assetsFilterForm">
+    <input type="hidden" name="category" id="hiddenCategory" value="@(currentCategory?.ToString() ?? "")" />
+    <input type="hidden" name="status" id="hiddenStatus" value="@(currentStatus?.ToString() ?? "")" />
+
+    <!-- Search Input -->
+    <div class="table-search-box" style="min-width: 260px;">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" name="search" class="table-search-input" value="@search" placeholder="Filter by tag, name, serial or employee..." oninput="filterAssetsClient(this.value)" onkeydown="if(event.key==='Enter'){ this.form.submit(); }" autocomplete="off" />
+    </div>
+
+    <!-- Category Pill Dropdown (No Icon) -->
+    <div class="dropdown">
+        <button class="filter-pill-dropdown @(currentCategory.HasValue ? "is-filtered" : "")" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span>@(currentCategory.HasValue ? currentCategory.Value.ToString() : "All Categories")</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu shadow-sm" style="min-width: 220px;">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search categories..." autocomplete="off" oninput="filterDropdownMenuOptions(this)" />
+            </div>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                <li>
+                    <a class="dropdown-item @(!currentCategory.HasValue ? "active" : "")" href="javascript:void(0)" onclick="setCategoryFilter('')">
+                        <span>All Categories</span>
+                        @if (!currentCategory.HasValue) { <i class="bi bi-check2 ms-auto"></i> }
+                    </a>
+                </li>
+                @foreach (var cat in Enum.GetValues<AssetCategory>())
+                {
+                    var isSelected = currentCategory == cat;
+                    <li>
+                        <a class="dropdown-item @(isSelected ? "active" : "")" href="javascript:void(0)" onclick="setCategoryFilter('@cat')">
+                            <span>@cat</span>
+                            @if (isSelected) { <i class="bi bi-check2 ms-auto"></i> }
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+
+    <!-- Status Pill Dropdown (No Icon) -->
+    <div class="dropdown">
+        <button class="filter-pill-dropdown @(currentStatus.HasValue ? "is-filtered" : "")" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span>@(currentStatus.HasValue ? currentStatus.Value.ToString() : "All Statuses")</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu shadow-sm" style="min-width: 220px;">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search statuses..." autocomplete="off" oninput="filterDropdownMenuOptions(this)" />
+            </div>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                <li>
+                    <a class="dropdown-item @(!currentStatus.HasValue ? "active" : "")" href="javascript:void(0)" onclick="setStatusFilter('')">
+                        <span>All Statuses</span>
+                        @if (!currentStatus.HasValue) { <i class="bi bi-check2 ms-auto"></i> }
+                    </a>
+                </li>
+                @foreach (var st in Enum.GetValues<AssetStatus>())
+                {
+                    var isSelected = currentStatus == st;
+                    <li>
+                        <a class="dropdown-item @(isSelected ? "active" : "")" href="javascript:void(0)" onclick="setStatusFilter('@st')">
+                            <span>@st</span>
+                            @if (isSelected) { <i class="bi bi-check2 ms-auto"></i> }
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+
+    <!-- Filter Action Button -->
+    <button type="submit" class="btn btn-sm btn-light border fw-semibold px-3 py-1.5 rounded-3 text-secondary d-flex align-items-center gap-1 shadow-xs" style="height: 38px;">
+        <i class="bi bi-funnel"></i>
+        <span>Filter</span>
+    </button>
+
+    @if (hasActiveFilters)
     {
-        <a asp-action="Create" class="btn btn-primary-modern">
-            <i class="bi bi-plus-lg"></i>
-            <span>Register New Asset</span>
+        <a asp-action="Index" class="btn btn-sm btn-light border text-secondary px-2.5 py-1.5 rounded-3 shadow-xs d-flex align-items-center gap-1" title="Reset all filters" style="height: 38px;">
+            <i class="bi bi-arrow-counterclockwise"></i>
+            <span>Reset</span>
         </a>
     }
-</div>
 
-<!-- Filters Bar -->
-<div class="card-modern p-3 mb-4">
-    <form method="get" class="row g-2 align-items-center">
-        <div class="col-md-4">
-            <div class="input-group">
-                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
-                <input type="text" name="search" value="@search" class="form-control border-start-0" placeholder="Search by tag, name, or serial..." />
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <select name="category" class="form-select" asp-items="Html.GetEnumSelectList<AssetCategory>()">
-                <option value="">All Categories</option>
-            </select>
-        </div>
-
-        <div class="col-md-3">
-            <select name="status" class="form-select" asp-items="Html.GetEnumSelectList<AssetStatus>()">
-                <option value="">All Statuses</option>
-            </select>
-        </div>
-
-        <div class="col-md-2 d-flex gap-2">
-            <button type="submit" class="btn btn-primary-modern w-100">
-                <i class="bi bi-funnel"></i> Filter
-            </button>
-            @if (!string.IsNullOrEmpty(search) || currentCategory.HasValue || currentStatus.HasValue)
-            {
-                <a asp-action="Index" class="btn btn-secondary-modern" title="Clear filters">
-                    <i class="bi bi-x-lg"></i>
-                </a>
-            }
-        </div>
-    </form>
-</div>
-
-<!-- Assets Table -->
-<div class="card-modern overflow-hidden">
-    <div class="table-responsive">
-        <table class="table table-modern">
-            <thead>
-                <tr>
-                    <th>Asset Tag</th>
-                    <th>Name</th>
-                    <th>Category</th>
-                    <th>Serial Number</th>
-                    <th>Condition</th>
-                    <th>Status</th>
-                    <th>Current Holder</th>
-                    <th class="text-end">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (Model.Items.Count == 0)
+    <!-- Actions (Counter omitted because Top KPI cards show total assets) -->
+    @if (CurrentUser.HasPermission(Permissions.Assets.Manage))
+    {
+        <div class="d-flex align-items-center gap-2 ms-auto">
+            <a asp-action="Requests" class="btn btn-outline-secondary px-3 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center" style="height: 40px; font-size: 0.875rem; white-space: nowrap;">
+                Requests Queue
+                @if (pendingRequestsCount > 0)
                 {
-                    <tr>
-                        <td colspan="8" class="text-center py-5 text-muted">
-                            <i class="bi bi-laptop fs-1 d-block mb-2 text-slate-400"></i>
-                            <div class="fw-semibold">No assets found</div>
-                            <small>No equipment records match your current filter criteria.</small>
-                        </td>
-                    </tr>
+                    <span class="badge bg-danger text-white rounded-pill ms-1.5 px-2 py-0.5" style="font-size: 0.72rem; font-weight: 700;">@pendingRequestsCount</span>
                 }
-                else
-                {
+            </a>
+            <a asp-action="Create" class="btn btn-primary px-3 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center gap-1.5" style="height: 40px; font-size: 0.875rem; white-space: nowrap;">
+                <i class="bi bi-plus-lg"></i>
+                <span>Register asset</span>
+            </a>
+        </div>
+    }
+</form>
+
+<!-- Table Card (Linear/EmplowHR Clean Table) -->
+<div class="card border-0 shadow-xs" style="border-radius: 14px; border: 1px solid #eaecf0 !important; background: #ffffff;">
+    <div class="card-body p-0">
+        <div class="table-responsive" style="min-height: 250px;">
+            <table class="table table-hover align-middle mb-0 table-sticky-first">
+                <thead style="background-color: #f8fafc; border-bottom: 1px solid #eaecf0;">
+                    <tr class="text-secondary small fw-semibold" style="font-size: 0.78rem; letter-spacing: 0.01em;">
+                        <th class="ps-3 py-2.5" style="min-width: 180px;">Asset Tag &amp; Name</th>
+                        <th class="py-2.5" style="min-width: 120px;">Category</th>
+                        <th class="py-2.5" style="min-width: 140px;">Serial Number</th>
+                        <th class="py-2.5 text-center" style="width: 110px;">Condition</th>
+                        <th class="py-2.5 text-center" style="width: 110px;">Status</th>
+                        <th class="py-2.5" style="min-width: 160px;">Assigned To</th>
+                        <th class="text-end pe-4 py-2.5" style="width: 110px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-box-seam fs-1 d-block mb-2 text-muted opacity-50"></i>
+                                No assets found matching criteria.
+                                @if (hasActiveFilters)
+                                {
+                                    <div class="mt-2">
+                                        <a asp-action="Index" class="btn btn-sm btn-outline-primary">Clear all filters</a>
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
                     @foreach (var item in Model.Items)
                     {
-                        var statusBadgeClass = item.Status switch
-                        {
-                            AssetStatus.Available => "badge-soft-success",
-                            AssetStatus.Assigned => "badge-soft-primary",
-                            AssetStatus.InRepair => "badge-soft-warning",
-                            AssetStatus.Retired => "badge-soft-secondary",
-                            _ => "badge-soft-secondary"
-                        };
+                        var editUrl = Url.Action("Edit", "Assets", new { area = "Assets", id = item.AssetId });
+                        var detailsUrl = Url.Action("Details", "Assets", new { area = "Assets", id = item.AssetId });
+                        var assignUrl = Url.Action("Assign", "Assets", new { area = "Assets", id = item.AssetId });
+                        var returnUrl = Url.Action("Return", "Assets", new { area = "Assets", id = item.AssetId });
 
-                        var conditionBadgeClass = item.Condition switch
-                        {
-                            AssetCondition.New => "badge-soft-success",
-                            AssetCondition.Good => "badge-soft-primary",
-                            AssetCondition.Fair => "badge-soft-warning",
-                            AssetCondition.Damaged => "badge-soft-danger",
-                            _ => "badge-soft-secondary"
-                        };
-
-                        var categoryIcon = item.Category switch
-                        {
-                            AssetCategory.Laptop => "bi-laptop",
-                            AssetCategory.Monitor => "bi-display",
-                            AssetCategory.Phone => "bi-phone",
-                            AssetCategory.SIM => "bi-sim",
-                            AssetCategory.IDCard => "bi-person-badge",
-                            _ => "bi-box-seam"
-                        };
-
-                        <tr>
-                            <td>
-                                <a asp-action="Details" asp-route-id="@item.AssetId" class="fw-bold text-primary text-decoration-none font-monospace">
-                                    @item.AssetTag
-                                </a>
+                        <tr class="asset-row" style="cursor: pointer;"
+                            data-search="@item.Name.ToLowerInvariant() @item.AssetTag.ToLowerInvariant() @(item.SerialNumber?.ToLowerInvariant() ?? "") @(item.CurrentEmployeeName?.ToLowerInvariant() ?? "") @(item.CurrentEmployeeCode?.ToLowerInvariant() ?? "")"
+                            onclick="showAssetDrawer('@item.Name', '@item.AssetTag', '@(item.SerialNumber ?? "-")', '@item.Category', '@item.Condition', '@item.Status', '@(item.CurrentEmployeeName ?? "-")', '@(item.CurrentEmployeeCode ?? "-")', '@(item.AssignedAtUtc?.ToString("yyyy-MM-dd") ?? "-")', '@detailsUrl', '@editUrl', '@(item.Status == AssetStatus.Available ? assignUrl : returnUrl)', '@(item.Status == AssetStatus.Available ? "Assign" : "Return")')">
+                            
+                            <td class="ps-3 py-2.5">
+                                <div>
+                                    <span class="fw-semibold text-dark d-block text-truncate" style="font-size: 0.85rem; max-width: 220px;">
+                                        @item.Name
+                                    </span>
+                                    <span class="badge bg-light text-primary border font-monospace mt-0.5" style="font-size: 0.72rem; font-weight: 600;">
+                                        @item.AssetTag
+                                    </span>
+                                </div>
                             </td>
-                            <td>
-                                <div class="fw-semibold text-dark">@item.Name</div>
+                            <td class="py-2.5 text-secondary">
+                                <span class="small font-medium">@item.Category</span>
                             </td>
-                            <td>
-                                <span class="d-inline-flex align-items-center gap-1 small text-muted">
-                                    <i class="bi @categoryIcon text-primary"></i>
-                                    @item.Category
-                                </span>
+                            <td class="py-2.5">
+                                <span class="small text-muted font-monospace">@(item.SerialNumber ?? "—")</span>
                             </td>
-                            <td>
-                                <span class="font-monospace small text-muted">@(item.SerialNumber ?? "—")</span>
+                            <td class="py-2.5 text-center">
+                                @switch (item.Condition)
+                                {
+                                    case AssetCondition.New:
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">New</span>
+                                        break;
+                                    case AssetCondition.Good:
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Good</span>
+                                        break;
+                                    case AssetCondition.Fair:
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Fair</span>
+                                        break;
+                                    case AssetCondition.Damaged:
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Damaged</span>
+                                        break;
+                                }
                             </td>
-                            <td>
-                                <span class="badge @conditionBadgeClass">@item.Condition</span>
+                            <td class="py-2.5 text-center">
+                                @switch (item.Status)
+                                {
+                                    case AssetStatus.Available:
+                                        <span class="badge-status-dot badge-status-active">Available</span>
+                                        break;
+                                    case AssetStatus.Assigned:
+                                        <span class="badge-status-dot badge-status-purple">Assigned</span>
+                                        break;
+                                    case AssetStatus.InRepair:
+                                        <span class="badge-status-dot badge-status-warning">In Repair</span>
+                                        break;
+                                    case AssetStatus.Retired:
+                                        <span class="badge-status-dot badge-status-neutral">Retired</span>
+                                        break;
+                                }
                             </td>
-                            <td>
-                                <span class="badge @statusBadgeClass">@item.Status</span>
-                            </td>
-                            <td>
+                            <td class="py-2.5">
                                 @if (item.Status == AssetStatus.Assigned && item.CurrentEmployeeId.HasValue)
                                 {
                                     <div>
-                                        <span class="fw-semibold text-dark small">@item.CurrentEmployeeName</span>
-                                        <span class="text-muted small">(@item.CurrentEmployeeCode)</span>
+                                        <span class="fw-semibold text-dark small d-block">@item.CurrentEmployeeName</span>
+                                        <span class="text-muted font-monospace" style="font-size: 0.72rem;">@item.CurrentEmployeeCode</span>
                                     </div>
-                                    @if (item.AssignedAtUtc.HasValue)
-                                    {
-                                        <div class="text-muted" style="font-size: 0.72rem;">
-                                            Since @item.AssignedAtUtc.Value.ToString("dd MMM yyyy")
-                                        </div>
-                                    }
                                 }
                                 else
                                 {
-                                    <span class="text-muted small">—</span>
+                                    <span class="text-muted small"><em>Unassigned</em></span>
                                 }
                             </td>
-                            <td class="text-end">
-                                <div class="btn-group btn-group-sm">
-                                    <a asp-action="Details" asp-route-id="@item.AssetId" class="btn btn-secondary-modern" title="View details and history">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-
-                                    @if (CurrentUser.HasPermission(Permissions.Assets.Manage))
-                                    {
-                                        <a asp-action="Edit" asp-route-id="@item.AssetId" class="btn btn-secondary-modern" title="Edit specifications">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-
-                                        @if (item.Status == AssetStatus.Available)
-                                        {
-                                            <a asp-action="Assign" asp-route-id="@item.AssetId" class="btn btn-outline-primary" title="Assign to employee">
-                                                <i class="bi bi-person-plus"></i>
+                            <td class="text-end pe-4 py-2.5">
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-sm btn-light border-0 px-2 py-1 text-muted" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false" title="Actions">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 py-1" style="border-radius: 10px; min-width: 140px; z-index: 1060;">
+                                        <li>
+                                            <button type="button" class="dropdown-item py-1.5 small d-flex align-items-center gap-2"
+                                                    onclick="showAssetDrawer('@item.Name', '@item.AssetTag', '@(item.SerialNumber ?? "-")', '@item.Category', '@item.Condition', '@item.Status', '@(item.CurrentEmployeeName ?? "-")', '@(item.CurrentEmployeeCode ?? "-")', '@(item.AssignedAtUtc?.ToString("yyyy-MM-dd") ?? "-")', '@detailsUrl', '@editUrl', '@(item.Status == AssetStatus.Available ? assignUrl : returnUrl)', '@(item.Status == AssetStatus.Available ? "Assign" : "Return")')">
+                                                <i class="bi bi-eye text-muted"></i>
+                                                <span>Quick Drawer</span>
+                                            </button>
+                                        </li>
+                                        <li>
+                                            <a href="@detailsUrl" class="dropdown-item py-1.5 small d-flex align-items-center gap-2">
+                                                <i class="bi bi-file-text text-muted"></i>
+                                                <span>Full Details</span>
                                             </a>
-                                        }
-                                        else if (item.Status == AssetStatus.Assigned)
+                                        </li>
+                                        @if (CurrentUser.HasPermission(Permissions.Assets.Manage))
                                         {
-                                            <a asp-action="Return" asp-route-id="@item.AssetId" class="btn btn-outline-warning" title="Process equipment return">
-                                                <i class="bi bi-box-arrow-in-left"></i>
-                                            </a>
+                                            <li>
+                                                <a href="@editUrl" class="dropdown-item py-1.5 small d-flex align-items-center gap-2">
+                                                    <i class="bi bi-pencil text-muted"></i>
+                                                    <span>Edit</span>
+                                                </a>
+                                            </li>
+                                            @if (item.Status == AssetStatus.Available)
+                                            {
+                                                <li><hr class="dropdown-divider my-1"></li>
+                                                <li>
+                                                    <a href="@assignUrl" class="dropdown-item py-1.5 small text-primary d-flex align-items-center gap-2">
+                                                        <i class="bi bi-person-plus"></i>
+                                                        <span>Assign to Staff</span>
+                                                    </a>
+                                                </li>
+                                            }
+                                            else if (item.Status == AssetStatus.Assigned)
+                                            {
+                                                <li><hr class="dropdown-divider my-1"></li>
+                                                <li>
+                                                    <a href="@returnUrl" class="dropdown-item py-1.5 small text-warning-emphasis d-flex align-items-center gap-2">
+                                                        <i class="bi bi-box-arrow-in-left"></i>
+                                                        <span>Process Return</span>
+                                                    </a>
+                                                </li>
+                                            }
                                         }
-                                    }
+                                    </ul>
                                 </div>
                             </td>
                         </tr>
                     }
-                }
-            </tbody>
-        </table>
-    </div>
+                    <tr id="noAssetResultsRow" class="d-none">
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-search fs-2 d-block mb-2 text-secondary opacity-50"></i>
+                            No equipment found matching your criteria.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
-    <!-- Pagination -->
-    @if (Model.TotalPages > 1)
-    {
-        <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center">
-            <span class="small text-muted">
-                Showing @((Model.PageNumber - 1) * Model.PageSize + 1) to @(Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)) of @Model.TotalCount assets
-            </span>
-            <ul class="pagination pagination-sm mb-0">
-                <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
-                    <a class="page-link" asp-action="Index"
-                       asp-route-page="@(Model.PageNumber - 1)"
-                       asp-route-search="@search"
-                       asp-route-category="@currentCategory"
-                       asp-route-status="@currentStatus">Previous</a>
-                </li>
-                @for (int i = 1; i <= Model.TotalPages; i++)
-                {
-                    <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+        <!-- Pagination -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="card-footer bg-white border-top p-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span class="small text-muted">
+                    Showing @((Model.PageNumber - 1) * Model.PageSize + 1) to @(Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)) of @Model.TotalCount assets
+                </span>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
                         <a class="page-link" asp-action="Index"
-                           asp-route-page="@i"
+                           asp-route-page="@(Model.PageNumber - 1)"
                            asp-route-search="@search"
                            asp-route-category="@currentCategory"
-                           asp-route-status="@currentStatus">@i</a>
+                           asp-route-status="@currentStatus">Previous</a>
                     </li>
-                }
-                <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
-                    <a class="page-link" asp-action="Index"
-                       asp-route-page="@(Model.PageNumber + 1)"
-                       asp-route-search="@search"
-                       asp-route-category="@currentCategory"
-                       asp-route-status="@currentStatus">Next</a>
-                </li>
-            </ul>
-        </div>
-    }
+                    @for (int i = 1; i <= Model.TotalPages; i++)
+                    {
+                        <li class="page-item @(i == Model.PageNumber ? "active" : "")">
+                            <a class="page-link" asp-action="Index"
+                               asp-route-page="@i"
+                               asp-route-search="@search"
+                               asp-route-category="@currentCategory"
+                               asp-route-status="@currentStatus">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                        <a class="page-link" asp-action="Index"
+                           asp-route-page="@(Model.PageNumber + 1)"
+                           asp-route-search="@search"
+                           asp-route-category="@currentCategory"
+                           asp-route-status="@currentStatus">Next</a>
+                    </li>
+                </ul>
+            </div>
+        }
+    </div>
 </div>
+
+<!-- Modern SaaS Slide-Over Drawer for Assets (Bootstrap 5 Offcanvas) -->
+<div class="offcanvas offcanvas-end border-0 shadow-lg" tabindex="-1" id="assetDetailsDrawer" aria-labelledby="assetDetailsDrawerLabel" style="width: 440px; max-width: 92vw; border-left: 1px solid #eaecf0 !important;">
+    <div class="offcanvas-header px-4 py-3 border-bottom" style="border-color: #eaecf0 !important; background: #ffffff;">
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1" style="font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em;">QUICK VIEW</span>
+            <span class="text-secondary small fw-medium" id="assetDetailsDrawerLabel">Hardware Asset Summary</span>
+        </div>
+        <button type="button" class="btn-close text-reset small" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body p-4 d-flex flex-column gap-3.5" style="background-color: #ffffff;">
+        <!-- Header -->
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-3 d-flex align-items-center justify-content-center text-white fw-bold shadow-xs flex-shrink-0" style="width: 54px; height: 54px; font-size: 1.35rem; background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);">
+                <i class="bi bi-laptop"></i>
+            </div>
+            <div class="flex-grow-1 min-w-0">
+                <h5 class="fw-semibold text-dark mb-0 text-truncate" id="drawerAssetName">MacBook Pro 16</h5>
+                <div class="text-muted small text-truncate" id="drawerAssetCategory">Hardware · Laptop</div>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <span id="drawerAssetStatusBadge" class="badge-status-dot badge-status-active">Available</span>
+                    <span class="badge bg-light text-primary border font-monospace" id="drawerAssetTag" style="font-size: 0.72rem;">AST-01</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions Row -->
+        <div class="row g-2 pt-1">
+            <div class="col-6">
+                <a id="drawerAssetActionBtn" href="#" class="btn btn-sm btn-primary w-100 d-inline-flex align-items-center justify-content-center gap-1.5 py-2 fw-semibold rounded-3 shadow-xs">
+                    <i class="bi bi-arrow-repeat"></i>
+                    <span id="drawerAssetActionText">Assign</span>
+                </a>
+            </div>
+            <div class="col-6">
+                <a id="drawerAssetFullDetails" href="#" class="btn btn-sm btn-light border w-100 d-inline-flex align-items-center justify-content-center gap-1.5 py-2 fw-semibold rounded-3 text-secondary shadow-xs">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                    <span>Full Details</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Information Summary Box -->
+        <div class="card border-0 shadow-xs" style="border: 1px solid #eaecf0 !important; border-radius: 12px; background: #f8fafc;">
+            <div class="card-body p-3 d-flex flex-column gap-2 text-xs" style="font-size: 0.82rem;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Serial Number:</span>
+                    <span class="fw-semibold text-dark font-monospace text-truncate ms-2" id="drawerAssetSerial">—</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Condition:</span>
+                    <span class="badge bg-light text-dark border" id="drawerAssetCondition">Good</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Current Custodian:</span>
+                    <span class="fw-semibold text-dark text-truncate ms-2" id="drawerAssetCustodian">Unassigned</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Custodian Code:</span>
+                    <span class="fw-semibold text-dark font-monospace" id="drawerAssetCustodianCode">—</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Assigned Date:</span>
+                    <span class="fw-semibold text-dark" id="drawerAssetAssignedDate">—</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function filterDropdownMenuOptions(input) {
+            const query = input.value.trim().toLowerCase();
+            const list = input.closest('.filter-dropdown-menu').querySelector('.filter-dropdown-list');
+            if (!list) return;
+            const items = list.querySelectorAll('li');
+            items.forEach(li => {
+                const text = li.textContent.trim().toLowerCase();
+                if (!query || text.includes(query)) {
+                    li.style.display = '';
+                } else {
+                    li.style.display = 'none';
+                }
+            });
+        }
+
+        function setCategoryFilter(category) {
+            document.getElementById('hiddenCategory').value = category;
+            document.getElementById('assetsFilterForm').submit();
+        }
+
+        function setStatusFilter(status) {
+            document.getElementById('hiddenStatus').value = status;
+            document.getElementById('assetsFilterForm').submit();
+        }
+
+        function filterAssetsClient(val) {
+            const q = (val || '').trim().toLowerCase();
+            const rows = document.querySelectorAll('tbody tr.asset-row');
+            let visibleCount = 0;
+            rows.forEach(r => {
+                const search = (r.getAttribute('data-search') || '').toLowerCase();
+                if (!q || search.includes(q)) {
+                    r.style.display = '';
+                    visibleCount++;
+                } else {
+                    r.style.display = 'none';
+                }
+            });
+            const noResults = document.getElementById('noAssetResultsRow');
+            if (noResults) {
+                if (visibleCount === 0 && rows.length > 0) {
+                    noResults.classList.remove('d-none');
+                } else {
+                    noResults.classList.add('d-none');
+                }
+            }
+        }
+
+        // Slide-Over Drawer for Assets
+        function showAssetDrawer(name, tag, serial, category, condition, status, custodianName, custodianCode, assignedDate, detailsUrl, editUrl, actionUrl, actionText) {
+            if (window.event && window.event.target) {
+                if (window.event.target.closest('[data-bs-toggle="dropdown"]') || (!window.event.target.closest('.dropdown-item') && window.event.target.closest('.dropdown, button, a, input, label'))) {
+                    return;
+                }
+            }
+            document.getElementById('drawerAssetName').textContent = name;
+            document.getElementById('drawerAssetTag').textContent = tag;
+            document.getElementById('drawerAssetSerial').textContent = serial;
+            document.getElementById('drawerAssetCategory').textContent = category;
+            document.getElementById('drawerAssetCondition').textContent = condition;
+            document.getElementById('drawerAssetCustodian').textContent = custodianName;
+            document.getElementById('drawerAssetCustodianCode').textContent = custodianCode;
+            document.getElementById('drawerAssetAssignedDate').textContent = assignedDate;
+
+            document.getElementById('drawerAssetFullDetails').href = detailsUrl;
+            document.getElementById('drawerAssetActionBtn').href = actionUrl;
+            document.getElementById('drawerAssetActionText').textContent = actionText;
+
+            // Status Badge
+            const badge = document.getElementById('drawerAssetStatusBadge');
+            badge.className = 'badge-status-dot';
+            if (status === 'Available') {
+                badge.classList.add('badge-status-active');
+            } else if (status === 'Assigned') {
+                badge.classList.add('badge-status-purple');
+            } else if (status === 'InRepair') {
+                badge.classList.add('badge-status-warning');
+            } else {
+                badge.classList.add('badge-status-neutral');
+            }
+            badge.textContent = status;
+
+            // Open Bootstrap Offcanvas
+            const drawerEl = document.getElementById('assetDetailsDrawer');
+            if (drawerEl && typeof bootstrap !== 'undefined') {
+                const offcanvas = bootstrap.Offcanvas.getOrCreateInstance(drawerEl);
+                offcanvas.show();
+            }
+        }
+    </script>
+}

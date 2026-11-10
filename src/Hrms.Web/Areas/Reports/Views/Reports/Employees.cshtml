@@ -1,86 +1,228 @@
 @model EmployeeReportViewModel
 @{
     ViewData["Title"] = "Employee Directory Report";
+    ViewData["Subtitle"] = "Complete organization headcount, designations, pay scales, and employment details";
+    var selectedDeptName = "All Departments";
+    if (Model.Filter.DepartmentId.HasValue && Model.Departments != null)
+    {
+        var match = Model.Departments.FirstOrDefault(d => d.Value == Model.Filter.DepartmentId.Value.ToString());
+        if (match != null) selectedDeptName = match.Text;
+    }
+
+    var selectedDesigTitle = "All Designations";
+    if (Model.Filter.DesignationId.HasValue && Model.Designations != null)
+    {
+        var match = Model.Designations.FirstOrDefault(d => d.Value == Model.Filter.DesignationId.Value.ToString());
+        if (match != null) selectedDesigTitle = match.Text;
+    }
+
+    var selectedEmpTypeText = Model.Filter.EmploymentType.HasValue ? Model.Filter.EmploymentType.Value.ToString() : "All Employment Types";
+    var selectedStatusText = Model.Filter.Status.HasValue ? Model.Filter.Status.Value.ToString() : "All Statuses";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h4 class="fw-bold mb-1"><i class="bi bi-people me-2 text-primary"></i>Employee Directory Report</h4>
-        <p class="text-muted small mb-0">Complete organization headcount, designations, pay scales, and employment details</p>
-    </div>
-    <div class="d-flex gap-2">
-        <a asp-action="ExportEmployees"
-           asp-route-departmentId="@Model.Filter.DepartmentId"
-           asp-route-designationId="@Model.Filter.DesignationId"
-           asp-route-employmentType="@Model.Filter.EmploymentType"
-           asp-route-status="@Model.Filter.Status"
-           class="btn btn-success shadow-sm">
-            <i class="bi bi-file-earmark-excel me-1"></i> Export to Excel
-        </a>
-        <a asp-action="Index" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i> Reports Hub
-        </a>
-    </div>
+<!-- Action Bar (Right-Aligned, Clean Text Only, No Redundant Headings) -->
+<div class="d-flex justify-content-end gap-2 mb-3">
+    <a asp-action="ExportEmployees"
+       asp-route-departmentId="@Model.Filter.DepartmentId"
+       asp-route-designationId="@Model.Filter.DesignationId"
+       asp-route-employmentType="@Model.Filter.EmploymentType"
+       asp-route-status="@Model.Filter.Status"
+       class="btn btn-sm btn-success px-3 py-2 fw-semibold rounded-3 shadow-xs">
+        Export to Excel
+    </a>
+    <a asp-action="Index" class="btn btn-sm btn-light border px-3 py-2 fw-semibold rounded-3 text-secondary shadow-xs">
+        Reports Hub
+    </a>
 </div>
 
-<!-- Filter Card -->
-<div class="card border-0 shadow-sm rounded-4 mb-4">
+<!-- EmplowHR-Style Filter Bar -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 14px; border: 1px solid #eaecf0 !important; background: #ffffff;">
     <div class="card-body p-3">
-        <form method="get" class="row g-2 align-items-end">
+        <form method="get" id="reportEmployeesFilterForm" class="row g-2.5 align-items-end">
+            <!-- Searchable Department Dropdown (No Icon) -->
             <div class="col-md-3">
-                <label class="form-label small fw-semibold mb-1">Department</label>
-                <select name="departmentId" class="form-select bg-light border-0" asp-items="Model.Departments">
-                    <option value="">All Departments</option>
-                </select>
+                <label class="form-label small fw-semibold text-secondary mb-1">Department</label>
+                <input type="hidden" name="departmentId" id="filterDeptId" value="@(Model.Filter.DepartmentId?.ToString() ?? "")" />
+                <div class="dropdown">
+                    <button class="filter-pill-dropdown w-100 justify-content-between @(Model.Filter.DepartmentId.HasValue ? "is-filtered" : "")" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="repDeptBtn">
+                        <span id="repDeptBtnText" class="text-truncate">@selectedDeptName</span>
+                        <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+                    </button>
+                    <div class="dropdown-menu filter-dropdown-menu w-100 shadow-sm" style="min-width: 250px;">
+                        <div class="filter-dropdown-search">
+                            <i class="bi bi-search"></i>
+                            <input type="text" class="filter-dropdown-search-input" placeholder="Search departments..." autocomplete="off" oninput="filterDropdownMenuOptions(this)" />
+                        </div>
+                        <ul class="filter-dropdown-list list-unstyled mb-0">
+                            <li>
+                                <a class="dropdown-item @(!Model.Filter.DepartmentId.HasValue ? "active" : "")" href="javascript:void(0)" onclick="selectSearchableReportFilter('filterDeptId', '', 'All Departments', 'repDeptBtnText')">
+                                    <span>All Departments</span>
+                                    @if (!Model.Filter.DepartmentId.HasValue) { <i class="bi bi-check2 ms-auto"></i> }
+                                </a>
+                            </li>
+                            @if (Model.Departments != null)
+                            {
+                                @foreach (var dept in Model.Departments)
+                                {
+                                    if (!string.IsNullOrEmpty(dept.Value))
+                                    {
+                                        var isSel = Model.Filter.DepartmentId.HasValue && Model.Filter.DepartmentId.Value.ToString() == dept.Value;
+                                        <li>
+                                            <a class="dropdown-item @(isSel ? "active" : "")" href="javascript:void(0)" onclick="selectSearchableReportFilter('filterDeptId', '@dept.Value', '@dept.Text', 'repDeptBtnText')">
+                                                <span>@dept.Text</span>
+                                                @if (isSel) { <i class="bi bi-check2 ms-auto"></i> }
+                                            </a>
+                                        </li>
+                                    }
+                                }
+                            }
+                        </ul>
+                    </div>
+                </div>
             </div>
+
+            <!-- Searchable Designation Dropdown (No Icon) -->
             <div class="col-md-3">
-                <label class="form-label small fw-semibold mb-1">Designation</label>
-                <select name="designationId" class="form-select bg-light border-0" asp-items="Model.Designations">
-                    <option value="">All Designations</option>
-                </select>
+                <label class="form-label small fw-semibold text-secondary mb-1">Designation</label>
+                <input type="hidden" name="designationId" id="filterDesigId" value="@(Model.Filter.DesignationId?.ToString() ?? "")" />
+                <div class="dropdown">
+                    <button class="filter-pill-dropdown w-100 justify-content-between @(Model.Filter.DesignationId.HasValue ? "is-filtered" : "")" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="repDesigBtn">
+                        <span id="repDesigBtnText" class="text-truncate">@selectedDesigTitle</span>
+                        <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+                    </button>
+                    <div class="dropdown-menu filter-dropdown-menu w-100 shadow-sm" style="min-width: 250px;">
+                        <div class="filter-dropdown-search">
+                            <i class="bi bi-search"></i>
+                            <input type="text" class="filter-dropdown-search-input" placeholder="Search designations..." autocomplete="off" oninput="filterDropdownMenuOptions(this)" />
+                        </div>
+                        <ul class="filter-dropdown-list list-unstyled mb-0">
+                            <li>
+                                <a class="dropdown-item @(!Model.Filter.DesignationId.HasValue ? "active" : "")" href="javascript:void(0)" onclick="selectSearchableReportFilter('filterDesigId', '', 'All Designations', 'repDesigBtnText')">
+                                    <span>All Designations</span>
+                                    @if (!Model.Filter.DesignationId.HasValue) { <i class="bi bi-check2 ms-auto"></i> }
+                                </a>
+                            </li>
+                            @if (Model.Designations != null)
+                            {
+                                @foreach (var des in Model.Designations)
+                                {
+                                    if (!string.IsNullOrEmpty(des.Value))
+                                    {
+                                        var isSel = Model.Filter.DesignationId.HasValue && Model.Filter.DesignationId.Value.ToString() == des.Value;
+                                        <li>
+                                            <a class="dropdown-item @(isSel ? "active" : "")" href="javascript:void(0)" onclick="selectSearchableReportFilter('filterDesigId', '@des.Value', '@des.Text', 'repDesigBtnText')">
+                                                <span>@des.Text</span>
+                                                @if (isSel) { <i class="bi bi-check2 ms-auto"></i> }
+                                            </a>
+                                        </li>
+                                    }
+                                }
+                            }
+                        </ul>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-3">
-                <label class="form-label small fw-semibold mb-1">Employment Type</label>
-                <select name="employmentType" class="form-select bg-light border-0">
-                    <option value="">All Employment Types</option>
-                    @foreach (EmploymentType et in Enum.GetValues(typeof(EmploymentType)))
-                    {
-                        <option value="@et" selected="@(Model.Filter.EmploymentType == et ? "selected" : null)">@et</option>
-                    }
-                </select>
-            </div>
+
+            <!-- Searchable Employment Type Dropdown (No Icon) -->
             <div class="col-md-2">
-                <label class="form-label small fw-semibold mb-1">Status</label>
-                <select name="status" class="form-select bg-light border-0">
-                    <option value="">All Statuses</option>
-                    @foreach (EmployeeStatus st in Enum.GetValues(typeof(EmployeeStatus)))
-                    {
-                        <option value="@st" selected="@(Model.Filter.Status == st ? "selected" : null)">@st</option>
-                    }
-                </select>
+                <label class="form-label small fw-semibold text-secondary mb-1">Employment Type</label>
+                <input type="hidden" name="employmentType" id="filterEmpTypeId" value="@(Model.Filter.EmploymentType?.ToString() ?? "")" />
+                <div class="dropdown">
+                    <button class="filter-pill-dropdown w-100 justify-content-between @(Model.Filter.EmploymentType.HasValue ? "is-filtered" : "")" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="repEmpTypeBtn">
+                        <span id="repEmpTypeBtnText" class="text-truncate">@selectedEmpTypeText</span>
+                        <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+                    </button>
+                    <div class="dropdown-menu filter-dropdown-menu w-100 shadow-sm" style="min-width: 230px;">
+                        <div class="filter-dropdown-search">
+                            <i class="bi bi-search"></i>
+                            <input type="text" class="filter-dropdown-search-input" placeholder="Search types..." autocomplete="off" oninput="filterDropdownMenuOptions(this)" />
+                        </div>
+                        <ul class="filter-dropdown-list list-unstyled mb-0">
+                            <li>
+                                <a class="dropdown-item @(!Model.Filter.EmploymentType.HasValue ? "active" : "")" href="javascript:void(0)" onclick="selectSearchableReportFilter('filterEmpTypeId', '', 'All Employment Types', 'repEmpTypeBtnText')">
+                                    <span>All Employment Types</span>
+                                    @if (!Model.Filter.EmploymentType.HasValue) { <i class="bi bi-check2 ms-auto"></i> }
+                                </a>
+                            </li>
+                            @foreach (var et in Enum.GetValues<EmploymentType>())
+                            {
+                                var isSel = Model.Filter.EmploymentType == et;
+                                <li>
+                                    <a class="dropdown-item @(isSel ? "active" : "")" href="javascript:void(0)" onclick="selectSearchableReportFilter('filterEmpTypeId', '@et', '@et', 'repEmpTypeBtnText')">
+                                        <span>@et</span>
+                                        @if (isSel) { <i class="bi bi-check2 ms-auto"></i> }
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-1 d-flex gap-1">
-                <button type="submit" class="btn btn-primary w-100" title="Filter"><i class="bi bi-funnel"></i></button>
-                <a asp-action="Employees" class="btn btn-outline-secondary" title="Reset"><i class="bi bi-arrow-counterclockwise"></i></a>
+
+            <!-- Searchable Status Dropdown (No Icon) -->
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold text-secondary mb-1">Status</label>
+                <input type="hidden" name="status" id="filterEmpStatusId" value="@(Model.Filter.Status?.ToString() ?? "")" />
+                <div class="dropdown">
+                    <button class="filter-pill-dropdown w-100 justify-content-between @(Model.Filter.Status.HasValue ? "is-filtered" : "")" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="repEmpStatusBtn">
+                        <span id="repEmpStatusBtnText" class="text-truncate">@selectedStatusText</span>
+                        <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+                    </button>
+                    <div class="dropdown-menu filter-dropdown-menu w-100 shadow-sm" style="min-width: 200px;">
+                        <div class="filter-dropdown-search">
+                            <i class="bi bi-search"></i>
+                            <input type="text" class="filter-dropdown-search-input" placeholder="Search statuses..." autocomplete="off" oninput="filterDropdownMenuOptions(this)" />
+                        </div>
+                        <ul class="filter-dropdown-list list-unstyled mb-0">
+                            <li>
+                                <a class="dropdown-item @(!Model.Filter.Status.HasValue ? "active" : "")" href="javascript:void(0)" onclick="selectSearchableReportFilter('filterEmpStatusId', '', 'All Statuses', 'repEmpStatusBtnText')">
+                                    <span>All Statuses</span>
+                                    @if (!Model.Filter.Status.HasValue) { <i class="bi bi-check2 ms-auto"></i> }
+                                </a>
+                            </li>
+                            @foreach (var st in Enum.GetValues<EmployeeStatus>())
+                            {
+                                var isSel = Model.Filter.Status == st;
+                                <li>
+                                    <a class="dropdown-item @(isSel ? "active" : "")" href="javascript:void(0)" onclick="selectSearchableReportFilter('filterEmpStatusId', '@st', '@st', 'repEmpStatusBtnText')">
+                                        <span>@st</span>
+                                        @if (isSel) { <i class="bi bi-check2 ms-auto"></i> }
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary d-inline-flex align-items-center justify-content-center px-3 flex-grow-1" style="height: 38px;" title="Apply Filter">
+                    <i class="bi bi-funnel me-1"></i>
+                    <span>Filter</span>
+                </button>
+                <a asp-action="Employees" class="btn btn-light border text-secondary d-inline-flex align-items-center justify-content-center px-2.5" style="height: 38px;" title="Reset Filters">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Table Card -->
-<div class="card border-0 shadow-sm rounded-4">
+<!-- Harmonized Table Card -->
+<div class="card border-0 shadow-sm" style="border-radius: 14px; border: 1px solid #eaecf0 !important; overflow: hidden; background: #ffffff;">
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light text-muted small">
-                    <tr>
-                        <th class="ps-4 py-3">EMPLOYEE</th>
-                        <th class="py-3">DEPARTMENT & DESIGNATION</th>
-                        <th class="py-3">CONTACT</th>
-                        <th class="py-3">GRADE / SALARY</th>
-                        <th class="py-3">JOIN DATE</th>
-                        <th class="py-3 text-center" style="width: 130px;">TYPE</th>
-                        <th class="py-3 pe-4 text-center" style="width: 110px;">STATUS</th>
+                <thead style="background-color: #f8fafc; border-bottom: 1px solid #eaecf0;">
+                    <tr class="text-secondary small fw-semibold" style="font-size: 0.78rem; letter-spacing: 0.01em;">
+                        <th class="ps-4 py-2.5" style="min-width: 200px;">Employee</th>
+                        <th class="py-2.5" style="min-width: 180px;">Department &amp; Designation</th>
+                        <th class="py-2.5" style="min-width: 180px;">Contact</th>
+                        <th class="py-2.5" style="min-width: 130px;">Grade &amp; Salary</th>
+                        <th class="py-2.5" style="min-width: 110px;">Join Date</th>
+                        <th class="py-2.5 text-center" style="width: 120px;">Type</th>
+                        <th class="pe-4 py-2.5 text-center" style="width: 110px;">Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -98,24 +240,24 @@
                         @foreach (var emp in Model.Employees)
                         {
                             <tr>
-                                <td class="ps-4 py-3">
+                                <td class="ps-4">
                                     <div class="fw-semibold text-dark">@emp.FullName</div>
-                                    <small class="text-muted">@emp.EmployeeCode</small>
+                                    <div class="text-muted small">@emp.EmployeeCode</div>
                                 </td>
                                 <td>
                                     <div class="fw-medium text-dark">@emp.DepartmentName</div>
-                                    <small class="text-muted">@emp.DesignationTitle</small>
+                                    <div class="text-muted small">@emp.DesignationTitle</div>
                                 </td>
                                 <td>
-                                    <div><i class="bi bi-envelope me-1 text-muted"></i>@emp.Email</div>
-                                    <small class="text-muted"><i class="bi bi-telephone me-1"></i>@emp.Phone</small>
+                                    <div class="small text-dark"><i class="bi bi-envelope me-1.5 text-muted"></i>@emp.Email</div>
+                                    <div class="small text-muted"><i class="bi bi-telephone me-1.5 text-muted"></i>@emp.Phone</div>
                                 </td>
                                 <td>
                                     <span class="badge bg-light text-dark border">@emp.GradeCode</span>
-                                    <div class="small fw-semibold text-dark mt-1">@emp.Salary.ToString("N2") ৳</div>
+                                    <div class="small fw-semibold text-dark mt-0.5">@emp.Salary.ToString("N2") ৳</div>
                                 </td>
                                 <td>
-                                    <div class="small">@emp.JoinDate.ToString("yyyy-MM-dd")</div>
+                                    <div class="small text-dark">@emp.JoinDate.ToString("yyyy-MM-dd")</div>
                                     @if (emp.ExitDate.HasValue)
                                     {
                                         <small class="text-danger d-block">Exit: @emp.ExitDate.Value.ToString("yyyy-MM-dd")</small>
@@ -128,16 +270,16 @@
                                     @switch (emp.Status)
                                     {
                                         case EmployeeStatus.Active:
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Active</span>
+                                            <span class="badge-status-dot badge-status-active">Active</span>
                                             break;
                                         case EmployeeStatus.OnNotice:
-                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">On Notice</span>
+                                            <span class="badge-status-dot badge-status-warning">On Notice</span>
                                             break;
                                         case EmployeeStatus.Resigned:
-                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">Resigned</span>
+                                            <span class="badge-status-dot badge-status-neutral">Resigned</span>
                                             break;
                                         case EmployeeStatus.Terminated:
-                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">Terminated</span>
+                                            <span class="badge-status-dot badge-status-danger">Terminated</span>
                                             break;
                                     }
                                 </td>
@@ -149,3 +291,43 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function filterDropdownMenuOptions(input) {
+            const query = input.value.trim().toLowerCase();
+            const list = input.closest('.filter-dropdown-menu').querySelector('.filter-dropdown-list');
+            if (!list) return;
+            const items = list.querySelectorAll('li');
+            items.forEach(li => {
+                const text = li.textContent.trim().toLowerCase();
+                if (!query || text.includes(query)) {
+                    li.style.display = '';
+                } else {
+                    li.style.display = 'none';
+                }
+            });
+        }
+
+        function selectSearchableReportFilter(inputId, value, label, btnTextId) {
+            const input = document.getElementById(inputId);
+            if (input) input.value = value;
+            const btnText = document.getElementById(btnTextId);
+            if (btnText) btnText.textContent = label;
+            const btn = btnText ? btnText.closest('.filter-pill-dropdown') : null;
+            if (btn) {
+                if (value) {
+                    btn.classList.add('is-filtered');
+                } else {
+                    btn.classList.remove('is-filtered');
+                }
+            }
+            if (inputId === 'filterEmpDeptId') {
+                const desigInput = document.getElementById('filterEmpDesigId');
+                if (desigInput) desigInput.value = '';
+            }
+            const form = document.getElementById('reportEmployeesFilterForm');
+            if (form) form.submit();
+        }
+    </script>
+}

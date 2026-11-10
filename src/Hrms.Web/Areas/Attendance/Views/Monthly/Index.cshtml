@@ -1,77 +1,98 @@
 @model MonthlyAttendanceViewModel
 @{
     ViewData["Title"] = $"Monthly Attendance - {new DateTime(Model.Year, Model.Month, 1):MMMM yyyy}";
+    ViewData["Subtitle"] = $"Overview of daily attendance records across all employees for {new DateTime(Model.Year, Model.Month, 1):MMMM yyyy}";
+    var hasActiveFilters = !string.IsNullOrEmpty(Model.SearchTerm);
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h4 class="fw-bold mb-1"><i class="bi bi-grid-3x3 me-2 text-primary"></i>Monthly Attendance Sheet</h4>
-        <p class="text-muted small mb-0">Overview of daily attendance records across all employees for @(new DateTime(Model.Year, Model.Month, 1).ToString("MMMM yyyy"))</p>
-    </div>
-    <div>
-        <a asp-controller="DailySheet" asp-action="Index" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-calendar-check me-1"></i> Daily Sheet
-        </a>
-    </div>
+<!-- Action Bar (Right-Aligned, Clean Text Only, No Redundant Headings) -->
+<div class="d-flex justify-content-end mb-3">
+    <a asp-controller="DailySheet" asp-action="Index" class="btn btn-primary px-3 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center gap-1.5" style="height: 40px; font-size: 0.875rem;">
+        <i class="bi bi-calendar-check"></i>
+        <span>Daily sheet</span>
+    </a>
 </div>
 
-<!-- Filters Card -->
-<div class="card border-0 shadow-sm rounded-4 mb-4">
-    <div class="card-body p-3">
-        <form method="get" class="row g-2 align-items-center">
-            <div class="col-md-3">
-                <label class="form-label small fw-semibold mb-1">Month</label>
-                <select name="month" class="form-select bg-light border-0">
-                    @for (int m = 1; m <= 12; m++)
-                    {
-                        var mName = new DateTime(2000, m, 1).ToString("MMMM");
-                        <option value="@m" selected="@(Model.Month == m ? "selected" : null)">@mName</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small fw-semibold mb-1">Year</label>
-                <input type="number" name="year" class="form-control bg-light border-0" value="@Model.Year" min="2020" max="2050" />
-            </div>
-            <div class="col-md-4">
-                <label class="form-label small fw-semibold mb-1">Search Employee</label>
-                <div class="input-group">
-                    <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
-                    <input type="text" name="search" class="form-control bg-light border-0" value="@Model.SearchTerm" placeholder="Name or employee code..." />
-                </div>
-            </div>
-            <div class="col-md-3 d-flex gap-2 align-items-end pt-3">
-                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel me-1"></i> Filter</button>
-                <a asp-action="Index" class="btn btn-outline-secondary" title="Reset"><i class="bi bi-arrow-counterclockwise"></i></a>
-            </div>
-        </form>
+<!-- EmplowHR-Inspired Unified Filter Bar -->
+<form method="get" class="table-filter-bar mb-3" id="monthlyFilterForm">
+    <!-- Search Input -->
+    <div class="table-search-box">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" name="search" class="table-search-input" value="@Model.SearchTerm" placeholder="Search employee by name or code..." onkeydown="if(event.key==='Enter'){ this.form.submit(); }" />
     </div>
-</div>
+
+    <!-- Month Dropdown Pill -->
+    <div class="dropdown">
+        <button class="filter-pill-dropdown" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span>@(new DateTime(2000, Model.Month, 1).ToString("MMMM"))</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search month..." autocomplete="off" />
+            </div>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                @for (int m = 1; m <= 12; m++)
+                {
+                    var mName = new DateTime(2000, m, 1).ToString("MMMM");
+                    <li>
+                        <a class="dropdown-item @(Model.Month == m ? "active" : "")" href="javascript:void(0)" onclick="setMonthlyMonth(@m)">
+                            <span>@mName</span>
+                            @if (Model.Month == m) { <i class="bi bi-check2"></i> }
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+        <input type="hidden" name="month" id="hiddenMonth" value="@Model.Month" />
+    </div>
+
+    <!-- Year Input Pill -->
+    <div class="d-inline-flex align-items-center bg-white border px-2.5 rounded-3" style="height: 38px; border-color: #d0d5dd !important;">
+        <span class="text-secondary small fw-medium me-1">Year:</span>
+        <input type="number" name="year" class="border-0 shadow-none text-dark fw-semibold" style="width: 60px; font-size: 0.84rem; outline: none;" value="@Model.Year" min="2020" max="2050" onchange="this.form.submit()" />
+    </div>
+
+    <!-- Reset Filter Button -->
+    @if (hasActiveFilters)
+    {
+        <a asp-action="Index" class="btn-reset-filters" title="Reset search">
+            <i class="bi bi-arrow-counterclockwise"></i>
+            <span>Reset</span>
+        </a>
+    }
+
+    <!-- Total Records Counter -->
+    <div class="table-records-counter">
+        <span><strong>@Model.Employees.Count</strong> employees</span>
+    </div>
+</form>
 
 <!-- Monthly Matrix Card -->
-<div class="card border-0 shadow-sm rounded-4 mb-4">
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 14px; border: 1px solid #eaecf0 !important; overflow: hidden;">
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-bordered table-hover align-middle text-center mb-0" style="font-size: 0.85rem;">
-                <thead class="bg-light text-muted">
+                <thead style="background-color: #f8fafc; border-bottom: 1px solid #eaecf0;">
                     <tr>
-                        <th class="text-start ps-3 py-3" style="min-width: 180px; position: sticky; left: 0; background-color: #f8f9fa; z-index: 2;">EMPLOYEE</th>
+                        <th class="text-start ps-3 py-3" style="min-width: 180px; position: sticky; left: 0; background-color: #f8fafc; z-index: 2;">EMPLOYEE</th>
                         @for (int day = 1; day <= Model.DaysInMonth; day++)
                         {
-                            var date = new DateTime(Model.Year, Model.Month, day);
-                            var isWeekend = date.DayOfWeek == DayOfWeek.Friday || date.DayOfWeek == DayOfWeek.Saturday;
-                            <th class="p-1 @(isWeekend ? "table-secondary text-muted" : "")" style="min-width: 28px;">
+                            var curDate = new DateTime(Model.Year, Model.Month, day);
+                            var isWk = curDate.DayOfWeek == DayOfWeek.Friday || curDate.DayOfWeek == DayOfWeek.Saturday;
+                            <th class="py-2 px-1 @(isWk ? "text-danger" : "")" style="min-width: 32px; font-size: 0.75rem;">
                                 <div>@day</div>
-                                <div style="font-size: 0.65rem;">@date.ToString("ddd")[..1]</div>
+                                <div style="font-size: 0.65rem;" class="text-muted">@curDate.ToString("ddd")[..1]</div>
                             </th>
                         }
-                        <th class="table-success py-2" title="Present" style="min-width: 32px;">P</th>
-                        <th class="table-warning py-2" title="Late" style="min-width: 32px;">L</th>
-                        <th class="table-info py-2" title="Half Day" style="min-width: 32px;">HD</th>
-                        <th class="table-danger py-2" title="Absent" style="min-width: 32px;">A</th>
-                        <th class="table-primary py-2" title="On Leave" style="min-width: 32px;">LV</th>
-                        <th class="table-secondary py-2" title="Holiday" style="min-width: 32px;">H</th>
-                        <th class="table-light py-2" title="Weekend" style="min-width: 32px;">W</th>
+                        <th class="py-2 text-success" title="Present Days" style="min-width: 40px;">P</th>
+                        <th class="py-2 text-warning-emphasis" title="Late Days" style="min-width: 40px;">L</th>
+                        <th class="py-2 text-info-emphasis" title="Half Days" style="min-width: 40px;">HD</th>
+                        <th class="py-2 text-danger" title="Absent Days" style="min-width: 40px;">A</th>
+                        <th class="py-2 text-primary" title="On Leave Days" style="min-width: 40px;">LV</th>
+                        <th class="py-2 text-muted" title="Holidays" style="min-width: 40px;">H</th>
+                        <th class="py-2 text-muted" title="Weekends" style="min-width: 40px;">W</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -80,7 +101,7 @@
                         <tr>
                             <td colspan="@(Model.DaysInMonth + 8)" class="text-center py-5 text-muted">
                                 <i class="bi bi-people fs-1 d-block mb-2 text-secondary opacity-50"></i>
-                                No active employee records found for this period.
+                                No attendance records found for this period.
                             </td>
                         </tr>
                     }
@@ -89,17 +110,17 @@
                         @foreach (var emp in Model.Employees)
                         {
                             <tr>
-                                <td class="text-start ps-3 py-2 fw-semibold" style="position: sticky; left: 0; background-color: #fff; z-index: 1;">
-                                    <div class="text-dark text-truncate" style="max-width: 170px;">@emp.FullName</div>
-                                    <div class="small text-muted fw-normal">@emp.EmployeeCode</div>
+                                <td class="text-start ps-3 py-2 fw-semibold text-dark text-nowrap" style="position: sticky; left: 0; background-color: #ffffff; z-index: 1;">
+                                    <div>@emp.FullName</div>
+                                    <small class="text-muted small" style="font-size: 0.72rem;">@emp.EmployeeCode</small>
                                 </td>
                                 @for (int day = 1; day <= Model.DaysInMonth; day++)
                                 {
-                                    var hasStatus = emp.DailyStatuses.TryGetValue(day, out var status);
+                                    var hasAtt = emp.DailyStatuses.TryGetValue(day, out var status) && status.HasValue;
                                     <td class="p-1">
-                                        @if (hasStatus && status.HasValue)
+                                        @if (hasAtt)
                                         {
-                                            @switch (status.Value)
+                                            @switch (status!.Value)
                                             {
                                                 case AttendanceStatus.Present:
                                                     <span class="badge bg-success-subtle text-success p-1" title="Day @day: Present">P</span>
@@ -143,14 +164,17 @@
                 </tbody>
             </table>
         </div>
+        <div class="card-footer bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center border-top" style="border-color: #eaecf0 !important;">
+            <span class="text-muted small">Showing <strong>@Model.Employees.Count</strong> employees for @(new DateTime(Model.Year, Model.Month, 1).ToString("MMMM yyyy"))</span>
+        </div>
     </div>
 </div>
 
 <!-- Legend Card -->
-<div class="card border-0 shadow-sm rounded-4">
+<div class="card border-0 shadow-sm" style="border-radius: 14px; border: 1px solid #eaecf0 !important;">
     <div class="card-body p-3">
-        <h6 class="fw-bold mb-2 small text-muted text-uppercase">Status Legend & Codes</h6>
-        <div class="d-flex flex-wrap gap-3 align-items-center">
+        <h6 class="fw-bold mb-2 small text-muted text-uppercase" style="letter-spacing: 0.04em;">Status Legend &amp; Codes</h6>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
             <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">P : Present</span>
             <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">L : Late</span>
             <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-1">HD : Half Day</span>
@@ -161,3 +185,12 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function setMonthlyMonth(m) {
+            document.getElementById('hiddenMonth').value = m;
+            document.getElementById('monthlyFilterForm').submit();
+        }
+    </script>
+}

@@ -171,9 +171,18 @@ public class ApplyLeaveHandler : IApplyLeaveHandler
                 // Save if newly created so Remaining is computed/available
                 await _context.SaveChangesAsync(cancellationToken);
 
-                if (balance.Remaining < totalDays)
+                // Account for any leave requests currently pending approval so an employee cannot over-apply
+                var pendingDays = await _context.LeaveRecords
+                    .Where(r => r.EmployeeId == employeeId.Value &&
+                                r.LeaveTypeId == command.LeaveTypeId &&
+                                r.Status == LeaveRecordStatus.Pending)
+                    .SumAsync(r => (decimal?)r.TotalDays, cancellationToken) ?? 0m;
+
+                var availableBalance = balance.Remaining - pendingDays;
+                if (availableBalance < totalDays)
                 {
-                    return Result<Guid>.Failure($"Insufficient leave balance. You have {balance.Remaining:0.#} day(s) remaining for {leaveType.Name}, but requested {totalDays:0.#} day(s).");
+                    var pendingMsg = pendingDays > 0 ? $" ({pendingDays:0.#} day(s) pending approval)" : "";
+                    return Result<Guid>.Failure($"Insufficient leave balance. You have {balance.Remaining:0.#} day(s) balance{pendingMsg} for {leaveType.Name}, but requested {totalDays:0.#} day(s).");
                 }
 
                 var nowUtc = _clock.UtcNow;

@@ -11,6 +11,7 @@ public interface IDepartmentService
     Task<Result<Guid>> CreateDepartmentAsync(CreateDepartmentModel model, CancellationToken cancellationToken = default);
     Task<Result> UpdateDepartmentAsync(UpdateDepartmentModel model, CancellationToken cancellationToken = default);
     Task<Result> SetDepartmentStatusAsync(Guid id, EntityStatus status, CancellationToken cancellationToken = default);
+    Task<Result> DeleteDepartmentAsync(Guid id, CancellationToken cancellationToken = default);
 }
 
 public interface IDesignationService
@@ -20,6 +21,7 @@ public interface IDesignationService
     Task<Result<Guid>> CreateDesignationAsync(CreateDesignationModel model, CancellationToken cancellationToken = default);
     Task<Result> UpdateDesignationAsync(UpdateDesignationModel model, CancellationToken cancellationToken = default);
     Task<Result> SetDesignationStatusAsync(Guid id, EntityStatus status, CancellationToken cancellationToken = default);
+    Task<Result> DeleteDesignationAsync(Guid id, CancellationToken cancellationToken = default);
 }
 
 public interface IGradeService
@@ -29,4 +31,5 @@ public interface IGradeService
     Task<Result<Guid>> CreateGradeAsync(CreateGradeModel model, CancellationToken cancellationToken = default);
     Task<Result> UpdateGradeAsync(UpdateGradeModel model, CancellationToken cancellationToken = default);
     Task<Result> SetGradeStatusAsync(Guid id, EntityStatus status, CancellationToken cancellationToken = default);
+    Task<Result> DeleteGradeAsync(Guid id, CancellationToken cancellationToken = default);
 }

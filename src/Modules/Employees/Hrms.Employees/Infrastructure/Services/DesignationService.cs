@@ -173,4 +173,31 @@ public class DesignationService : IDesignationService
         await _repository.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
+
+    public async Task<Result> DeleteDesignationAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var designation = await _context.Designations
+            .Include(d => d.Grades)
+            .FirstOrDefaultAsync(d => d.DesignationId == id, cancellationToken);
+
+        if (designation == null)
+        {
+            return Result.Failure(new Error("Designation.NotFound", "Designation not found."));
+        }
+
+        var hasEmployees = await _context.Employees.AnyAsync(e => e.DesignationId == id, cancellationToken);
+        if (hasEmployees)
+        {
+            return Result.Failure(new Error("Designation.HasEmployees", "Cannot delete designation because employees currently hold it. Please reassign employees first."));
+        }
+
+        if (designation.Grades.Any())
+        {
+            return Result.Failure(new Error("Designation.HasGrades", "Cannot delete designation because salary grades are defined under it. Please remove grades first."));
+        }
+
+        _context.Designations.Remove(designation);
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
 }

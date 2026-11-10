@@ -19,6 +19,10 @@ public class CreateEmployeeModelValidator : AbstractValidator<CreateEmployeeMode
             .EmailAddress().When(x => !string.IsNullOrWhiteSpace(x.Email)).WithMessage("Invalid email address format.")
             .MaximumLength(256).WithMessage("Email cannot exceed 256 characters.");
 
+        RuleFor(x => x.DateOfBirth)
+            .Must(dob => !dob.HasValue || dob.Value <= DateOnly.FromDateTime(DateTime.Today.AddYears(-18)))
+            .WithMessage("Employee must be at least 18 years of age.");
+
         RuleFor(x => x.Phone)
             .MaximumLength(30).WithMessage("Phone number cannot exceed 30 characters.");
 
@@ -72,6 +76,10 @@ public class UpdateEmployeeModelValidator : AbstractValidator<UpdateEmployeeMode
         RuleFor(x => x.Email)
             .EmailAddress().When(x => !string.IsNullOrWhiteSpace(x.Email)).WithMessage("Invalid email address format.")
             .MaximumLength(256).WithMessage("Email cannot exceed 256 characters.");
+
+        RuleFor(x => x.DateOfBirth)
+            .Must(dob => !dob.HasValue || dob.Value <= DateOnly.FromDateTime(DateTime.Today.AddYears(-18)))
+            .WithMessage("Employee must be at least 18 years of age.");
 
         RuleFor(x => x.Phone)
             .MaximumLength(30).WithMessage("Phone number cannot exceed 30 characters.");

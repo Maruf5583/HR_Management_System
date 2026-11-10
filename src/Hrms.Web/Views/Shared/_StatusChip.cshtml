@@ -1,0 +1,77 @@
+@model string
+@{
+    var status = Model?.Trim() ?? "";
+    var lower = status.ToLowerInvariant();
+
+    string badgeClass = "badge-status-neutral";
+    string dotColor = "#98a2b3";
+    string label = status;
+
+    switch (lower)
+    {
+        case "active":
+        case "present":
+        case "approved":
+        case "instock":
+        case "in stock":
+        case "completed":
+        case "complete":
+        case "assigned":
+            badgeClass = "badge-status-active";
+            dotColor = "#12b76a";
+            if (lower == "instock") label = "In Stock";
+            break;
+
+        case "late":
+        case "probation":
+        case "pending":
+        case "warning":
+        case "review":
+        case "maintenance":
+            badgeClass = "badge-status-warning";
+            dotColor = "#f79009";
+            break;
+
+        case "absent":
+        case "rejected":
+        case "terminated":
+        case "inactive":
+        case "danger":
+        case "retired":
+            badgeClass = "badge-status-danger";
+            dotColor = "#f04438";
+            break;
+
+        case "onleave":
+        case "on leave":
+        case "leave":
+            badgeClass = "badge-status-leave";
+            dotColor = "#7c3aed";
+            if (lower == "onleave") label = "On Leave";
+            break;
+
+        case "halfday":
+        case "half day":
+            badgeClass = "badge-status-neutral";
+            dotColor = "#0ba5ec";
+            if (lower == "halfday") label = "Half Day";
+            break;
+
+        case "weekend":
+        case "holiday":
+        case "off":
+        case "notice":
+            badgeClass = "badge-status-neutral";
+            dotColor = "#667085";
+            break;
+
+        default:
+            badgeClass = "badge-status-neutral";
+            dotColor = "#98a2b3";
+            break;
+    }
+}
+<span class="badge-status-dot @badgeClass" data-status="@lower">
+    <span class="badge-dot" style="background-color: @dotColor;"></span>
+    <span>@label</span>
+</span>

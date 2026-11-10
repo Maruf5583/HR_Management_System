@@ -23,208 +23,271 @@
 
 @if (Model.IsManagementDashboard && m != null)
 {
-    <!-- Top Notification Banner -->
-    <div class="proto-alert-banner">
-        <div class="proto-alert-banner-text">
-            <i class="bi bi-info-circle-fill fs-5 text-warning"></i>
-            <span>Welcome back! System operations and schedules are active in <strong>Asia/Dhaka</strong> standard time zone.</span>
-        </div>
-        @if (CurrentUser.HasPermission(Permissions.Employees.ViewOwn))
-        {
-            <a asp-area="Employees" asp-controller="Employees" asp-action="MyProfile" class="btn btn-sm btn-dark px-3 fw-semibold text-white text-nowrap" style="border-radius: 8px;">
-                <i class="bi bi-person-circle me-1"></i> View Profile
-            </a>
-        }
-    </div>
+    var totalStatusCount = m.TodayPresent + m.TodayLate + m.TodayHalfDay + m.TodayAbsent + m.TodayOnLeave + m.TodayWeekendOrHoliday;
+    var totalAtt = m.TotalActiveEmployees > 0 ? m.TotalActiveEmployees : 1;
+    var presentPct = Math.Min(100, (int)Math.Round((double)m.TodayPresent / totalAtt * 100));
+    var latePct = Math.Min(100, (int)Math.Round((double)m.TodayLate / totalAtt * 100));
+    var halfDayPct = Math.Min(100, (int)Math.Round((double)m.TodayHalfDay / totalAtt * 100));
+    var absentPct = Math.Min(100, (int)Math.Round((double)m.TodayAbsent / totalAtt * 100));
+    var onLeavePct = Math.Min(100, (int)Math.Round((double)m.TodayOnLeave / totalAtt * 100));
 
-    <!-- Management KPI Stat Cards -->
-    <div class="row g-3 mb-4">
-        <!-- Card 1: Total Employees -->
-        <div class="col-sm-6 col-xl">
-            <div class="proto-stat-card">
-                <div class="proto-stat-top">
-                    <span class="proto-stat-title">Total Workforce</span>
-                    <div class="proto-stat-icon-box proto-icon-purple">
-                        <i class="bi bi-people-fill"></i>
-                    </div>
+    <!-- Top Notification Banner -->
+    <div class="card border-0 shadow-xs mb-4" style="border: 1px solid #eaecf0 !important; border-radius: 14px; background: #ffffff;">
+        <div class="card-body p-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2.5">
+                <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background-color: #fef0c7; color: #b54708;">
+                    <i class="bi bi-clock-history"></i>
                 </div>
                 <div>
-                    <div class="proto-stat-value">@m.TotalActiveEmployees</div>
-                    <div class="proto-stat-subtitle">
-                        @if (CurrentUser.HasPermission(Permissions.Employees.View))
-                        {
-                            <a asp-area="Employees" asp-controller="Employees" asp-action="Index" class="text-decoration-none text-primary fw-semibold d-inline-flex align-items-center gap-1">
-                                <span>Directory</span>
-                                <i class="bi bi-arrow-right"></i>
-                            </a>
-                        }
-                        else
-                        {
-                            <span>Active Staff</span>
-                        }
-                    </div>
+                    <span class="fw-semibold text-dark small d-block">Welcome back, @(CurrentUser.Email?.Split('@')[0] ?? "User")!</span>
+                    <span class="text-muted small" style="font-size: 0.78rem;">System operations, attendance shifts, and calendar schedules are active in <strong>Asia/Dhaka</strong> timezone.</span>
+                </div>
+            </div>
+            @if (CurrentUser.HasPermission(Permissions.Employees.ViewOwn))
+            {
+                <a asp-area="Employees" asp-controller="Employees" asp-action="MyProfile" class="btn btn-sm btn-light border text-secondary fw-semibold px-3 py-1.5 rounded-3 shadow-xs d-inline-flex align-items-center gap-1.5" style="border-color: #d0d5dd !important;">
+                    <i class="bi bi-person-circle"></i>
+                    <span>My Profile</span>
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- Management KPI Stat Cards (EmplowHR SaaS Linear Style) -->
+    <div class="row g-2 g-md-3 mb-4">
+        <!-- Card 1: Total Workforce -->
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card border-0 shadow-xs p-3 h-100" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">Total Workforce</span>
+                    <span class="badge bg-light text-secondary border fw-medium" style="font-size: 0.7rem;">Headcount</span>
+                </div>
+                <div class="fw-bold text-dark mb-1 tabular-nums" style="font-size: 1.75rem; line-height: 1.2;">@m.TotalActiveEmployees</div>
+                <div class="text-muted" style="font-size: 0.8125rem; font-weight: 500;">
+                    @if (CurrentUser.HasPermission(Permissions.Employees.View))
+                    {
+                        <a asp-area="Employees" asp-controller="Employees" asp-action="Index" class="text-decoration-none text-primary fw-medium d-inline-flex align-items-center gap-1">
+                            <span>Employee Directory</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    }
+                    else
+                    {
+                        <span>Active staff members</span>
+                    }
                 </div>
             </div>
         </div>
 
         <!-- Card 2: Today's Attendance -->
-        <div class="col-sm-6 col-xl">
-            <div class="proto-stat-card">
-                <div class="proto-stat-top">
-                    <span class="proto-stat-title">Today's Present</span>
-                    <div class="proto-stat-icon-box proto-icon-green">
-                        <i class="bi bi-calendar-check"></i>
-                    </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card border-0 shadow-xs p-3 h-100" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">Today Present</span>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle fw-medium" style="font-size: 0.7rem;">On Duty</span>
                 </div>
-                <div>
-                    <div class="proto-stat-value text-success">@m.TodayPresent <span class="fs-6 fw-normal text-muted">/ @m.TotalActiveEmployees</span></div>
-                    <div class="proto-stat-subtitle">
-                        @if (m.TodayLate > 0)
-                        {
-                            <span class="text-danger fw-semibold">(@m.TodayLate Late)</span>
-                        }
-                        else
-                        {
-                            <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>On Schedule</span>
-                        }
-                    </div>
+                <div class="fw-bold text-dark mb-1 tabular-nums" style="font-size: 1.75rem; line-height: 1.2;">
+                    @m.TodayPresent <span class="fs-6 fw-normal text-muted">/ @m.TotalActiveEmployees</span>
+                </div>
+                <div class="text-muted" style="font-size: 0.8125rem; font-weight: 500;">
+                    @if (CurrentUser.HasPermission(Permissions.Attendance.ViewAll) || CurrentUser.HasPermission(Permissions.Attendance.Manage))
+                    {
+                        <a asp-area="Attendance" asp-controller="DailySheet" asp-action="Index" class="text-decoration-none text-success fw-medium d-inline-flex align-items-center gap-1">
+                            <span>Daily Attendance Sheet</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="text-success"><i class="bi bi-check-circle me-1"></i>Recorded</span>
+                    }
                 </div>
             </div>
         </div>
 
         <!-- Card 3: Pending Approvals -->
-        <div class="col-sm-6 col-xl">
-            <div class="proto-stat-card">
-                <div class="proto-stat-top">
-                    <span class="proto-stat-title">Leave Approvals</span>
-                    <div class="proto-stat-icon-box proto-icon-orange">
-                        <i class="bi bi-clipboard-check"></i>
-                    </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card border-0 shadow-xs p-3 h-100" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">Leave Queue</span>
+                    <span class="badge @(m.PendingLeaveApprovals > 0 ? "bg-warning-subtle text-warning border border-warning-subtle" : "bg-light text-secondary border") fw-medium" style="font-size: 0.7rem;">
+                        @(m.PendingLeaveApprovals > 0 ? "Action Required" : "Up to Date")
+                    </span>
                 </div>
-                <div>
-                    <div class="proto-stat-value @(m.PendingLeaveApprovals > 0 ? "text-danger" : "text-dark")">@m.PendingLeaveApprovals</div>
-                    <div class="proto-stat-subtitle">
-                        @if (CurrentUser.HasPermission(Permissions.Leave.Approve))
-                        {
-                            <a asp-area="Leave" asp-controller="Approvals" asp-action="Index" class="text-decoration-none text-warning fw-semibold d-inline-flex align-items-center gap-1">
-                                <span>Review Queue</span>
-                                <i class="bi bi-arrow-right"></i>
-                            </a>
-                        }
-                        else
-                        {
-                            <span>Pending Requests</span>
-                        }
-                    </div>
+                <div class="fw-bold mb-1 tabular-nums @(m.PendingLeaveApprovals > 0 ? "text-warning" : "text-dark")" style="font-size: 1.75rem; line-height: 1.2;">@m.PendingLeaveApprovals</div>
+                <div class="text-muted" style="font-size: 0.8125rem; font-weight: 500;">
+                    @if (CurrentUser.HasPermission(Permissions.Leave.Approve))
+                    {
+                        <a asp-area="Leave" asp-controller="Approvals" asp-action="Index" class="text-decoration-none text-warning fw-medium d-inline-flex align-items-center gap-1">
+                            <span>Review Requests</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    }
+                    else
+                    {
+                        <span>Pending leave submissions</span>
+                    }
                 </div>
             </div>
         </div>
 
         <!-- Card 4: Hardware & Assets -->
-        <div class="col-sm-6 col-xl">
-            <div class="proto-stat-card">
-                <div class="proto-stat-top">
-                    <span class="proto-stat-title">Assigned Assets</span>
-                    <div class="proto-stat-icon-box proto-icon-cyan">
-                        <i class="bi bi-laptop"></i>
-                    </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card border-0 shadow-xs p-3 h-100" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">Assigned Assets</span>
+                    <span class="badge bg-light text-secondary border fw-medium" style="font-size: 0.7rem;">Inventory</span>
                 </div>
-                <div>
-                    <div class="proto-stat-value">@m.TotalAssignedAssets</div>
-                    <div class="proto-stat-subtitle">
-                        <span class="text-muted">@m.TotalAvailableAssets Available</span>
-                    </div>
+                <div class="fw-bold text-dark mb-1 tabular-nums" style="font-size: 1.75rem; line-height: 1.2;">@m.TotalAssignedAssets</div>
+                <div class="text-muted" style="font-size: 0.8125rem; font-weight: 500;">
+                    @if (CurrentUser.HasPermission(Permissions.Assets.Manage))
+                    {
+                        <a asp-area="Assets" asp-controller="Assets" asp-action="Index" class="text-decoration-none text-primary fw-medium d-inline-flex align-items-center gap-1">
+                            <span>@m.TotalAvailableAssets In Stock</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    }
+                    else
+                    {
+                        <span>@m.TotalAvailableAssets In Stock</span>
+                    }
                 </div>
             </div>
         </div>
 
         <!-- Card 5: Role & Policy -->
-        <div class="col-sm-6 col-xl">
-            <div class="proto-stat-card">
-                <div class="proto-stat-top">
-                    <span class="proto-stat-title">Access Policy</span>
-                    <div class="proto-stat-icon-box proto-icon-rose">
-                        <i class="bi bi-shield-check"></i>
-                    </div>
+        <div class="col-6 col-md-4 col-xl">
+            <div class="card border-0 shadow-xs p-3 h-100" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">Security & Roles</span>
+                    <span class="badge bg-light text-secondary border fw-medium" style="font-size: 0.7rem;">Policy</span>
                 </div>
-                <div>
-                    <div class="proto-stat-value">@grantedCount <span class="fs-6 fw-normal text-muted">/ @Permissions.All.Count</span></div>
-                    <div class="proto-stat-subtitle">
-                        <span class="badge badge-soft-primary">@userRoleTitle</span>
-                    </div>
+                <div class="fw-bold text-dark mb-1 tabular-nums" style="font-size: 1.75rem; line-height: 1.2;">
+                    @grantedCount <span class="fs-6 fw-normal text-muted">/ @Permissions.All.Count</span>
+                </div>
+                <div class="text-muted" style="font-size: 0.8125rem; font-weight: 500;">
+                    @if (CurrentUser.HasPermission(Permissions.Roles.Manage))
+                    {
+                        <a asp-area="" asp-controller="Roles" asp-action="Index" class="text-decoration-none text-primary fw-medium d-inline-flex align-items-center gap-1">
+                            <span>System Roles</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    }
+                    else
+                    {
+                        <span>@userRoleTitle</span>
+                    }
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Attendance Real-Time Breakdown Strip -->
-    <div class="card border-0 shadow-sm rounded-4 mb-4">
-        <div class="card-body p-3">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-pie-chart text-primary fs-5"></i>
-                    <h6 class="fw-bold mb-0 text-dark">Today's Attendance Status Breakdown (@m.TodayDate.ToString("dddd, MMMM dd, yyyy"))</h6>
+    <div class="card border-0 shadow-xs mb-4" style="border: 1px solid #eaecf0 !important; border-radius: 14px; background: #ffffff;">
+        <div class="card-body p-3.5">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                <div>
+                    <h6 class="fw-semibold mb-1 text-dark">Today's Attendance Status Breakdown</h6>
+                    <span class="text-muted small">@m.TodayDate.ToString("dddd, MMMM dd, yyyy")</span>
                 </div>
                 @if (CurrentUser.HasPermission(Permissions.Attendance.Manage))
                 {
-                    <a asp-area="Attendance" asp-controller="DailySheet" asp-action="Index" class="btn btn-sm btn-link text-decoration-none">Open Daily Sheet</a>
+                    <a asp-area="Attendance" asp-controller="DailySheet" asp-action="Index" class="btn btn-sm btn-light border text-secondary px-3 py-1.5 fw-medium rounded-3 shadow-xs">
+                        Open Daily Sheet
+                    </a>
                 }
             </div>
 
-            <div class="row g-2 text-center">
-                <div class="col-6 col-md">
-                    <div class="p-3 rounded-3 bg-light border border-light-subtle">
-                        <span class="text-muted small d-block">Present</span>
-                        <h4 class="fw-bold mb-0 mt-1 text-success">@m.TodayPresent</h4>
+            <!-- Segmented Attendance Distribution Bar (Only shown when total > 0) -->
+            @if (totalStatusCount > 0)
+            {
+                <div class="progress mb-3.5" style="height: 8px; background-color: #f2f4f7; border-radius: 9999px; overflow: hidden;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: @presentPct%;" title="Present: @m.TodayPresent"></div>
+                    <div class="progress-bar bg-warning" role="progressbar" style="width: @latePct%;" title="Late: @m.TodayLate"></div>
+                    <div class="progress-bar bg-info" role="progressbar" style="width: @halfDayPct%;" title="Half Day: @m.TodayHalfDay"></div>
+                    <div class="progress-bar bg-danger" role="progressbar" style="width: @absentPct%;" title="Absent: @m.TodayAbsent"></div>
+                    <div class="progress-bar" role="progressbar" style="width: @onLeavePct%; background-color: #7c3aed;" title="On Leave: @m.TodayOnLeave"></div>
+                </div>
+
+                <div class="row row-cols-2 row-cols-sm-3 row-cols-lg-6 g-2.5 text-center">
+                    <div class="col">
+                        <a asp-area="Attendance" asp-controller="DailySheet" asp-action="Index" asp-route-status="Present" class="text-decoration-none d-block">
+                            <div class="p-2.5 rounded-3 bg-white border border-light-subtle h-100 shadow-xs" style="border-color: #eaecf0 !important;">
+                                <span class="badge-status-dot badge-status-active mb-1 d-inline-flex">Present</span>
+                                <div class="fw-bold text-dark fs-5 tabular-nums">@m.TodayPresent</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col">
+                        <a asp-area="Attendance" asp-controller="DailySheet" asp-action="Index" asp-route-status="Late" class="text-decoration-none d-block">
+                            <div class="p-2.5 rounded-3 bg-white border border-light-subtle h-100 shadow-xs" style="border-color: #eaecf0 !important;">
+                                <span class="badge-status-dot badge-status-warning mb-1 d-inline-flex">Late</span>
+                                <div class="fw-bold text-dark fs-5 tabular-nums">@m.TodayLate</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col">
+                        <a asp-area="Attendance" asp-controller="DailySheet" asp-action="Index" asp-route-status="HalfDay" class="text-decoration-none d-block">
+                            <div class="p-2.5 rounded-3 bg-white border border-light-subtle h-100 shadow-xs" style="border-color: #eaecf0 !important;">
+                                <span class="badge-status-dot badge-status-neutral mb-1 d-inline-flex">Half Day</span>
+                                <div class="fw-bold text-dark fs-5 tabular-nums">@m.TodayHalfDay</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col">
+                        <a asp-area="Attendance" asp-controller="DailySheet" asp-action="Index" asp-route-status="Absent" class="text-decoration-none d-block">
+                            <div class="p-2.5 rounded-3 bg-white border border-light-subtle h-100 shadow-xs" style="border-color: #eaecf0 !important;">
+                                <span class="badge-status-dot badge-status-danger mb-1 d-inline-flex">Absent</span>
+                                <div class="fw-bold text-dark fs-5 tabular-nums">@m.TodayAbsent</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col">
+                        <a asp-area="Attendance" asp-controller="DailySheet" asp-action="Index" asp-route-status="OnLeave" class="text-decoration-none d-block">
+                            <div class="p-2.5 rounded-3 bg-white border border-light-subtle h-100 shadow-xs" style="border-color: #eaecf0 !important;">
+                                <span class="badge-status-dot mb-1 d-inline-flex" style="background-color: #f4f3ff; color: #7c3aed; border: 1px solid #e9d5ff !important;">On Leave</span>
+                                <div class="fw-bold text-dark fs-5 tabular-nums">@m.TodayOnLeave</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col">
+                        <a asp-area="Attendance" asp-controller="DailySheet" asp-action="Index" asp-route-status="Weekend" class="text-decoration-none d-block">
+                            <div class="p-2.5 rounded-3 bg-white border border-light-subtle h-100 shadow-xs" style="border-color: #eaecf0 !important;">
+                                <span class="badge-status-dot badge-status-neutral mb-1 d-inline-flex">Off/Holiday</span>
+                                <div class="fw-bold text-dark fs-5 tabular-nums">@m.TodayWeekendOrHoliday</div>
+                            </div>
+                        </a>
                     </div>
                 </div>
-                <div class="col-6 col-md">
-                    <div class="p-3 rounded-3 bg-light border border-light-subtle">
-                        <span class="text-muted small d-block">Late</span>
-                        <h4 class="fw-bold mb-0 mt-1 text-warning">@m.TodayLate</h4>
+            }
+            else
+            {
+                <div class="py-3 px-3.5 rounded-3 d-flex flex-wrap justify-content-between align-items-center gap-2" style="background-color: #f9fafb; border: 1px dashed #eaecf0;">
+                    <div class="d-flex align-items-center gap-2 text-muted small">
+                        <i class="bi bi-clock-history text-secondary"></i>
+                        <span>No attendance recorded yet today.</span>
                     </div>
+                    @if (CurrentUser.HasPermission(Permissions.Attendance.Manage))
+                    {
+                        <a asp-area="Attendance" asp-controller="DailySheet" asp-action="Index" class="btn btn-sm btn-light border text-secondary px-3 py-1 fw-medium rounded-3 shadow-xs">
+                            Open Daily Sheet
+                        </a>
+                    }
                 </div>
-                <div class="col-6 col-md">
-                    <div class="p-3 rounded-3 bg-light border border-light-subtle">
-                        <span class="text-muted small d-block">Half Day</span>
-                        <h4 class="fw-bold mb-0 mt-1 text-info">@m.TodayHalfDay</h4>
-                    </div>
-                </div>
-                <div class="col-6 col-md">
-                    <div class="p-3 rounded-3 bg-light border border-light-subtle">
-                        <span class="text-muted small d-block">Absent</span>
-                        <h4 class="fw-bold mb-0 mt-1 text-danger">@m.TodayAbsent</h4>
-                    </div>
-                </div>
-                <div class="col-6 col-md">
-                    <div class="p-3 rounded-3 bg-light border border-light-subtle">
-                        <span class="text-muted small d-block">On Leave</span>
-                        <h4 class="fw-bold mb-0 mt-1 text-primary">@m.TodayOnLeave</h4>
-                    </div>
-                </div>
-                <div class="col-6 col-md">
-                    <div class="p-3 rounded-3 bg-light border border-light-subtle">
-                        <span class="text-muted small d-block">Holiday / Weekend</span>
-                        <h4 class="fw-bold mb-0 mt-1 text-secondary">@m.TodayWeekendOrHoliday</h4>
-                    </div>
-                </div>
-            </div>
+            }
         </div>
     </div>
 
     <!-- Lower Sections: Recent Check-ins & Upcoming Holidays -->
-    <div class="row g-4">
+    <div class="row g-4 align-items-start">
         <!-- Today's Recent Check-ins -->
         <div class="col-lg-7">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card border-0 shadow-xs" style="border: 1px solid #eaecf0 !important; border-radius: 14px; background: #ffffff;">
                 <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-clock-history text-primary"></i>
-                        <h6 class="fw-bold mb-0 text-dark">Today's Check-in Feed</h6>
-                    </div>
+                    <h6 class="fw-semibold mb-0 text-dark">Today's Check-in Feed</h6>
                     @if (CurrentUser.HasPermission(Permissions.Reports.View))
                     {
-                        <a asp-area="Reports" asp-controller="Reports" asp-action="Attendance" class="btn btn-sm btn-outline-secondary">
+                        <a asp-area="Reports" asp-controller="Reports" asp-action="Attendance" class="btn btn-sm btn-light border text-secondary px-3 py-1.5 fw-medium rounded-3 shadow-xs">
                             Full Attendance Report
                         </a>
                     }
@@ -234,35 +297,35 @@
                     {
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
-                                <thead class="bg-light text-muted small">
-                                    <tr>
-                                        <th class="ps-3 py-2">EMPLOYEE</th>
-                                        <th class="py-2">DEPARTMENT</th>
-                                        <th class="py-2">CHECK IN</th>
-                                        <th class="py-2 text-center">STATUS</th>
+                                <thead style="background-color: #f8fafc; border-bottom: 1px solid #eaecf0;">
+                                    <tr class="text-secondary small fw-semibold" style="font-size: 0.78rem; letter-spacing: 0.01em;">
+                                        <th class="ps-3 py-2.5">EMPLOYEE</th>
+                                        <th class="py-2.5">DEPARTMENT</th>
+                                        <th class="py-2.5">CHECK IN</th>
+                                        <th class="py-2.5 text-center">STATUS</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var item in m.RecentAttendances)
+                                    @foreach (var item in m.RecentAttendances.Take(5))
                                     {
                                         <tr>
                                             <td class="ps-3 py-2">
                                                 <div class="fw-semibold text-dark small">@item.FullName</div>
                                                 <span class="text-muted" style="font-size: 0.75rem;">@item.EmployeeCode</span>
                                             </td>
-                                            <td class="small">@item.Department</td>
-                                            <td class="small">@(item.CheckIn?.ToString("HH:mm") ?? "-")</td>
+                                            <td class="small text-secondary">@item.Department</td>
+                                            <td class="small fw-semibold text-dark tabular-nums">@(item.CheckIn?.ToString("HH:mm") ?? "-")</td>
                                             <td class="text-center">
                                                 @switch (item.Status)
                                                 {
                                                     case Hrms.Attendance.Domain.Enums.AttendanceStatus.Present:
-                                                        <span class="badge bg-success-subtle text-success border border-success-subtle">Present</span>
+                                                        <span class="badge-status-dot badge-status-active">Present</span>
                                                         break;
                                                     case Hrms.Attendance.Domain.Enums.AttendanceStatus.Late:
-                                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Late (@item.LateMinutes m)</span>
+                                                        <span class="badge-status-dot badge-status-warning">Late (@item.LateMinutes m)</span>
                                                         break;
                                                     default:
-                                                        <span class="badge bg-light text-muted border">@item.Status</span>
+                                                        <span class="badge-status-dot badge-status-neutral">@item.Status</span>
                                                         break;
                                                 }
                                             </td>
@@ -271,12 +334,21 @@
                                 </tbody>
                             </table>
                         </div>
+                        @if (m.RecentAttendances.Count > 5)
+                        {
+                            <div class="card-footer bg-white border-top py-2.5 px-3 text-center">
+                                <a asp-area="Reports" asp-controller="Reports" asp-action="Attendance" class="small text-primary fw-medium text-decoration-none d-inline-flex align-items-center gap-1">
+                                    <span>View all (@m.RecentAttendances.Count) check-ins</span>
+                                    <i class="bi bi-arrow-right"></i>
+                                </a>
+                            </div>
+                        }
                     }
                     else
                     {
-                        <div class="text-center py-5 text-muted">
-                            <i class="bi bi-clock fs-1 d-block mb-2 text-secondary opacity-50"></i>
-                            No check-ins recorded yet for today.
+                        <div class="text-center py-4 text-muted small">
+                            <i class="bi bi-clock fs-4 d-block mb-1 text-muted opacity-50"></i>
+                            <span>No check-ins recorded yet for today.</span>
                         </div>
                     }
                 </div>
@@ -285,15 +357,12 @@
 
         <!-- Upcoming Holidays & Fast Shortcuts -->
         <div class="col-lg-5">
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card border-0 shadow-xs mb-4" style="border: 1px solid #eaecf0 !important; border-radius: 14px; background: #ffffff;">
                 <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-calendar-event text-warning"></i>
-                        <h6 class="fw-bold mb-0 text-dark">Upcoming Holidays (30 Days)</h6>
-                    </div>
+                    <h6 class="fw-semibold mb-0 text-dark">Upcoming Holidays (30 Days)</h6>
                     @if (CurrentUser.HasPermission(Permissions.Holidays.View))
                     {
-                        <a asp-area="Calendar" asp-controller="Holidays" asp-action="Index" class="btn btn-sm btn-link text-decoration-none">View All</a>
+                        <a asp-area="Calendar" asp-controller="Holidays" asp-action="Index" class="btn btn-sm btn-light border text-secondary px-2.5 py-1 fw-medium rounded-3 shadow-xs" style="font-size: 0.78rem;">View All</a>
                     }
                 </div>
                 <div class="card-body p-3 pt-0">
@@ -302,12 +371,12 @@
                         <div class="list-group list-group-flush">
                             @foreach (var h in m.UpcomingHolidays)
                             {
-                                <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-0 border-bottom">
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2.5 border-0 border-bottom" style="border-color: #f2f4f7 !important;">
                                     <div>
                                         <div class="fw-semibold text-dark small">@h.Name</div>
-                                        <small class="text-muted">@h.HolidayDate.ToString("MMMM dd, yyyy") (@h.Type)</small>
+                                        <small class="text-muted" style="font-size: 0.74rem;">@h.HolidayDate.ToString("MMMM dd, yyyy") (@h.Type)</small>
                                     </div>
-                                    <span class="badge bg-light text-primary border">In @h.DaysUntil days</span>
+                                    <span class="badge bg-light text-secondary border fw-medium" style="font-size: 0.72rem;">In @h.DaysUntil days</span>
                                 </div>
                             }
                         </div>
@@ -322,34 +391,40 @@
             </div>
 
             <!-- Quick Access Shortcuts -->
-            <div class="card border-0 shadow-sm rounded-4">
+            <div class="card border-0 shadow-xs" style="border: 1px solid #eaecf0 !important; border-radius: 14px; background: #ffffff;">
                 <div class="card-header bg-white border-0 py-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-lightning-charge-fill text-primary"></i>
-                        <h6 class="fw-bold mb-0 text-dark">Quick Navigation</h6>
-                    </div>
+                    <h6 class="fw-semibold mb-0 text-dark">Quick Navigation</h6>
                 </div>
                 <div class="card-body p-3 pt-0">
                     <div class="d-grid gap-2">
                         @if (CurrentUser.HasPermission(Permissions.Reports.View))
                         {
-                            <a asp-area="Reports" asp-controller="Reports" asp-action="Index" class="btn btn-light text-start d-flex justify-content-between align-items-center">
-                                <span><i class="bi bi-file-earmark-bar-graph me-2 text-primary"></i>Reports Center & Excel Export</span>
-                                <i class="bi bi-chevron-right text-muted small"></i>
+                            <a asp-area="Reports" asp-controller="Reports" asp-action="Index" class="btn btn-light border text-secondary text-start d-flex justify-content-between align-items-center p-2.5 rounded-3 shadow-xs" style="border-color: #d0d5dd !important;">
+                                <span class="fw-medium small text-dark d-flex align-items-center gap-2 min-w-0">
+                                    <i class="bi bi-file-earmark-bar-graph text-primary flex-shrink-0"></i>
+                                    <span class="text-truncate" title="Reports Center & Excel Export">Reports Center &amp; Excel Export</span>
+                                </span>
+                                <i class="bi bi-chevron-right text-muted small ms-2 flex-shrink-0"></i>
                             </a>
                         }
                         @if (CurrentUser.HasPermission(Permissions.Employees.Manage))
                         {
-                            <a asp-area="Employees" asp-controller="Employees" asp-action="Create" class="btn btn-light text-start d-flex justify-content-between align-items-center">
-                                <span><i class="bi bi-person-plus me-2 text-success"></i>Onboard New Employee</span>
-                                <i class="bi bi-chevron-right text-muted small"></i>
+                            <a asp-area="Employees" asp-controller="Employees" asp-action="Create" class="btn btn-light border text-secondary text-start d-flex justify-content-between align-items-center p-2.5 rounded-3 shadow-xs" style="border-color: #d0d5dd !important;">
+                                <span class="fw-medium small text-dark d-flex align-items-center gap-2 min-w-0">
+                                    <i class="bi bi-person-plus text-success flex-shrink-0"></i>
+                                    <span class="text-truncate" title="Onboard New Employee">Onboard New Employee</span>
+                                </span>
+                                <i class="bi bi-chevron-right text-muted small ms-2 flex-shrink-0"></i>
                             </a>
                         }
                         @if (CurrentUser.HasPermission(Permissions.Attendance.Manage))
                         {
-                            <a asp-area="Attendance" asp-controller="DailySheet" asp-action="Index" class="btn btn-light text-start d-flex justify-content-between align-items-center">
-                                <span><i class="bi bi-calendar-check me-2 text-info"></i>Daily Attendance Sheet</span>
-                                <i class="bi bi-chevron-right text-muted small"></i>
+                            <a asp-area="Attendance" asp-controller="DailySheet" asp-action="Index" class="btn btn-light border text-secondary text-start d-flex justify-content-between align-items-center p-2.5 rounded-3 shadow-xs" style="border-color: #d0d5dd !important;">
+                                <span class="fw-medium small text-dark d-flex align-items-center gap-2 min-w-0">
+                                    <i class="bi bi-calendar-check text-info flex-shrink-0"></i>
+                                    <span class="text-truncate" title="Daily Attendance Sheet">Daily Attendance Sheet</span>
+                                </span>
+                                <i class="bi bi-chevron-right text-muted small ms-2 flex-shrink-0"></i>
                             </a>
                         }
                     </div>

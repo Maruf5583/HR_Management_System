@@ -133,4 +133,31 @@ public class DepartmentService : IDepartmentService
         await _repository.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
+
+    public async Task<Result> DeleteDepartmentAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var department = await _context.Departments
+            .Include(d => d.Designations)
+            .FirstOrDefaultAsync(d => d.DepartmentId == id, cancellationToken);
+
+        if (department == null)
+        {
+            return Result.Failure(new Error("Department.NotFound", "Department not found."));
+        }
+
+        var hasEmployees = await _context.Employees.AnyAsync(e => e.DepartmentId == id, cancellationToken);
+        if (hasEmployees)
+        {
+            return Result.Failure(new Error("Department.HasEmployees", "Cannot delete department because employees are currently assigned to it. Please reassign or remove employees first."));
+        }
+
+        if (department.Designations.Any())
+        {
+            return Result.Failure(new Error("Department.HasDesignations", "Cannot delete department because designations are mapped to it. Please remove or reassign designations first."));
+        }
+
+        _context.Departments.Remove(department);
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
 }

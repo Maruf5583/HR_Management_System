@@ -1,4 +1,4 @@
-using Hrms.Employees.Application.Models;
+﻿using Hrms.Employees.Application.Models;
 using Hrms.Employees.Application.Services;
 using Hrms.Employees.Domain.Enums;
 using Hrms.Identity.Application.Models;
@@ -49,6 +49,14 @@ public class EmployeesController : Controller
         var departments = await _departmentService.GetDepartmentsAsync();
         var designations = await _designationService.GetDesignationsAsync(filter.DepartmentId);
 
+        // Compute top KPI card summary metrics across all employees
+        var allEmployeesResult = await _employeeService.GetEmployeesAsync(new EmployeeFilterDto { PageSize = 1000 });
+        var all = allEmployeesResult.Items;
+        var totalExcludingTerminated = all.Count(e => e.Status != EmployeeStatus.Terminated);
+        var activeCount = all.Count(e => e.Status == EmployeeStatus.Active);
+        var probationCount = all.Count(e => e.EmploymentType == EmploymentType.Probation);
+        var onNoticeCount = all.Count(e => e.Status == EmployeeStatus.OnNotice);
+
         var viewModel = new EmployeeIndexViewModel
         {
             Filter = filter,
@@ -56,7 +64,11 @@ public class EmployeesController : Controller
             DepartmentOptions = departments.Where(d => d.Status == EntityStatus.Active)
                 .Select(d => new SelectListItem(d.Name, d.Id.ToString(), d.Id == filter.DepartmentId)),
             DesignationOptions = designations.Where(d => d.Status == EntityStatus.Active)
-                .Select(d => new SelectListItem(d.Title, d.Id.ToString(), d.Id == filter.DesignationId))
+                .Select(d => new SelectListItem(d.Title, d.Id.ToString(), d.Id == filter.DesignationId)),
+            TotalCount = totalExcludingTerminated,
+            ActiveCount = activeCount,
+            ProbationCount = probationCount,
+            OnNoticeCount = onNoticeCount
         };
 
         return View(viewModel);
@@ -377,6 +389,98 @@ public class EmployeesController : Controller
     }
 
     [HttpPost]
+    [Authorize(Policy = Permissions.Employees.Manage)]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> BulkAction(List<Guid> employeeIds, string actionType)
+    {
+        if (employeeIds == null || employeeIds.Count == 0)
+        {
+            TempData["ErrorMessage"] = "No employees selected.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        int successCount = 0;
+        var normalizedAction = actionType?.Trim().ToLowerInvariant();
+
+        foreach (var id in employeeIds)
+        {
+            try
+            {
+                var emp = await _employeeService.GetEmployeeDetailsAsync(id, canViewNid: false);
+                if (emp == null) continue;
+
+                if (normalizedAction == "activate")
+                {
+                    var res = await _employeeService.ChangeStatusAsync(new ChangeEmployeeStatusModel(id, EmployeeStatus.Active, null, emp.RowVersion));
+                    if (res.IsSuccess) successCount++;
+                }
+                else if (normalizedAction == "probation")
+                {
+                    var updateModel = new UpdateEmployeeModel(
+                        emp.EmployeeId,
+                        emp.FirstName,
+                        emp.LastName,
+                        emp.Email,
+                        emp.Phone,
+                        emp.DateOfBirth,
+                        emp.Gender,
+                        emp.Address,
+                        emp.NidNumber,
+                        emp.JoinDate,
+                        EmploymentType.Probation,
+                        emp.DepartmentId,
+                        emp.DesignationId,
+                        emp.GradeId,
+                        emp.EmergencyContactName,
+                        emp.EmergencyContactPhone,
+                        emp.RowVersion
+                    );
+                    var res = await _employeeService.UpdateEmployeeAsync(updateModel);
+                    if (res.IsSuccess)
+                    {
+                        if (emp.Status != EmployeeStatus.Active)
+                        {
+                            var refreshed = await _employeeService.GetEmployeeDetailsAsync(id, canViewNid: false);
+                            if (refreshed != null)
+                            {
+                                await _employeeService.ChangeStatusAsync(new ChangeEmployeeStatusModel(id, EmployeeStatus.Active, null, refreshed.RowVersion));
+                            }
+                        }
+                        successCount++;
+                    }
+                }
+                else if (normalizedAction == "deactivate")
+                {
+                    var res = await _employeeService.ChangeStatusAsync(new ChangeEmployeeStatusModel(id, EmployeeStatus.Terminated, DateOnly.FromDateTime(DateTime.Today), emp.RowVersion));
+                    if (res.IsSuccess) successCount++;
+                }
+            }
+            catch
+            {
+                // Continue with remaining selected employees
+            }
+        }
+
+        if (successCount > 0)
+        {
+            var actionLabel = normalizedAction switch
+            {
+                "activate" => "activated",
+                "probation" => "set to probation",
+                "deactivate" => "deactivated",
+                _ => "updated"
+            };
+            TempData["SuccessMessage"] = $"Successfully {actionLabel} {successCount} employee(s).";
+        }
+        else
+        {
+            TempData["ErrorMessage"] = "Could not update the selected employees.";
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
     [Authorize]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(1_200_000)] // ~1.2 MB upload limit
@@ -450,6 +554,74 @@ public class EmployeesController : Controller
             : RedirectToAction(nameof(Details), new { id });
     }
 
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdatePersonalDetails(UpdatePersonalDetailsInputModel model)
+    {
+        var canManage = _currentUser.HasPermission(Permissions.Employees.Manage);
+        var isOwnProfile = _currentUser.EmployeeId.HasValue && _currentUser.EmployeeId.Value == model.EmployeeId;
+
+        if (!canManage && !isOwnProfile)
+        {
+            return Forbid();
+        }
+
+        var result = await _employeeService.UpdatePersonalDetailsAsync(
+            model.EmployeeId,
+            model.DateOfBirth,
+            model.Gender,
+            model.Address
+        );
+
+        if (!result.IsSuccess)
+        {
+            TempData["ErrorMessage"] = result.Error.Message;
+        }
+        else
+        {
+            TempData["SuccessMessage"] = "Personal information updated successfully.";
+        }
+
+        return isOwnProfile && !canManage 
+            ? RedirectToAction(nameof(MyProfile)) 
+            : RedirectToAction(nameof(Details), new { id = model.EmployeeId });
+    }
+
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateContactDetails(UpdateContactDetailsInputModel model)
+    {
+        var canManage = _currentUser.HasPermission(Permissions.Employees.Manage);
+        var isOwnProfile = _currentUser.EmployeeId.HasValue && _currentUser.EmployeeId.Value == model.EmployeeId;
+
+        if (!canManage && !isOwnProfile)
+        {
+            return Forbid();
+        }
+
+        var result = await _employeeService.UpdateContactDetailsAsync(
+            model.EmployeeId,
+            model.Phone,
+            model.EmergencyContactName,
+            model.EmergencyContactPhone
+        );
+
+        if (!result.IsSuccess)
+        {
+            TempData["ErrorMessage"] = result.Error.Message;
+        }
+        else
+        {
+            TempData["SuccessMessage"] = "Contact and emergency details updated successfully.";
+        }
+
+        return isOwnProfile && !canManage 
+            ? RedirectToAction(nameof(MyProfile)) 
+            : RedirectToAction(nameof(Details), new { id = model.EmployeeId });
+    }
+
     // AJAX Cascading Dropdown Endpoints
     [HttpGet]
     [Authorize(Policy = Permissions.Employees.View)]
@@ -505,4 +677,36 @@ public class EmployeesController : Controller
 
         model.CanViewNid = _currentUser.HasPermission(Permissions.Employees.ViewNid);
     }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = Permissions.Employees.Manage)]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var result = await _employeeService.DeleteEmployeeAsync(id);
+        if (!result.IsSuccess)
+        {
+            TempData["ErrorMessage"] = result.Error.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        TempData["SuccessMessage"] = "Employee deleted successfully.";
+        return RedirectToAction(nameof(Index));
+    }
+}
+
+public class UpdatePersonalDetailsInputModel
+{
+    public Guid EmployeeId { get; set; }
+    public DateOnly? DateOfBirth { get; set; }
+    public string? Gender { get; set; }
+    public string? Address { get; set; }
+}
+
+public class UpdateContactDetailsInputModel
+{
+    public Guid EmployeeId { get; set; }
+    public string? Phone { get; set; }
+    public string? EmergencyContactName { get; set; }
+    public string? EmergencyContactPhone { get; set; }
 }

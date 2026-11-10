@@ -8,6 +8,7 @@ using Hrms.Shared.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Hrms.Web.Areas.Assets.Models;
 
 namespace Hrms.Web.Areas.Assets.Controllers;
 
@@ -42,6 +43,8 @@ public class AssetsController : Controller
     {
         const int pageSize = 15;
         var pagedResult = await _assetService.GetAssetsAsync(search, category, status, page, pageSize);
+        var metrics = await _assetService.GetAssetDashboardMetricsAsync();
+        ViewBag.Metrics = metrics;
 
         ViewBag.Search = search;
         ViewBag.Category = category;
@@ -310,7 +313,115 @@ public class AssetsController : Controller
         }
 
         var myAssets = await _assetService.GetMyAssetsAsync(employeeId.Value);
-        return View(myAssets);
+        var myRequests = await _assetService.GetMyAssetRequestsAsync(employeeId.Value);
+
+        var viewModel = new MyAssetsViewModel
+        {
+            AllocatedAssets = myAssets,
+            MyRequests = myRequests
+        };
+
+        return View(viewModel);
+    }
+
+    [Authorize(Policy = Permissions.Assets.ViewOwn)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CancelRequest(Guid requestId)
+    {
+        var employeeId = _currentUser.EmployeeId;
+        if (!employeeId.HasValue)
+        {
+            return View("NoLinkedEmployee");
+        }
+
+        var result = await _assetService.CancelAssetRequestAsync(requestId, employeeId.Value);
+        if (!result.IsSuccess)
+        {
+            TempData["ErrorMessage"] = result.Error.Message;
+        }
+        else
+        {
+            TempData["SuccessMessage"] = "Equipment issue / change request was cancelled successfully.";
+        }
+
+        return RedirectToAction(nameof(My));
+    }
+
+
+    [Authorize(Policy = Permissions.Assets.ViewOwn)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ReportIssue(Guid assetId, string issueType, string description)
+    {
+        var employeeId = _currentUser.EmployeeId;
+        if (!employeeId.HasValue)
+        {
+            return View("NoLinkedEmployee");
+        }
+
+        if (string.IsNullOrWhiteSpace(description))
+        {
+            TempData["ErrorMessage"] = "Please provide details or a description of the issue/request.";
+            return RedirectToAction(nameof(My));
+        }
+
+        var myAssets = await _assetService.GetMyAssetsAsync(employeeId.Value);
+        var asset = myAssets.FirstOrDefault(a => a.AssetId == assetId);
+        if (asset == null)
+        {
+            TempData["ErrorMessage"] = "Specified asset not found or not currently assigned to you.";
+            return RedirectToAction(nameof(My));
+        }
+
+        var result = await _assetService.ReportAssetIssueAsync(new CreateAssetRequestCommand(
+            assetId,
+            employeeId.Value,
+            string.IsNullOrWhiteSpace(issueType) ? "Malfunction" : issueType,
+            description));
+
+        if (!result.IsSuccess)
+        {
+            TempData["ErrorMessage"] = result.Error.Message;
+            return RedirectToAction(nameof(My));
+        }
+
+        TempData["SuccessMessage"] = $"Your issue report / change request for '{asset.AssetTag} ({asset.Name})' has been submitted to IT/Admin.";
+        return RedirectToAction(nameof(My));
+    }
+
+    [Authorize(Policy = Permissions.Assets.Manage)]
+    [HttpGet]
+    public async Task<IActionResult> Requests(string? search, AssetRequestStatus? status, int page = 1)
+    {
+        var result = await _assetService.GetAssetRequestsAsync(search, status, page, 10);
+        ViewBag.Search = search;
+        ViewBag.Status = status;
+        return View(result);
+    }
+
+    [Authorize(Policy = Permissions.Assets.Manage)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResolveRequest(Guid requestId, AssetRequestStatus status, string? adminNotes)
+    {
+        var adminUserId = _currentUser.UserId ?? Guid.Empty;
+        var result = await _assetService.ResolveAssetRequestAsync(new ResolveAssetRequestCommand(
+            requestId,
+            status,
+            adminNotes,
+            adminUserId));
+
+        if (!result.IsSuccess)
+        {
+            TempData["ErrorMessage"] = result.Error.Message;
+        }
+        else
+        {
+            TempData["SuccessMessage"] = $"Asset request status updated to '{status}'.";
+        }
+
+        return RedirectToAction(nameof(Requests));
     }
 
     private async Task PopulateEmployeesDropdownAsync()

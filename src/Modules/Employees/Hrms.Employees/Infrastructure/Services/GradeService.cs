@@ -190,4 +190,23 @@ public class GradeService : IGradeService
         await _repository.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
+
+    public async Task<Result> DeleteGradeAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var grade = await _context.Grades.FirstOrDefaultAsync(g => g.GradeId == id, cancellationToken);
+        if (grade == null)
+        {
+            return Result.Failure(new Error("Grade.NotFound", "Grade not found."));
+        }
+
+        var hasEmployees = await _context.Employees.AnyAsync(e => e.GradeId == id, cancellationToken);
+        if (hasEmployees)
+        {
+            return Result.Failure(new Error("Grade.HasEmployees", "Cannot delete grade because employees currently hold it. Please reassign employees first."));
+        }
+
+        _context.Grades.Remove(grade);
+        await _context.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
 }
