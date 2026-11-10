@@ -12,6 +12,12 @@ public class EmployeeIndexViewModel
     public PagedResult<EmployeeListItemDto> PagedEmployees { get; set; } = new(Array.Empty<EmployeeListItemDto>(), 0, 1, 10);
     public IEnumerable<SelectListItem> DepartmentOptions { get; set; } = Enumerable.Empty<SelectListItem>();
     public IEnumerable<SelectListItem> DesignationOptions { get; set; } = Enumerable.Empty<SelectListItem>();
+
+    // Top Summary KPI Metrics
+    public int TotalCount { get; set; }
+    public int ActiveCount { get; set; }
+    public int ProbationCount { get; set; }
+    public int OnNoticeCount { get; set; }
 }
 
 public class EmployeeFormViewModel

@@ -67,6 +67,9 @@ public class EmployeeService : IEmployeeService
                 e.EmployeeCode.ToLower().Contains(search) ||
                 e.FirstName.ToLower().Contains(search) ||
                 e.LastName.ToLower().Contains(search) ||
+                (e.FirstName + " " + e.LastName).ToLower().Contains(search) ||
+                (e.Designation != null && e.Designation.Department != null && e.Designation.Department.Name.ToLower().Contains(search)) ||
+                (e.Designation != null && e.Designation.Title.ToLower().Contains(search)) ||
                 (e.Email != null && e.Email.ToLower().Contains(search)) ||
                 (e.Phone != null && e.Phone.ToLower().Contains(search)));
         }
@@ -376,6 +379,56 @@ public class EmployeeService : IEmployeeService
         }
     }
 
+    public async Task<Result> UpdatePersonalDetailsAsync(
+        Guid employeeId,
+        DateOnly? dateOfBirth,
+        string? gender,
+        string? address,
+        CancellationToken cancellationToken = default)
+    {
+        var employee = await _repository.GetByIdAsync(employeeId, cancellationToken);
+        if (employee == null)
+        {
+            return Result.Failure(new Error("Employee.NotFound", "Employee not found."));
+        }
+
+        var dobValidation = EmployeeRuleValidator.ValidateDateOfBirth(dateOfBirth);
+        if (!dobValidation.IsSuccess)
+        {
+            return Result.Failure(dobValidation.Error);
+        }
+
+        employee.DateOfBirth = dateOfBirth;
+        employee.Gender = string.IsNullOrWhiteSpace(gender) ? null : gender.Trim();
+        employee.Address = string.IsNullOrWhiteSpace(address) ? null : address.Trim();
+        employee.UpdatedAtUtc = DateTime.UtcNow;
+
+        await _repository.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+
+    public async Task<Result> UpdateContactDetailsAsync(
+        Guid employeeId,
+        string? phone,
+        string? emergencyContactName,
+        string? emergencyContactPhone,
+        CancellationToken cancellationToken = default)
+    {
+        var employee = await _repository.GetByIdAsync(employeeId, cancellationToken);
+        if (employee == null)
+        {
+            return Result.Failure(new Error("Employee.NotFound", "Employee not found."));
+        }
+
+        employee.Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
+        employee.EmergencyContactName = string.IsNullOrWhiteSpace(emergencyContactName) ? null : emergencyContactName.Trim();
+        employee.EmergencyContactPhone = string.IsNullOrWhiteSpace(emergencyContactPhone) ? null : emergencyContactPhone.Trim();
+        employee.UpdatedAtUtc = DateTime.UtcNow;
+
+        await _repository.SaveChangesAsync(cancellationToken);
+        return Result.Success();
+    }
+
     public async Task<Result<string>> UploadPhotoAsync(UploadPhotoModel model, CancellationToken cancellationToken = default)
     {
         var employee = await _repository.GetByIdAsync(model.EmployeeId, cancellationToken);
@@ -470,5 +523,32 @@ public class EmployeeService : IEmployeeService
             .OrderBy(g => g.Level)
             .Select(g => new LookupItemDto(g.GradeId, $"{g.Level} ({g.Code}) - {g.Salary:C}"))
             .ToListAsync(cancellationToken);
+    }
+
+    public async Task<Result> DeleteEmployeeAsync(Guid employeeId, CancellationToken cancellationToken = default)
+    {
+        var employee = await _context.Employees
+            .Include(e => e.BankDetails)
+            .FirstOrDefaultAsync(e => e.EmployeeId == employeeId, cancellationToken);
+
+        if (employee == null)
+        {
+            return Result.Failure(new Error("Employee.NotFound", "Employee not found."));
+        }
+
+        try
+        {
+            _context.Employees.Remove(employee);
+            await _context.SaveChangesAsync(cancellationToken);
+            return Result.Success();
+        }
+        catch (Exception)
+        {
+            // If relational constraints (e.g. attendance, audit, leaves) prevent physical deletion, gracefully mark Terminated
+            employee.Status = EmployeeStatus.Terminated;
+            employee.ExitDate = DateOnly.FromDateTime(DateTime.Today);
+            await _context.SaveChangesAsync(cancellationToken);
+            return Result.Success();
+        }
     }
 }

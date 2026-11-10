@@ -1,4 +1,4 @@
-using Hrms.Assets.Domain.Enums;
+﻿using Hrms.Assets.Domain.Enums;
 
 namespace Hrms.Assets.Application.Models;
 
@@ -97,4 +97,50 @@ public class MyAssetDto
     public AssetCondition Condition { get; set; }
     public DateTime AssignedAtUtc { get; set; }
     public string? Note { get; set; }
+}
+
+
+public record CreateAssetRequestCommand(
+    Guid AssetId,
+    Guid EmployeeId,
+    string IssueType,
+    string Description);
+
+public record ResolveAssetRequestCommand(
+    Guid RequestId,
+    AssetRequestStatus Status,
+    string? AdminNotes,
+    Guid AdminUserId);
+
+public class AssetRequestDto
+{
+    public Guid RequestId { get; set; }
+    public Guid AssetId { get; set; }
+    public string AssetTag { get; set; } = string.Empty;
+    public string AssetName { get; set; } = string.Empty;
+    public AssetCategory Category { get; set; }
+    public Guid EmployeeId { get; set; }
+    public string EmployeeName { get; set; } = string.Empty;
+    public string EmployeeCode { get; set; } = string.Empty;
+    public string? EmployeeDepartment { get; set; }
+    public string IssueType { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public AssetRequestStatus Status { get; set; }
+    public string? AdminNotes { get; set; }
+    public DateTime CreatedAtUtc { get; set; }
+    public DateTime? ResolvedAtUtc { get; set; }
+}
+
+public class AssetDashboardMetricsDto
+{
+    public int TotalAssets { get; set; }
+    public int AssignedAssets { get; set; }
+    public int AvailableAssets { get; set; }
+    public int InRepairAssets { get; set; }
+    public int RetiredAssets { get; set; }
+    public int PendingRequestsCount { get; set; }
+    public Dictionary<AssetCategory, int> CategoryCounts { get; set; } = new();
+    public Dictionary<AssetCondition, int> ConditionCounts { get; set; } = new();
+    public List<AssetRequestDto> RecentRequests { get; set; } = new();
+    public List<AssetListItemDto> RecentAssignments { get; set; } = new();
 }

@@ -1,66 +1,138 @@
 @model ShiftListViewModel
 @{
-    ViewData["Title"] = "Work Shifts Management";
+    ViewData["Title"] = "Work Shifts";
+    ViewData["Subtitle"] = "Manage organizational shift schedules, timing versions, and overnight work policies";
 }
 
 <partial name="_CalendarNav" />
 
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-    <div>
-        <h4 class="fw-bold mb-1"><i class="bi bi-clock-history me-2 text-primary"></i>Work Shifts</h4>
-        <p class="text-muted small mb-0">Manage organizational shift schedules, timing versions, and overnight shifts</p>
-    </div>
-    <div class="d-flex gap-2">
-        <a asp-controller="ShiftAssignments" asp-action="Index" class="btn btn-outline-primary d-flex align-items-center gap-2">
-            <i class="bi bi-person-lines-fill"></i> Shift Assignments
-        </a>
-        <a asp-action="Create" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm">
-            <i class="bi bi-plus-lg"></i> Add New Shift
-        </a>
-    </div>
-</div>
 
 @if (TempData["SuccessMessage"] != null)
 {
-    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-3" role="alert" style="border-radius: 12px; background-color: #ecfdf3; color: #027a48;">
         <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
 @if (TempData["ErrorMessage"] != null)
 {
-    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm mb-3" role="alert" style="border-radius: 12px; background-color: #fef3f2; color: #b42318;">
         <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 }
 
-<!-- Filters Bar with Explicit Count Badges -->
-<div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
-    <div class="card-body py-3">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <div class="btn-group">
-                <a asp-action="Index" asp-route-status="" class="btn btn-sm @(!Model.StatusFilter.HasValue ? "btn-primary" : "btn-light border")">
-                    All Shifts <span class="badge @(!Model.StatusFilter.HasValue ? "bg-white text-primary" : "bg-secondary") ms-1">@Model.TotalCount</span>
-                </a>
-                <a asp-action="Index" asp-route-status="Active" class="btn btn-sm @(Model.StatusFilter == ShiftStatus.Active ? "btn-success text-white" : "btn-light border")">
-                    Active <span class="badge @(Model.StatusFilter == ShiftStatus.Active ? "bg-white text-success" : "bg-success-subtle text-success border") ms-1">@Model.ActiveCount</span>
-                </a>
-                <a asp-action="Index" asp-route-status="Inactive" class="btn btn-sm @(Model.StatusFilter == ShiftStatus.Inactive ? "btn-secondary" : "btn-light border")">
-                    Inactive <span class="badge @(Model.StatusFilter == ShiftStatus.Inactive ? "bg-white text-secondary" : "bg-secondary-subtle text-secondary border") ms-1">@Model.InactiveCount</span>
-                </a>
+<!-- Top 4 Summary KPI Cards (EmplowHR Reference Layout) -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-xs p-3 h-100" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">TOTAL SHIFTS</span>
+                <span class="badge bg-light text-secondary border fw-medium" style="font-size: 0.7rem;">Schedules</span>
             </div>
-            <span class="text-muted small">
-                <i class="bi bi-shield-lock me-1"></i>Modifying shift timings creates a new version to preserve historical schedule accuracy.
-            </span>
+            <div class="fw-bold text-dark mb-1 tabular-nums" style="font-size: 1.75rem; line-height: 1.2;">@Model.TotalCount</div>
+            <div class="text-muted small" style="font-size: 0.76rem;">Configured schedules</div>
         </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-xs p-3 h-100" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">ACTIVE</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle fw-medium" style="font-size: 0.7rem;">Live</span>
+            </div>
+            <div class="fw-bold text-dark mb-1 tabular-nums" style="font-size: 1.75rem; line-height: 1.2;">@Model.ActiveCount</div>
+            <div class="text-muted small" style="font-size: 0.76rem;">Operational shifts</div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-xs p-3 h-100" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">INACTIVE</span>
+                <span class="badge bg-light text-secondary border fw-medium" style="font-size: 0.7rem;">Paused</span>
+            </div>
+            <div class="fw-bold text-dark mb-1 tabular-nums" style="font-size: 1.75rem; line-height: 1.2;">@Model.InactiveCount</div>
+            <div class="text-muted small" style="font-size: 0.76rem;">Paused / archived</div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-xs p-3 h-100" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">STAFF ASSIGNED</span>
+                <span class="badge bg-light text-secondary border fw-medium" style="font-size: 0.7rem;">Rostered</span>
+            </div>
+            <div class="fw-bold text-dark mb-1 tabular-nums" style="font-size: 1.75rem; line-height: 1.2;">@Model.Shifts.Sum(s => s.ActiveEmployeeCount)</div>
+            <div class="text-muted small" style="font-size: 0.76rem;">Active personnel rostered</div>
+        </div>
+    </div>
+</div>
+
+<!-- EmplowHR-Inspired Unified Filter Bar -->
+<div class="table-filter-bar mb-4">
+    <!-- Instant Search Input -->
+    <div class="table-search-box">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" id="shiftSearchInput" class="table-search-input" placeholder="Search shifts by name..." oninput="filterShifts()" />
+    </div>
+
+    <!-- Status Dropdown Pill -->
+    <div class="dropdown">
+        <button class="filter-pill-dropdown" id="statusFilterBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span id="selectedStatusText">@(Model.StatusFilter.HasValue ? Model.StatusFilter.Value.ToString() : "All Statuses")</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search statuses..." autocomplete="off" />
+            </div>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                <li>
+                    <a class="dropdown-item @(!Model.StatusFilter.HasValue ? "active" : "")" asp-action="Index" asp-route-status="">
+                        <span>All Statuses</span>
+                        @if (!Model.StatusFilter.HasValue) { <i class="bi bi-check2"></i> }
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item @(Model.StatusFilter == ShiftStatus.Active ? "active" : "")" asp-action="Index" asp-route-status="Active">
+                        <span>Active</span>
+                        @if (Model.StatusFilter == ShiftStatus.Active) { <i class="bi bi-check2"></i> }
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item @(Model.StatusFilter == ShiftStatus.Inactive ? "active" : "")" asp-action="Index" asp-route-status="Inactive">
+                        <span>Inactive</span>
+                        @if (Model.StatusFilter == ShiftStatus.Inactive) { <i class="bi bi-check2"></i> }
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Reset Filter Button -->
+    <button type="button" class="btn-reset-filters d-none" id="resetFiltersBtn" onclick="resetShiftFilters()" title="Reset search">
+        <i class="bi bi-arrow-counterclockwise"></i>
+        <span>Reset</span>
+    </button>
+
+    <!-- Actions -->
+    <div class="d-flex align-items-center gap-2 ms-auto">
+        <a asp-controller="ShiftAssignments" asp-action="Index" class="btn btn-outline-secondary px-3 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center" style="height: 40px; font-size: 0.875rem; white-space: nowrap;">
+            Shift Assignments
+        </a>
+        <a asp-action="Create" class="btn btn-primary px-3 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center gap-1.5" style="height: 40px; font-size: 0.875rem; white-space: nowrap;">
+            <i class="bi bi-plus-lg"></i>
+            <span>Add shift</span>
+        </a>
     </div>
 </div>
 
 <!-- Shifts Cards Grid -->
 @if (!Model.Shifts.Any())
 {
-    <div class="card border-0 shadow-sm text-center py-5" style="border-radius: 14px;">
+    <div class="card border-0 shadow-sm text-center py-5" style="border-radius: 14px; border: 1px solid #eaecf0 !important;">
         <div class="card-body">
             <i class="bi bi-calendar-x fs-1 text-muted d-block mb-3"></i>
             <h5 class="fw-semibold text-dark">No Shifts Found</h5>
@@ -81,18 +153,18 @@
 }
 else
 {
-    <div class="row g-4">
+    <div class="row g-4 align-items-start" id="shiftsGrid">
         @foreach (var s in Model.Shifts)
         {
             var v = s.CurrentVersion;
             var isNight = v?.IsNightShift ?? false;
-            <div class="col-md-6 col-lg-4">
-                <div class="card border-0 shadow-sm h-100 position-relative" style="border-radius: 14px; transition: transform 0.15s ease;">
+            <div class="col-md-6 col-lg-4 shift-card-col" data-name="@s.Name.ToLowerInvariant()" data-status="@s.Status">
+                <div class="card border-0 shadow-xs h-100 position-relative" style="border-radius: 14px; border: 1px solid #eaecf0 !important; transition: transform 0.15s ease;">
                     <div class="card-body p-4 d-flex flex-column justify-content-between">
                         <div>
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <div>
-                                    <h5 class="fw-bold mb-1 text-dark">@s.Name</h5>
+                                    <h5 class="fw-semibold mb-1 text-dark">@s.Name</h5>
                                     <span class="text-muted small" style="font-size: 0.8rem;">
                                         <i class="bi bi-layers me-1"></i>@s.VersionCount Version(s)
                                     </span>
@@ -100,40 +172,39 @@ else
                                 <div class="d-flex align-items-center gap-2">
                                     @if (s.Status == ShiftStatus.Active)
                                     {
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Active</span>
+                                        <span class="badge-status-dot badge-status-active">Active</span>
                                     }
                                     else
                                     {
-                                        <span class="badge bg-secondary-subtle text-secondary border px-2 py-1">Inactive</span>
+                                        <span class="badge-status-dot badge-status-neutral">Inactive</span>
                                     }
                                 </div>
                             </div>
 
                             @if (v != null)
                             {
-                                <div class="p-3 rounded bg-light mb-3">
+                                <div class="p-3 rounded-3 mb-3" style="background: #f8fafc; border: 1px solid #eaecf0;">
                                     <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <span class="fw-bold fs-5 text-dark">
-                                            <i class="bi bi-clock me-1 text-primary"></i>
+                                        <span class="fw-bold fs-5 text-dark tabular-nums">
                                             @DateTime.Today.Add(v.StartTime).ToString("hh:mm tt") - @DateTime.Today.Add(v.EndTime).ToString("hh:mm tt")
                                         </span>
                                         @if (isNight)
                                         {
-                                            <span class="badge bg-dark text-white px-2 py-1" title="Shift spans across midnight">
-                                                <i class="bi bi-moon-stars me-1 text-warning"></i>Overnight
+                                            <span class="badge bg-dark text-white px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;" title="Shift spans across midnight">
+                                                Overnight
                                             </span>
                                         }
                                     </div>
                                     <div class="d-flex justify-content-between text-muted small" style="font-size: 0.78rem;">
-                                        <span>Grace: <strong>@v.GraceMinutes m</strong></span>
-                                        <span>Break: <strong>@v.BreakMinutes m</strong></span>
-                                        <span>Net Work: <strong>@v.NetWorkingSpan.TotalHours.ToString("0.#") hrs</strong></span>
+                                        <span>Grace: <strong class="text-dark">@v.GraceMinutes m</strong></span>
+                                        <span>Break: <strong class="text-dark">@v.BreakMinutes m</strong></span>
+                                        <span>Net: <strong class="text-dark">@v.NetWorkingSpan.TotalHours.ToString("0.#") hrs</strong></span>
                                     </div>
                                 </div>
                             }
                             else
                             {
-                                <div class="alert alert-warning py-2 px-3 small border-0 mb-3">
+                                <div class="alert alert-warning py-2 px-3 small border-0 mb-3" style="border-radius: 8px;">
                                     <i class="bi bi-exclamation-triangle me-1"></i>No version timings configured.
                                 </div>
                             }
@@ -160,20 +231,19 @@ else
                         <!-- Card Action Buttons -->
                         <div class="pt-3 border-top mt-2">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <a asp-action="Details" asp-route-id="@s.ShiftId" class="btn btn-outline-primary btn-sm px-3 fw-semibold flex-grow-1 me-2">
-                                    <i class="bi bi-eye me-1"></i>View Details & Versions
+                                <a asp-action="Details" asp-route-id="@s.ShiftId" class="btn btn-outline-primary btn-sm px-3 fw-semibold flex-grow-1 me-2 rounded-3">
+                                    <i class="bi bi-eye me-1"></i>Details & Versions
                                 </a>
-                                <a asp-action="Edit" asp-route-id="@s.ShiftId" class="btn btn-outline-secondary btn-sm px-2 me-1" title="Edit Shift Name">
-                                    <i class="bi bi-pencil"></i> Edit
+                                <a asp-action="Edit" asp-route-id="@s.ShiftId" class="btn btn-light border btn-sm px-2 me-1 rounded-3 text-secondary" title="Edit Shift Name">
+                                    <i class="bi bi-pencil"></i>
                                 </a>
-                                <!-- ALWAYS VISIBLE DELETE BUTTON -->
-                                <button type="button" class="btn btn-outline-danger btn-sm px-2" data-bs-toggle="modal" data-bs-target="#deleteShiftModal-@s.ShiftId" title="Delete Shift">
+                                <button type="button" class="btn btn-light border text-danger btn-sm px-2 rounded-3" data-bs-toggle="modal" data-bs-target="#deleteShiftModal-@s.ShiftId" title="Delete Shift">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>
                             <div>
-                                <a asp-controller="ShiftAssignments" asp-action="Assign" asp-route-shiftId="@s.ShiftId" class="btn btn-light btn-sm border w-100 text-muted fw-semibold">
-                                    <i class="bi bi-person-plus text-primary me-1"></i>Assign Employee to this Shift
+                                <a asp-controller="ShiftAssignments" asp-action="Assign" asp-route-shiftId="@s.ShiftId" class="btn btn-light btn-sm border w-100 text-muted fw-semibold rounded-3">
+                                    <i class="bi bi-person-plus text-primary me-1"></i>Assign Employee
                                 </a>
                             </div>
                         </div>
@@ -182,63 +252,117 @@ else
             </div>
         }
     </div>
+
+    <div id="noShiftsFoundMessage" class="card border-0 shadow-sm text-center py-5 d-none" style="border-radius: 14px; border: 1px solid #eaecf0 !important;">
+        <div class="card-body">
+            <i class="bi bi-search fs-1 text-muted d-block mb-3"></i>
+            <h5 class="fw-semibold text-dark">No Matching Shifts</h5>
+            <p class="text-muted small mb-0">No shifts match your search query. Try another keyword.</p>
+        </div>
+    </div>
 }
 
-<!-- ========================================== -->
-<!-- ALL DELETE SHIFT MODALS PLACED CLEANLY AT BOTTOM -->
-<!-- ========================================== -->
-
+<!-- ALL DELETE SHIFT MODALS -->
 @foreach (var s in Model.Shifts)
 {
     <div class="modal fade" id="deleteShiftModal-@s.ShiftId" tabindex="-1" aria-hidden="true" style="white-space: normal;">
         <div class="modal-dialog modal-dialog-centered text-start" style="max-width: 460px;">
-            <div class="modal-content border-0 shadow" style="border-radius: 14px;">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 14px;">
                 @if (s.ActiveEmployeeCount > 0)
                 {
                     <div class="modal-header border-0 pb-0">
                         <h6 class="modal-title fw-bold text-warning d-flex align-items-center gap-2">
                             <i class="bi bi-exclamation-triangle-fill fs-5"></i> Cannot Delete Active Shift
                         </h6>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="modal-body py-3" style="white-space: normal; word-break: break-word;">
-                        <p class="text-secondary mb-2" style="font-size: 0.95rem; line-height: 1.5;">
-                            Shift <strong>'@s.Name'</strong> currently has <strong>@s.ActiveEmployeeCount active employee(s)</strong> assigned to it.
-                        </p>
+                    <div class="modal-body pt-2">
                         <p class="text-muted small mb-0">
-                            To maintain audit integrity, you must first reassign or remove employees from this shift before deleting it.
+                            <strong>@s.Name</strong> has <strong>@s.ActiveEmployeeCount active employees</strong> assigned to it.
+                            Please reassign or transfer those employees to another shift before deleting.
                         </p>
                     </div>
-                    <div class="modal-footer border-0 pt-0 d-flex justify-content-end gap-2">
-                        <button type="button" class="btn btn-sm btn-light px-3" data-bs-dismiss="modal">Close</button>
-                        <a asp-controller="ShiftAssignments" asp-action="Index" asp-route-shiftId="@s.ShiftId" class="btn btn-sm btn-primary px-3 fw-semibold">
-                            <i class="bi bi-person-lines-fill me-1"></i>Manage Shift Employees
+                    <div class="modal-footer border-0 pt-0">
+                        <a asp-controller="ShiftAssignments" asp-action="Index" asp-route-shiftId="@s.ShiftId" class="btn btn-primary btn-sm rounded-3">
+                            <i class="bi bi-person-lines-fill me-1"></i> Manage Assignments
                         </a>
+                        <button type="button" class="btn btn-light btn-sm rounded-3" data-bs-dismiss="modal">Close</button>
                     </div>
                 }
                 else
                 {
-                    <form asp-action="Delete" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@s.ShiftId" />
-                        <div class="modal-header border-0 pb-0">
-                            <h6 class="modal-title fw-bold text-danger d-flex align-items-center gap-2">
-                                <i class="bi bi-trash fs-5"></i> Delete Work Shift
-                            </h6>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body py-3" style="white-space: normal; word-break: break-word;">
-                            <p class="text-secondary mb-0" style="font-size: 0.95rem; line-height: 1.5;">
-                                Are you sure you want to permanently delete shift <strong>'@s.Name'</strong> and all its schedule versions? This action cannot be undone.
-                            </p>
-                        </div>
-                        <div class="modal-footer border-0 pt-0 d-flex justify-content-end gap-2">
-                            <button type="button" class="btn btn-sm btn-light px-3" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-sm btn-danger px-3 fw-semibold">Confirm Delete</button>
-                        </div>
-                    </form>
+                    <div class="modal-header border-0 pb-0">
+                        <h6 class="modal-title fw-bold text-danger d-flex align-items-center gap-2">
+                            <i class="bi bi-trash3-fill fs-5"></i> Delete Shift
+                        </h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body pt-2">
+                        <p class="text-muted small mb-0">
+                            Are you sure you want to permanently delete shift <strong>@s.Name</strong>?
+                            Historical records and versions associated with this shift will be removed.
+                        </p>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light btn-sm rounded-3" data-bs-dismiss="modal">Cancel</button>
+                        <form asp-action="Delete" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="shiftId" value="@s.ShiftId" />
+                            <button type="submit" class="btn btn-danger btn-sm rounded-3">
+                                <i class="bi bi-trash me-1"></i> Confirm Delete
+                            </button>
+                        </form>
+                    </div>
                 }
             </div>
         </div>
     </div>
+}
+
+@section Scripts {
+    <script>
+        function filterShifts() {
+            const query = document.getElementById('shiftSearchInput').value.trim().toLowerCase();
+            const cols = document.querySelectorAll('.shift-card-col');
+            let visibleCount = 0;
+
+            cols.forEach(col => {
+                const name = col.getAttribute('data-name') || '';
+                if (!query || name.includes(query)) {
+                    col.style.display = '';
+                    visibleCount++;
+                } else {
+                    col.style.display = 'none';
+                }
+            });
+
+            const resetBtn = document.getElementById('resetFiltersBtn');
+            if (resetBtn) {
+                if (query) resetBtn.classList.remove('d-none');
+                else resetBtn.classList.add('d-none');
+            }
+
+            const counter = document.getElementById('shiftRecordsCounter');
+            if (counter) {
+                counter.innerHTML = `<strong>${visibleCount}</strong> shifts`;
+            }
+
+            const noMsg = document.getElementById('noShiftsFoundMessage');
+            if (noMsg) {
+                if (visibleCount === 0 && cols.length > 0) {
+                    noMsg.classList.remove('d-none');
+                } else {
+                    noMsg.classList.add('d-none');
+                }
+            }
+        }
+
+        function resetShiftFilters() {
+            const input = document.getElementById('shiftSearchInput');
+            if (input) {
+                input.value = '';
+                filterShifts();
+            }
+        }
+    </script>
 }

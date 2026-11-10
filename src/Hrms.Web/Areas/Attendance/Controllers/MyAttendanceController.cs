@@ -23,6 +23,7 @@ public class MyAttendanceController : Controller
     private readonly IEndBreakHandler _endBreakHandler;
     private readonly IClockOutHandler _clockOutHandler;
     private readonly ISubmitAttendanceCorrectionHandler _submitCorrectionHandler;
+    private readonly ICancelAttendanceCorrectionHandler _cancelCorrectionHandler;
     private readonly ICurrentUser _currentUser;
     private readonly IClock _clock;
 
@@ -35,6 +36,7 @@ public class MyAttendanceController : Controller
         IEndBreakHandler endBreakHandler,
         IClockOutHandler clockOutHandler,
         ISubmitAttendanceCorrectionHandler submitCorrectionHandler,
+        ICancelAttendanceCorrectionHandler cancelCorrectionHandler,
         ICurrentUser currentUser,
         IClock clock)
     {
@@ -46,6 +48,7 @@ public class MyAttendanceController : Controller
         _endBreakHandler = endBreakHandler;
         _clockOutHandler = clockOutHandler;
         _submitCorrectionHandler = submitCorrectionHandler;
+        _cancelCorrectionHandler = cancelCorrectionHandler;
         _currentUser = currentUser;
         _clock = clock;
     }
@@ -56,9 +59,13 @@ public class MyAttendanceController : Controller
     {
         if (_currentUser.EmployeeId == null || _currentUser.EmployeeId == Guid.Empty)
         {
+            var todayLocal = _clock.TodayLocal;
             return View(new MyAttendanceViewModel
             {
-                HasEmployee = false
+                HasEmployee = false,
+                Year = todayLocal.Year,
+                Month = todayLocal.Month,
+                ActiveTab = string.IsNullOrWhiteSpace(tab) ? "attendance" : tab.ToLowerInvariant()
             });
         }
 
@@ -85,11 +92,22 @@ public class MyAttendanceController : Controller
         double totalOvertimeHours = 0;
         int workingDays = 0;
 
+        int standardShiftMins = 480;
+        if (session?.ShiftStart.HasValue == true && session?.ShiftEnd.HasValue == true)
+        {
+            var diff = session.ShiftEnd.Value - session.ShiftStart.Value;
+            if (diff < TimeSpan.Zero) diff += TimeSpan.FromHours(24);
+            if (diff.TotalMinutes > 0)
+            {
+                standardShiftMins = (int)diff.TotalMinutes;
+            }
+        }
+
         if (report?.Days != null)
         {
             totalLoggedHours = Math.Round(report.Days.Sum(d => d.WorkedMinutes) / 60.0, 1);
-            // Duty is 8 hours (480 minutes). Overtime is any excess beyond 480 minutes per working day
-            totalOvertimeHours = Math.Round(report.Days.Sum(d => Math.Max(0, d.WorkedMinutes - 480)) / 60.0, 1);
+            // Overtime is any excess beyond standard shift duration per working day
+            totalOvertimeHours = Math.Round(report.Days.Sum(d => Math.Max(0, d.WorkedMinutes - standardShiftMins)) / 60.0, 1);
             workingDays = report.Days.Count(d => d.Status != AttendanceStatus.Holiday && d.Status != AttendanceStatus.Weekend);
         }
 
@@ -240,6 +258,32 @@ public class MyAttendanceController : Controller
         else
         {
             TempData["SuccessMessage"] = "Attendance regularization request submitted successfully. Waiting for HR/Admin approval.";
+        }
+
+        return RedirectToAction(nameof(Index), new { tab = "fix-attendance" });
+    }
+
+    [Authorize(Policy = Permissions.Attendance.ViewOwn)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CancelCorrection(Guid requestId)
+    {
+        if (_currentUser.EmployeeId == null || _currentUser.EmployeeId == Guid.Empty)
+        {
+            TempData["ErrorMessage"] = "No linked employee profile found.";
+            return RedirectToAction(nameof(Index), new { tab = "fix-attendance" });
+        }
+
+        var result = await _cancelCorrectionHandler.HandleAsync(
+            new CancelAttendanceCorrectionCommand(requestId, _currentUser.EmployeeId.Value));
+
+        if (result.IsFailure)
+        {
+            TempData["ErrorMessage"] = result.Error.Message;
+        }
+        else
+        {
+            TempData["SuccessMessage"] = "Attendance regularization request was cancelled successfully.";
         }
 
         return RedirectToAction(nameof(Index), new { tab = "fix-attendance" });

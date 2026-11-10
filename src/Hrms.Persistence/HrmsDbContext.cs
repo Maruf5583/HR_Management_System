@@ -1,4 +1,4 @@
-using Hrms.Assets.Application.Abstractions;
+﻿using Hrms.Assets.Application.Abstractions;
 using Hrms.Assets.Domain.Entities;
 using Hrms.Attendance.Application.Abstractions;
 using Hrms.Attendance.Domain.Entities;
@@ -77,6 +77,7 @@ public class HrmsDbContext : IdentityDbContext<ApplicationUser, ApplicationRole,
     // Assets Module
     public DbSet<Asset> Assets => Set<Asset>();
     public DbSet<AssetAssignment> AssetAssignments => Set<AssetAssignment>();
+    public DbSet<AssetRequest> AssetRequests => Set<AssetRequest>();
 
     // Leave Module
     public DbSet<LeaveType> LeaveTypes => Set<LeaveType>();

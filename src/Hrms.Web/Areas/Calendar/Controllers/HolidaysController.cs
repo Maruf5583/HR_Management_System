@@ -28,7 +28,7 @@ public class HolidaysController : Controller
     {
         var currentYear = DateTime.UtcNow.Year;
         var selectedYear = year ?? currentYear;
-        var selectedMonth = month ?? DateTime.UtcNow.Month;
+        var selectedMonth = Math.Clamp(month ?? DateTime.UtcNow.Month, 1, 12);
 
         var holidays = await _holidayService.GetHolidaysAsync(selectedYear, type);
         var workingDays = await _workingDayService.GetWorkingDaysAsync();
@@ -192,6 +192,43 @@ public class HolidaysController : Controller
         else
         {
             TempData["SuccessMessage"] = $"Successfully deleted {result.Value} holiday(s).";
+        }
+
+        return RedirectToAction(nameof(Index), new { year = returnYear, month = returnMonth });
+    }
+
+    [HttpPost]
+    [Authorize(Policy = Permissions.Holidays.Manage)]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteGroup(string holidayName, int? returnYear = null, int? returnMonth = null)
+    {
+        if (string.IsNullOrWhiteSpace(holidayName))
+        {
+            TempData["ErrorMessage"] = "Holiday name is required.";
+            return RedirectToAction(nameof(Index), new { year = returnYear, month = returnMonth });
+        }
+
+        var year = returnYear ?? DateTime.UtcNow.Year;
+        var holidays = await _holidayService.GetHolidaysAsync(year);
+        var matchingIds = holidays
+            .Where(h => string.Equals(h.Name.Trim(), holidayName.Trim(), StringComparison.OrdinalIgnoreCase))
+            .Select(h => h.HolidayId)
+            .ToList();
+
+        if (!matchingIds.Any())
+        {
+            TempData["ErrorMessage"] = $"No holidays found with name '{holidayName}'.";
+            return RedirectToAction(nameof(Index), new { year = returnYear, month = returnMonth });
+        }
+
+        var result = await _holidayService.DeleteHolidaysMultipleAsync(matchingIds);
+        if (!result.IsSuccess)
+        {
+            TempData["ErrorMessage"] = result.Error.Message;
+        }
+        else
+        {
+            TempData["SuccessMessage"] = $"Successfully deleted all {matchingIds.Count} days of '{holidayName}'.";
         }
 
         return RedirectToAction(nameof(Index), new { year = returnYear, month = returnMonth });

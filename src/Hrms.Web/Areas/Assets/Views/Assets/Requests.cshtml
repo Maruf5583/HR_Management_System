@@ -1,0 +1,266 @@
+@model PagedResult<AssetRequestDto>
+@{
+    ViewData["Title"] = "Asset Requests & Issues";
+    ViewData["Subtitle"] = "Staff requests for hardware malfunction repairs, device swaps, and maintenance";
+    var currentStatus = ViewBag.Status as AssetRequestStatus?;
+    var search = ViewBag.Search as string;
+}
+
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3 py-2 px-3 mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2 text-success"></i>@TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3 py-2 px-3 mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2 text-danger"></i>@TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Quick Summary Status Filter Pills -->
+<div class="quick-summary-pills-bar mb-3">
+    <a asp-action="Requests" asp-route-search="@search" class="quick-summary-pill @(!currentStatus.HasValue ? "active" : "")">
+        <span>All Requests</span>
+        <span class="counter-badge">@Model.TotalCount</span>
+    </a>
+    <a asp-action="Requests" asp-route-status="@AssetRequestStatus.Pending" asp-route-search="@search" class="quick-summary-pill @(currentStatus == AssetRequestStatus.Pending ? "active" : "")">
+        <span class="status-badge-dot status-warning p-0 me-1"></span>
+        <span>Pending</span>
+    </a>
+    <a asp-action="Requests" asp-route-status="@AssetRequestStatus.UnderReview" asp-route-search="@search" class="quick-summary-pill @(currentStatus == AssetRequestStatus.UnderReview ? "active" : "")">
+        <span class="status-badge-dot status-active p-0 me-1"></span>
+        <span>Under Review</span>
+    </a>
+    <a asp-action="Requests" asp-route-status="@AssetRequestStatus.Resolved" asp-route-search="@search" class="quick-summary-pill @(currentStatus == AssetRequestStatus.Resolved ? "active" : "")">
+        <span class="status-badge-dot status-active p-0 me-1"></span>
+        <span>Resolved</span>
+    </a>
+    <a asp-action="Requests" asp-route-status="@AssetRequestStatus.Rejected" asp-route-search="@search" class="quick-summary-pill @(currentStatus == AssetRequestStatus.Rejected ? "active" : "")">
+        <span class="status-badge-dot status-danger p-0 me-1"></span>
+        <span>Rejected</span>
+    </a>
+</div>
+
+<!-- Filter Bar -->
+<form method="get" class="table-filter-bar mb-4" id="requestsFilterForm">
+    <div class="table-search-box">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" name="search" value="@search" class="table-search-input" placeholder="Search by asset tag, employee, or issue keyword..." autocomplete="off" />
+    </div>
+    @if (currentStatus.HasValue)
+    {
+        <input type="hidden" name="status" value="@currentStatus.Value" />
+    }
+    <button type="submit" class="btn btn-sm btn-light border px-3">Filter</button>
+    @if (!string.IsNullOrEmpty(search) || currentStatus.HasValue)
+    {
+        <a asp-action="Requests" class="btn btn-sm btn-link text-decoration-none text-muted">Clear</a>
+    }
+    <div class="ms-auto">
+        <a asp-action="Index" class="btn btn-outline-secondary px-3 py-1.5 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center" style="height: 38px; font-size: 0.85rem; white-space: nowrap;">
+            Back to Inventory
+        </a>
+    </div>
+</form>
+
+<!-- Table Card -->
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="border: 1px solid #eaecf0 !important;">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead style="background-color: #f8fafc; border-bottom: 1px solid #eaecf0;">
+                    <tr class="text-secondary small fw-semibold" style="font-size: 0.78rem; letter-spacing: 0.01em;">
+                        <th class="ps-4 py-2.5">Asset</th>
+                        <th class="py-2.5">Requester Employee</th>
+                        <th class="py-2.5">Issue Category</th>
+                        <th class="py-2.5">Description</th>
+                        <th class="py-2.5 text-center">Status</th>
+                        <th class="py-2.5">Submitted Date</th>
+                        <th class="pe-4 py-2.5 text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-2 d-block mb-2 text-muted"></i>
+                                No equipment requests or issues match your criteria.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var req in Model.Items)
+                        {
+                            var badgeClass = req.Status switch
+                            {
+                                AssetRequestStatus.Pending => "bg-warning-subtle text-warning border border-warning-subtle",
+                                AssetRequestStatus.UnderReview => "bg-primary-subtle text-primary border border-primary-subtle",
+                                AssetRequestStatus.Resolved => "bg-success-subtle text-success border border-success-subtle",
+                                AssetRequestStatus.Rejected => "bg-danger-subtle text-danger border border-danger-subtle",
+                                _ => "bg-secondary-subtle text-secondary"
+                            };
+
+                            var catIcon = req.Category switch
+                            {
+                                AssetCategory.Laptop => "bi-laptop",
+                                AssetCategory.Monitor => "bi-display",
+                                AssetCategory.Phone => "bi-phone",
+                                AssetCategory.SIM => "bi-sim",
+                                AssetCategory.IDCard => "bi-person-badge",
+                                _ => "bi-box-seam"
+                            };
+
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-3 bg-primary-subtle text-primary p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                                            <i class="bi @catIcon"></i>
+                                        </div>
+                                        <div>
+                                            <div class="font-monospace fw-bold text-primary small">@req.AssetTag</div>
+                                            <div class="fw-semibold text-dark small">@req.AssetName</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold text-dark small">@req.EmployeeName</div>
+                                    <div class="text-muted small" style="font-size: 0.75rem;">@req.EmployeeCode</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        <i class="bi bi-tag me-1 text-primary"></i>@req.IssueType
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="text-dark small text-truncate" style="max-width: 280px;" title="@req.Description">
+                                        @req.Description
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(req.AdminNotes))
+                                    {
+                                        <div class="text-muted" style="font-size: 0.72rem;">
+                                            <i class="bi bi-chat-left-text me-1 text-primary"></i>Admin: @req.AdminNotes
+                                        </div>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @switch (req.Status)
+                                    {
+                                        case AssetRequestStatus.Pending:
+                                            <span class="badge-status-dot badge-status-warning">Pending</span>
+                                            break;
+                                        case AssetRequestStatus.UnderReview:
+                                            <span class="badge-status-dot badge-status-purple">Under Review</span>
+                                            break;
+                                        case AssetRequestStatus.Resolved:
+                                            <span class="badge-status-dot badge-status-active">Resolved</span>
+                                            break;
+                                        case AssetRequestStatus.Rejected:
+                                            <span class="badge-status-dot badge-status-danger">Rejected</span>
+                                            break;
+                                        default:
+                                            <span class="badge-status-dot badge-status-neutral">@req.Status</span>
+                                            break;
+                                    }
+                                </td>
+                                <td class="text-muted small">
+                                    @req.CreatedAtUtc.ToString("dd MMM yyyy, hh:mm tt")
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#actionModal-@req.RequestId">
+                                        <i class="bi bi-gear me-1"></i> Review
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <!-- Action Modal -->
+                            <div class="modal fade" id="actionModal-@req.RequestId" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content border-0 shadow" style="border-radius: 14px;">
+                                        <form asp-action="ResolveRequest" method="post">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="requestId" value="@req.RequestId" />
+
+                                            <div class="modal-header border-bottom py-3">
+                                                <h5 class="modal-title fw-bold text-dark">
+                                                    <i class="bi bi-tools text-primary me-2"></i>Review Equipment Request
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+
+                                            <div class="modal-body p-4 text-start">
+                                                <div class="p-3 bg-light rounded-3 mb-3 border">
+                                                    <div class="row g-2 small">
+                                                        <div class="col-6"><span class="text-muted">Asset:</span> <strong class="text-dark font-monospace">@req.AssetTag</strong> (@req.AssetName)</div>
+                                                        <div class="col-6"><span class="text-muted">Requester:</span> <strong class="text-dark">@req.EmployeeName</strong></div>
+                                                        <div class="col-6"><span class="text-muted">Category:</span> <span class="badge bg-light text-primary border">@req.IssueType</span></div>
+                                                        <div class="col-6"><span class="text-muted">Current Status:</span> <span class="badge @badgeClass">@req.Status</span></div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label class="form-label text-muted small fw-semibold">Employee Issue Description</label>
+                                                    <div class="p-3 rounded-3 bg-white border text-dark small" style="white-space: pre-wrap;">@req.Description</div>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label class="form-label text-dark fw-semibold small">Admin / Resolution Notes</label>
+                                                    <textarea name="adminNotes" class="form-control" rows="3" placeholder="Provide notes on action taken, replacement details, or reason for decision...">@req.AdminNotes</textarea>
+                                                </div>
+
+                                                <div class="mb-2">
+                                                    <label class="form-label text-dark fw-semibold small">Update Request Status</label>
+                                                    <div class="d-flex flex-wrap gap-2">
+                                                        <button type="submit" name="status" value="@AssetRequestStatus.UnderReview" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1">
+                                                            <i class="bi bi-hourglass-split"></i> Mark Under Review
+                                                        </button>
+                                                        <button type="submit" name="status" value="@AssetRequestStatus.Resolved" class="btn btn-sm btn-success d-inline-flex align-items-center gap-1">
+                                                            <i class="bi bi-check-circle"></i> Approve &amp; Resolve
+                                                        </button>
+                                                        <button type="submit" name="status" value="@AssetRequestStatus.Rejected" class="btn btn-sm btn-outline-danger d-inline-flex align-items-center gap-1">
+                                                            <i class="bi bi-x-circle"></i> Reject
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="modal-footer border-top py-2 d-flex justify-content-between">
+                                                <a asp-action="Assign" asp-route-id="@req.AssetId" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="bi bi-arrow-left-right me-1"></i> Reassign / Swap Asset
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-light border" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <div class="p-3 border-top d-flex justify-content-between align-items-center">
+                <span class="text-muted small">Showing Page @Model.PageNumber of @Model.TotalPages</span>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                            <a class="page-link" asp-action="Requests" asp-route-page="@(Model.PageNumber - 1)" asp-route-status="@currentStatus" asp-route-search="@search">Previous</a>
+                        </li>
+                        <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                            <a class="page-link" asp-action="Requests" asp-route-page="@(Model.PageNumber + 1)" asp-route-status="@currentStatus" asp-route-search="@search">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>

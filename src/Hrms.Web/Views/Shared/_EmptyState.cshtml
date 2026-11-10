@@ -1,0 +1,17 @@
+@model Hrms.Web.Models.EmptyStateViewModel
+<div class="text-center py-4 px-3 text-muted">
+    <i class="bi @(string.IsNullOrWhiteSpace(Model.Icon) ? "bi-inbox" : Model.Icon) fs-3 d-block mb-1.5 text-secondary opacity-50"></i>
+    <div class="fw-medium text-dark small">@Model.Message</div>
+    @if (!string.IsNullOrWhiteSpace(Model.Subtitle))
+    {
+        <div class="text-muted small mt-0.5" style="font-size: 0.78rem;">@Model.Subtitle</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ActionText) && !string.IsNullOrWhiteSpace(Model.ActionUrl))
+    {
+        <div class="mt-2.5">
+            <a href="@Model.ActionUrl" class="btn btn-sm btn-primary px-3 py-1.5 rounded-3 shadow-xs fw-medium">
+                @Model.ActionText
+            </a>
+        </div>
+    }
+</div>

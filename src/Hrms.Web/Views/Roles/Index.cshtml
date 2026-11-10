@@ -1,168 +1,303 @@
 @model IReadOnlyList<RoleDto>
 @{
     ViewData["Title"] = "Roles & Permissions";
+    ViewData["Subtitle"] = "Control security policies, assign claim permissions, and manage access boundaries";
     var totalRoles = Model.Count;
     var systemRoles = Model.Count(r => r.IsSystem);
     var customRoles = Model.Count(r => !r.IsSystem);
     var totalAvailablePermissions = Permissions.All.Count;
 }
 
-<!-- Page Header -->
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-    <div>
-        <h3 class="fw-bold text-dark mb-1 tracking-tight">Roles & Permissions</h3>
-        <p class="text-muted mb-0 small">Control security policies, assign claim permissions, and manage access boundaries</p>
-    </div>
-    <div class="d-flex align-items-center gap-2">
-        <a asp-action="Create" class="btn btn-primary-modern">
-            <i class="bi bi-shield-plus"></i>
-            <span>Create Custom Role</span>
-        </a>
-    </div>
-</div>
 
 <!-- KPI Metric Cards -->
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-3">
-        <div class="kpi-card">
+        <div class="card border-0 shadow-sm p-3" style="border-radius: 14px; border: 1px solid #eaecf0 !important;">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
-                    <span class="kpi-label">Defined Roles</span>
-                    <div class="kpi-value mt-1">@totalRoles</div>
+                    <span class="text-muted small fw-semibold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.04em;">Defined Roles</span>
+                    <div class="fw-bold fs-3 text-dark mt-1">@totalRoles</div>
                 </div>
-                <div class="kpi-icon-box bg-primary-subtle text-primary">
-                    <i class="bi bi-shield-shaded"></i>
+                <div class="rounded-3 bg-primary-subtle text-primary p-3" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-shield-shaded fs-5"></i>
                 </div>
             </div>
-            <div class="small text-muted mt-2 pt-2 border-top">
+            <div class="small text-muted mt-2 pt-2 border-top" style="font-size: 0.78rem;">
                 <i class="bi bi-shield-check text-primary me-1"></i> Security role profiles
             </div>
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <div class="kpi-card">
+        <div class="card border-0 shadow-sm p-3" style="border-radius: 14px; border: 1px solid #eaecf0 !important;">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
-                    <span class="kpi-label">System Roles</span>
-                    <div class="kpi-value mt-1 text-primary">@systemRoles</div>
+                    <span class="text-muted small fw-semibold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.04em;">System Roles</span>
+                    <div class="fw-bold fs-3 text-primary mt-1">@systemRoles</div>
                 </div>
-                <div class="kpi-icon-box bg-indigo-subtle text-indigo" style="background-color: #e0e7ff; color: #4338ca;">
-                    <i class="bi bi-lock-fill"></i>
+                <div class="rounded-3 bg-indigo-subtle text-indigo p-3" style="background-color: #e0e7ff; color: #4338ca; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-lock-fill fs-5"></i>
                 </div>
             </div>
-            <div class="small text-muted mt-2 pt-2 border-top">
+            <div class="small text-muted mt-2 pt-2 border-top" style="font-size: 0.78rem;">
                 <i class="bi bi-info-circle me-1"></i> Protected core roles
             </div>
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <div class="kpi-card">
+        <div class="card border-0 shadow-sm p-3" style="border-radius: 14px; border: 1px solid #eaecf0 !important;">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
-                    <span class="kpi-label">Custom Roles</span>
-                    <div class="kpi-value mt-1 text-info">@customRoles</div>
+                    <span class="text-muted small fw-semibold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.04em;">Custom Roles</span>
+                    <div class="fw-bold fs-3 text-info mt-1">@customRoles</div>
                 </div>
-                <div class="kpi-icon-box bg-info-subtle text-info">
-                    <i class="bi bi-sliders"></i>
+                <div class="rounded-3 bg-info-subtle text-info p-3" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-sliders fs-5"></i>
                 </div>
             </div>
-            <div class="small text-muted mt-2 pt-2 border-top">
-                <i class="bi bi-person-gear me-1"></i> Tenant-defined profiles
+            <div class="small text-muted mt-2 pt-2 border-top" style="font-size: 0.78rem;">
+                <i class="bi bi-sliders text-info me-1"></i> Tenant-defined profiles
             </div>
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
-        <div class="kpi-card">
+        <div class="card border-0 shadow-sm p-3" style="border-radius: 14px; border: 1px solid #eaecf0 !important;">
             <div class="d-flex align-items-center justify-content-between">
                 <div>
-                    <span class="kpi-label">Claim Catalog</span>
-                    <div class="kpi-value mt-1 text-success">@totalAvailablePermissions</div>
+                    <span class="text-muted small fw-semibold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.04em;">Claim Catalog</span>
+                    <div class="fw-bold fs-3 text-success mt-1">@totalAvailablePermissions</div>
                 </div>
-                <div class="kpi-icon-box bg-success-subtle text-success">
-                    <i class="bi bi-key-fill"></i>
+                <div class="rounded-3 bg-success-subtle text-success p-3" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-key-fill fs-5"></i>
                 </div>
             </div>
-            <div class="small text-muted mt-2 pt-2 border-top">
+            <div class="small text-muted mt-2 pt-2 border-top" style="font-size: 0.78rem;">
                 <i class="bi bi-check2-circle text-success me-1"></i> Granular system permissions
             </div>
         </div>
     </div>
 </div>
 
-<!-- Main Roles Table Card -->
-<div class="card-modern overflow-hidden">
-    <div class="table-responsive">
-        <table class="table table-modern align-middle">
-            <thead>
-                <tr>
-                    <th class="ps-4">Role Name</th>
-                    <th>Description</th>
-                    <th>Role Classification</th>
-                    <th>Assigned Users</th>
-                    <th>Granted Permissions</th>
-                    <th class="text-end pe-4">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var role in Model)
-                {
-                    <tr>
-                        <td class="ps-4">
-                            <div class="d-flex align-items-center gap-3">
-                                <div class="table-avatar" style="@(role.IsSystem ? "background: #eef2ff; color: #4338ca;" : "background: #f1f5f9; color: #475569;")">
-                                    <i class="bi @(role.IsSystem ? "bi-shield-lock-fill" : "bi-shield-check") fs-5"></i>
-                                </div>
-                                <div>
-                                    <div class="fw-bold text-dark">@role.Name</div>
-                                    <small class="text-muted font-monospace" style="font-size: 0.72rem;">@role.Id.ToString().Substring(0, 8)...</small>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="text-muted" style="max-width: 280px;">
-                            @(role.Description ?? "No description provided")
-                        </td>
-                        <td>
-                            @if (role.IsSystem)
-                            {
-                                <span class="badge badge-soft-primary">
-                                    <i class="bi bi-lock-fill"></i> System Role
-                                </span>
-                            }
-                            else
-                            {
-                                <span class="badge badge-soft-secondary">
-                                    <i class="bi bi-sliders"></i> Custom Role
-                                </span>
-                            }
-                        </td>
-                        <td>
-                            <span class="badge bg-light text-dark border">
-                                <i class="bi bi-people me-1 text-muted"></i>@role.UserCount users
-                            </span>
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="badge badge-soft-success">
-                                    <i class="bi bi-check2-circle"></i> @role.Permissions.Count / @totalAvailablePermissions
-                                </span>
-                            </div>
-                        </td>
-                        <td class="text-end pe-4">
-                            <div class="d-inline-flex gap-1">
-                                <a asp-action="Edit" asp-route-id="@role.Id" class="btn btn-sm btn-outline-secondary btn-action-icon" title="Edit Permissions">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                @if (!role.IsSystem)
-                                {
-                                    <a asp-action="Delete" asp-route-id="@role.Id" class="btn btn-sm btn-outline-danger btn-action-icon" title="Delete Custom Role">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
-                                }
-                            </div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+<!-- EmplowHR-Inspired Unified Filter Bar -->
+<div class="table-filter-bar mb-3">
+    <!-- Instant Search Input -->
+    <div class="table-search-box">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" id="roleSearchInput" class="table-search-input" placeholder="Search by role name or description..." oninput="filterRolesTable()" />
+    </div>
+
+    <!-- Role Classification Dropdown Pill -->
+    <div class="dropdown">
+        <button class="filter-pill-dropdown" id="classificationFilterBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span id="selectedClassificationText">All Classifications</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search classification..." autocomplete="off" />
+            </div>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                <li>
+                    <a class="dropdown-item active" href="javascript:void(0)" onclick="setClassificationFilter('', 'All Classifications', this)">
+                        <span>All Classifications</span>
+                        <i class="bi bi-check2"></i>
+                    </a>
+                </li>
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setClassificationFilter('system', 'System Roles', this)"><span>System Roles</span></a></li>
+                <li><a class="dropdown-item" href="javascript:void(0)" onclick="setClassificationFilter('custom', 'Custom Roles', this)"><span>Custom Roles</span></a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Reset Filter Button -->
+    <button type="button" class="btn-reset-filters d-none" id="resetFiltersBtn" onclick="resetAllRoleFilters()" title="Reset all filters">
+        <i class="bi bi-arrow-counterclockwise"></i>
+        <span>Reset</span>
+    </button>
+
+    <!-- Action Button -->
+    <div class="ms-auto">
+        <a asp-action="Create" class="btn btn-primary px-3 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center gap-1.5" style="height: 40px; font-size: 0.875rem; white-space: nowrap;">
+            <i class="bi bi-plus-lg"></i>
+            <span>Add role</span>
+        </a>
     </div>
 </div>
+
+<!-- Main Roles Table Card -->
+<div class="card border-0 shadow-sm" style="border-radius: 14px; border: 1px solid #eaecf0 !important;">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="rolesTable">
+                <thead style="background-color: #f8fafc; border-bottom: 1px solid #eaecf0;">
+                    <tr class="text-secondary small fw-semibold" style="font-size: 0.78rem; letter-spacing: 0.01em;">
+                        <th class="ps-4 py-2.5">Role Name</th>
+                        <th class="py-2.5">Description</th>
+                        <th class="py-2.5">Role Classification</th>
+                        <th class="py-2.5">Assigned Users</th>
+                        <th class="py-2.5">Granted Permissions</th>
+                        <th class="text-end pe-4 py-2.5">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var role in Model)
+                    {
+                        var classStr = role.IsSystem ? "system" : "custom";
+                        <tr class="role-row" data-name="@role.Name.ToLowerInvariant()" data-desc="@((role.Description ?? "").ToLowerInvariant())" data-class="@classStr">
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="rounded-3 d-flex align-items-center justify-content-center" style="@(role.IsSystem ? "background: #eef2ff; color: #4338ca;" : "background: #f1f5f9; color: #475569;") width: 36px; height: 36px;">
+                                        <i class="bi @(role.IsSystem ? "bi-shield-lock-fill" : "bi-shield-check") fs-5"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-dark">@role.Name</div>
+                                        <small class="text-muted font-monospace" style="font-size: 0.72rem;">@role.Id.ToString().Substring(0, 8)...</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-muted" style="max-width: 280px;">
+                                @(role.Description ?? "No description provided")
+                            </td>
+                            <td>
+                                @if (role.IsSystem)
+                                {
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                                        <i class="bi bi-lock-fill me-1"></i>System Role
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-light text-secondary border px-2 py-1">
+                                        <i class="bi bi-sliders me-1"></i>Custom Role
+                                    </span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">
+                                    <i class="bi bi-people me-1 text-muted"></i>@role.UserCount users
+                                </span>
+                            </td>
+                            <td>
+                                <span class="status-badge-dot status-active">
+                                    @role.Permissions.Count / @totalAvailablePermissions
+                                </span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="dropdown text-end">
+                                    <button class="btn btn-sm btn-light border-0 text-muted p-1 rounded-2" type="button" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false" title="Actions" style="width: 32px; height: 32px;">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border py-1" style="min-width: 160px; border-radius: 10px; font-size: 0.82rem;">
+                                        <li>
+                                            <a class="dropdown-item py-1.5 d-flex align-items-center gap-2" asp-action="Edit" asp-route-id="@role.Id">
+                                                <i class="bi bi-pencil text-muted"></i>
+                                                <span>Edit Permissions</span>
+                                            </a>
+                                        </li>
+                                        @if (!role.IsSystem)
+                                        {
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            <li>
+                                                <a class="dropdown-item py-1.5 d-flex align-items-center gap-2 text-danger" asp-action="Delete" asp-route-id="@role.Id">
+                                                    <i class="bi bi-trash text-danger"></i>
+                                                    <span>Delete Role</span>
+                                                </a>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    <tr id="noResultsRow" class="d-none">
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-search fs-2 d-block mb-2 text-muted"></i>
+                            No roles match your current search and filter criteria.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer bg-white border-0 py-3 px-4 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2 border-top" style="border-color: #eaecf0 !important;">
+            <span class="text-muted small" id="recordsCounter">Showing <strong>@totalRoles</strong> roles</span>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentClassificationFilter = '';
+
+        function setClassificationFilter(cls, displayText, element) {
+            currentClassificationFilter = cls.toLowerCase();
+            document.getElementById('selectedClassificationText').textContent = displayText;
+            document.querySelectorAll('#classificationFilterBtn + .dropdown-menu .dropdown-item').forEach(el => {
+                el.classList.remove('active');
+                const check = el.querySelector('.bi-check2');
+                if (check) check.remove();
+            });
+            element.classList.add('active');
+            if (!element.querySelector('.bi-check2')) {
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-check2';
+                element.appendChild(icon);
+            }
+            filterRolesTable();
+        }
+
+        function filterRolesTable() {
+            const query = document.getElementById('roleSearchInput').value.toLowerCase().trim();
+            const rows = document.querySelectorAll('.role-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const name = row.getAttribute('data-name') || '';
+                const desc = row.getAttribute('data-desc') || '';
+                const cls = row.getAttribute('data-class') || '';
+
+                const matchesSearch = !query || name.includes(query) || desc.includes(query);
+                const matchesClass = !currentClassificationFilter || cls === currentClassificationFilter;
+
+                if (matchesSearch && matchesClass) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const resetBtn = document.getElementById('resetFiltersBtn');
+            if (resetBtn) {
+                if (query || currentClassificationFilter) {
+                    resetBtn.classList.remove('d-none');
+                } else {
+                    resetBtn.classList.add('d-none');
+                }
+            }
+
+            const counter = document.getElementById('recordsCounter');
+            if (counter) {
+                counter.innerHTML = `<strong>${visibleCount}</strong> roles`;
+            }
+
+            const noMatch = document.getElementById('noResultsRow');
+            if (noMatch) {
+                if (visibleCount === 0 && rows.length > 0) {
+                    noMatch.classList.remove('d-none');
+                } else {
+                    noMatch.classList.add('d-none');
+                }
+            }
+        }
+
+        function resetAllRoleFilters() {
+            const searchInput = document.getElementById('roleSearchInput');
+            if (searchInput) searchInput.value = '';
+
+            const firstItem = document.querySelector('#classificationFilterBtn + .dropdown-menu .dropdown-item');
+            if (firstItem) setClassificationFilter('', 'All Classifications', firstItem);
+
+            filterRolesTable();
+        }
+    </script>
+}

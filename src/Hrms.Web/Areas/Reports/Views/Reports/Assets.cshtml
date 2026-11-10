@@ -1,79 +1,216 @@
 @model AssetReportViewModel
 @{
     ViewData["Title"] = "Asset Inventory Report";
+    ViewData["Subtitle"] = "Hardware inventory, custodian allocations, conditions, and operational status";
+    var selectedCategoryText = Model.Filter.Category.HasValue ? Model.Filter.Category.Value.ToString() : "All Categories";
+    var selectedStatusText = Model.Filter.Status.HasValue ? Model.Filter.Status.Value.ToString() : "All Statuses";
+    var selectedDeptName = "All Departments";
+    if (Model.Filter.DepartmentId.HasValue && Model.Departments != null)
+    {
+        var match = Model.Departments.FirstOrDefault(d => d.Value == Model.Filter.DepartmentId.Value.ToString());
+        if (match != null) selectedDeptName = match.Text;
+    }
+
+    var totalAssets = Model.Assets.Count;
+    var availableCount = Model.Assets.Count(a => a.Status == AssetStatus.Available);
+    var assignedCount = Model.Assets.Count(a => a.Status == AssetStatus.Assigned);
+    var inRepairCount = Model.Assets.Count(a => a.Status == AssetStatus.InRepair);
+    var retiredCount = Model.Assets.Count(a => a.Status == AssetStatus.Retired);
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h4 class="fw-bold mb-1"><i class="bi bi-laptop me-2 text-primary"></i>Asset Inventory Report</h4>
-        <p class="text-muted small mb-0">Hardware inventory, custodian allocations, conditions, and operational status</p>
-    </div>
-    <div class="d-flex gap-2">
-        <a asp-action="ExportAssets"
-           asp-route-category="@Model.Filter.Category"
-           asp-route-status="@Model.Filter.Status"
-           asp-route-departmentId="@Model.Filter.DepartmentId"
-           class="btn btn-success shadow-sm">
-            <i class="bi bi-file-earmark-excel me-1"></i> Export to Excel
-        </a>
-        <a asp-action="Index" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i> Reports Hub
-        </a>
-    </div>
+<!-- Action Bar (Right-Aligned, Clean Text Only, No Redundant Headings) -->
+<div class="d-flex justify-content-end gap-2 mb-3">
+    <a asp-action="ExportAssets"
+       asp-route-category="@Model.Filter.Category"
+       asp-route-status="@Model.Filter.Status"
+       asp-route-departmentId="@Model.Filter.DepartmentId"
+       class="btn btn-sm btn-success px-3 py-2 fw-semibold rounded-3 shadow-xs">
+        Export to Excel
+    </a>
+    <a asp-action="Index" class="btn btn-sm btn-light border px-3 py-2 fw-semibold rounded-3 text-secondary shadow-xs">
+        Reports Hub
+    </a>
 </div>
 
-<!-- Filter Card -->
-<div class="card border-0 shadow-sm rounded-4 mb-4">
+<!-- EmplowHR-Style Filter Bar -->
+<div class="card border-0 shadow-sm mb-4" style="border-radius: 14px; border: 1px solid #eaecf0 !important; background: #ffffff;">
     <div class="card-body p-3">
-        <form method="get" class="row g-2 align-items-end">
+        <form method="get" id="reportAssetsFilterForm" class="row g-2.5 align-items-end">
+            <!-- Searchable Category Dropdown -->
             <div class="col-md-3">
-                <label class="form-label small fw-semibold mb-1">Category</label>
-                <select name="category" class="form-select bg-light border-0">
-                    <option value="">All Categories</option>
-                    @foreach (AssetCategory cat in Enum.GetValues(typeof(AssetCategory)))
-                    {
-                        <option value="@cat" selected="@(Model.Filter.Category == cat ? "selected" : null)">@cat</option>
-                    }
-                </select>
+                <label class="form-label small fw-semibold text-secondary mb-1">Category</label>
+                <input type="hidden" name="category" id="filterCategoryId" value="@(Model.Filter.Category?.ToString() ?? "")" />
+                <div class="dropdown">
+                    <button class="filter-pill-dropdown w-100 justify-content-between @(Model.Filter.Category.HasValue ? "is-filtered" : "")" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="repCategoryBtn">
+                        <span id="repCategoryBtnText" class="text-truncate">@selectedCategoryText</span>
+                        <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+                    </button>
+                    <div class="dropdown-menu filter-dropdown-menu w-100 shadow-sm" style="min-width: 230px;">
+                        <div class="filter-dropdown-search">
+                            <i class="bi bi-search"></i>
+                            <input type="text" class="filter-dropdown-search-input" placeholder="Search categories..." autocomplete="off" oninput="filterDropdownMenuOptions(this)" />
+                        </div>
+                        <ul class="filter-dropdown-list list-unstyled mb-0">
+                            <li>
+                                <a class="dropdown-item @(!Model.Filter.Category.HasValue ? "active" : "")" href="javascript:void(0)" onclick="selectSearchableReportFilter('filterCategoryId', '', 'All Categories', 'repCategoryBtnText')">
+                                    <span>All Categories</span>
+                                    @if (!Model.Filter.Category.HasValue) { <i class="bi bi-check2 ms-auto"></i> }
+                                </a>
+                            </li>
+                            @foreach (var cat in Enum.GetValues<AssetCategory>())
+                            {
+                                var isSel = Model.Filter.Category == cat;
+                                <li>
+                                    <a class="dropdown-item @(isSel ? "active" : "")" href="javascript:void(0)" onclick="selectSearchableReportFilter('filterCategoryId', '@cat', '@cat', 'repCategoryBtnText')">
+                                        <span>@cat</span>
+                                        @if (isSel) { <i class="bi bi-check2 ms-auto"></i> }
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
             </div>
+
+            <!-- Searchable Status Dropdown -->
             <div class="col-md-3">
-                <label class="form-label small fw-semibold mb-1">Status</label>
-                <select name="status" class="form-select bg-light border-0">
-                    <option value="">All Statuses</option>
-                    @foreach (AssetStatus st in Enum.GetValues(typeof(AssetStatus)))
-                    {
-                        <option value="@st" selected="@(Model.Filter.Status == st ? "selected" : null)">@st</option>
-                    }
-                </select>
+                <label class="form-label small fw-semibold text-secondary mb-1">Status</label>
+                <input type="hidden" name="status" id="filterStatusId" value="@(Model.Filter.Status?.ToString() ?? "")" />
+                <div class="dropdown">
+                    <button class="filter-pill-dropdown w-100 justify-content-between @(Model.Filter.Status.HasValue ? "is-filtered" : "")" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="repStatusBtn">
+                        <span id="repStatusBtnText" class="text-truncate">@selectedStatusText</span>
+                        <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+                    </button>
+                    <div class="dropdown-menu filter-dropdown-menu w-100 shadow-sm" style="min-width: 230px;">
+                        <div class="filter-dropdown-search">
+                            <i class="bi bi-search"></i>
+                            <input type="text" class="filter-dropdown-search-input" placeholder="Search statuses..." autocomplete="off" oninput="filterDropdownMenuOptions(this)" />
+                        </div>
+                        <ul class="filter-dropdown-list list-unstyled mb-0">
+                            <li>
+                                <a class="dropdown-item @(!Model.Filter.Status.HasValue ? "active" : "")" href="javascript:void(0)" onclick="selectSearchableReportFilter('filterStatusId', '', 'All Statuses', 'repStatusBtnText')">
+                                    <span>All Statuses</span>
+                                    @if (!Model.Filter.Status.HasValue) { <i class="bi bi-check2 ms-auto"></i> }
+                                </a>
+                            </li>
+                            @foreach (var st in Enum.GetValues<AssetStatus>())
+                            {
+                                var isSel = Model.Filter.Status == st;
+                                <li>
+                                    <a class="dropdown-item @(isSel ? "active" : "")" href="javascript:void(0)" onclick="selectSearchableReportFilter('filterStatusId', '@st', '@st', 'repStatusBtnText')">
+                                        <span>@st</span>
+                                        @if (isSel) { <i class="bi bi-check2 ms-auto"></i> }
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
             </div>
+
+            <!-- Searchable Department Dropdown (No Icon) -->
             <div class="col-md-4">
-                <label class="form-label small fw-semibold mb-1">Assigned Department</label>
-                <select name="departmentId" class="form-select bg-light border-0" asp-items="Model.Departments">
-                    <option value="">All Departments</option>
-                </select>
+                <label class="form-label small fw-semibold text-secondary mb-1">Assigned Department</label>
+                <input type="hidden" name="departmentId" id="filterDeptId" value="@(Model.Filter.DepartmentId?.ToString() ?? "")" />
+                <div class="dropdown">
+                    <button class="filter-pill-dropdown w-100 justify-content-between @(Model.Filter.DepartmentId.HasValue ? "is-filtered" : "")" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="repDeptBtn">
+                        <span id="repDeptBtnText" class="text-truncate">@selectedDeptName</span>
+                        <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+                    </button>
+                    <div class="dropdown-menu filter-dropdown-menu w-100 shadow-sm" style="min-width: 250px;">
+                        <div class="filter-dropdown-search">
+                            <i class="bi bi-search"></i>
+                            <input type="text" class="filter-dropdown-search-input" placeholder="Search departments..." autocomplete="off" oninput="filterDropdownMenuOptions(this)" />
+                        </div>
+                        <ul class="filter-dropdown-list list-unstyled mb-0">
+                            <li>
+                                <a class="dropdown-item @(!Model.Filter.DepartmentId.HasValue ? "active" : "")" href="javascript:void(0)" onclick="selectSearchableReportFilter('filterDeptId', '', 'All Departments', 'repDeptBtnText')">
+                                    <span>All Departments</span>
+                                    @if (!Model.Filter.DepartmentId.HasValue) { <i class="bi bi-check2 ms-auto"></i> }
+                                </a>
+                            </li>
+                            @if (Model.Departments != null)
+                            {
+                                @foreach (var dept in Model.Departments)
+                                {
+                                    if (!string.IsNullOrEmpty(dept.Value))
+                                    {
+                                        var isSel = Model.Filter.DepartmentId.HasValue && Model.Filter.DepartmentId.Value.ToString() == dept.Value;
+                                        <li>
+                                            <a class="dropdown-item @(isSel ? "active" : "")" href="javascript:void(0)" onclick="selectSearchableReportFilter('filterDeptId', '@dept.Value', '@dept.Text', 'repDeptBtnText')">
+                                                <span>@dept.Text</span>
+                                                @if (isSel) { <i class="bi bi-check2 ms-auto"></i> }
+                                            </a>
+                                        </li>
+                                    }
+                                }
+                            }
+                        </ul>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-2 d-flex gap-1">
-                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel me-1"></i> Filter</button>
-                <a asp-action="Assets" class="btn btn-outline-secondary" title="Reset"><i class="bi bi-arrow-counterclockwise"></i></a>
+
+            <!-- Action Buttons -->
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary d-inline-flex align-items-center justify-content-center px-3 flex-grow-1" style="height: 38px;" title="Apply Filter">
+                    <i class="bi bi-funnel me-1"></i> Filter
+                </button>
+                <a asp-action="Assets" class="btn btn-light border text-secondary d-inline-flex align-items-center justify-content-center px-2.5" style="height: 38px;" title="Reset Filters">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Table Card -->
-<div class="card border-0 shadow-sm rounded-4">
+<!-- Metrics Row (EmplowHR Top Summary Cards) -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3 col-xl">
+        <div class="card border-0 shadow-sm p-3 h-100 text-center" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">Total Assets</span>
+            <h3 class="fw-bold text-dark mb-0 mt-1" style="font-size: 1.6rem;">@totalAssets</h3>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+        <div class="card border-0 shadow-sm p-3 h-100 text-center" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <span class="text-success small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">Available</span>
+            <h3 class="fw-bold text-success mb-0 mt-1" style="font-size: 1.6rem;">@availableCount</h3>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+        <div class="card border-0 shadow-sm p-3 h-100 text-center" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <span class="text-primary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">Assigned</span>
+            <h3 class="fw-bold text-primary mb-0 mt-1" style="font-size: 1.6rem;">@assignedCount</h3>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+        <div class="card border-0 shadow-sm p-3 h-100 text-center" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <span class="text-warning small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">In Repair</span>
+            <h3 class="fw-bold text-warning mb-0 mt-1" style="font-size: 1.6rem;">@inRepairCount</h3>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+        <div class="card border-0 shadow-sm p-3 h-100 text-center" style="border-radius: 14px; background: #ffffff; border: 1px solid #eaecf0 !important;">
+            <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.05em;">Retired</span>
+            <h3 class="fw-bold text-secondary mb-0 mt-1" style="font-size: 1.6rem;">@retiredCount</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Harmonized Table Card -->
+<div class="card border-0 shadow-sm" style="border-radius: 14px; border: 1px solid #eaecf0 !important; overflow: hidden; background: #ffffff;">
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light text-muted small">
-                    <tr>
-                        <th class="ps-4 py-3">ASSET TAG</th>
-                        <th class="py-3">NAME & SERIAL</th>
-                        <th class="py-3">CATEGORY</th>
-                        <th class="py-3 text-center" style="width: 120px;">CONDITION</th>
-                        <th class="py-3 text-center" style="width: 120px;">STATUS</th>
-                        <th class="py-3">ASSIGNED TO</th>
-                        <th class="py-3 pe-4" style="width: 150px;">ASSIGNED DATE</th>
+                <thead style="background-color: #f8fafc; border-bottom: 1px solid #eaecf0;">
+                    <tr class="text-secondary small fw-semibold" style="font-size: 0.78rem; letter-spacing: 0.01em;">
+                        <th class="ps-4 py-2.5">Asset Tag</th>
+                        <th class="py-2.5">Name &amp; Serial</th>
+                        <th class="py-2.5">Category</th>
+                        <th class="py-2.5 text-center" style="width: 120px;">Condition</th>
+                        <th class="py-2.5 text-center" style="width: 130px;">Status</th>
+                        <th class="py-2.5">Assigned To</th>
+                        <th class="pe-4 py-2.5" style="width: 140px;">Assigned Date</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -91,15 +228,15 @@
                         @foreach (var a in Model.Assets)
                         {
                             <tr>
-                                <td class="ps-4 py-3 fw-semibold">
-                                    <span class="badge bg-light text-primary border">@a.AssetTag</span>
+                                <td class="ps-4 py-2.5 fw-semibold">
+                                    <span class="badge bg-light text-primary border" style="font-size: 0.8rem; font-weight: 600;">@a.AssetTag</span>
                                 </td>
-                                <td>
+                                <td class="py-2.5">
                                     <div class="fw-semibold text-dark">@a.Name</div>
                                     <small class="text-muted">@(a.SerialNumber ?? "No S/N")</small>
                                 </td>
-                                <td>@a.Category</td>
-                                <td class="text-center">
+                                <td class="py-2.5 text-secondary">@a.Category</td>
+                                <td class="py-2.5 text-center">
                                     @switch (a.Condition)
                                     {
                                         case AssetCondition.New:
@@ -116,24 +253,24 @@
                                             break;
                                     }
                                 </td>
-                                <td class="text-center">
+                                <td class="py-2.5 text-center">
                                     @switch (a.Status)
                                     {
                                         case AssetStatus.Available:
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle">Available</span>
+                                            <span class="badge-status-dot badge-status-active">Available</span>
                                             break;
                                         case AssetStatus.Assigned:
-                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Assigned</span>
+                                            <span class="badge-status-dot badge-status-purple">Assigned</span>
                                             break;
                                         case AssetStatus.InRepair:
-                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">In Repair</span>
+                                            <span class="badge-status-dot badge-status-warning">In Repair</span>
                                             break;
                                         case AssetStatus.Retired:
-                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Retired</span>
+                                            <span class="badge-status-dot badge-status-neutral">Retired</span>
                                             break;
                                     }
                                 </td>
-                                <td>
+                                <td class="py-2.5">
                                     @if (!string.IsNullOrEmpty(a.AssignedToFullName))
                                     {
                                         <div class="fw-medium text-dark">@a.AssignedToFullName</div>
@@ -144,7 +281,7 @@
                                         <span class="text-muted small"><em>Unassigned</em></span>
                                     }
                                 </td>
-                                <td class="pe-4 small text-muted">
+                                <td class="pe-4 py-2.5 small text-muted">
                                     @(a.AssignedAtUtc?.ToString("yyyy-MM-dd") ?? "-")
                                 </td>
                             </tr>
@@ -155,3 +292,39 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        function filterDropdownMenuOptions(input) {
+            const query = input.value.trim().toLowerCase();
+            const list = input.closest('.filter-dropdown-menu').querySelector('.filter-dropdown-list');
+            if (!list) return;
+            const items = list.querySelectorAll('li');
+            items.forEach(li => {
+                const text = li.textContent.trim().toLowerCase();
+                if (!query || text.includes(query)) {
+                    li.style.display = '';
+                } else {
+                    li.style.display = 'none';
+                }
+            });
+        }
+
+        function selectSearchableReportFilter(inputId, value, label, btnTextId) {
+            const input = document.getElementById(inputId);
+            if (input) input.value = value;
+            const btnText = document.getElementById(btnTextId);
+            if (btnText) btnText.textContent = label;
+            const btn = btnText ? btnText.closest('.filter-pill-dropdown') : null;
+            if (btn) {
+                if (value) {
+                    btn.classList.add('is-filtered');
+                } else {
+                    btn.classList.remove('is-filtered');
+                }
+            }
+            const form = document.getElementById('reportAssetsFilterForm');
+            if (form) form.submit();
+        }
+    </script>
+}

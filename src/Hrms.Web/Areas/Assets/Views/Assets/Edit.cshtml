@@ -1,4 +1,4 @@
-@model EditAssetViewModel
+﻿@model EditAssetViewModel
 @{
     ViewData["Title"] = $"Edit {Model.AssetTag}";
 }
@@ -43,7 +43,35 @@
 
                     <div class="col-md-6">
                         <label asp-for="Category" class="form-label"></label>
-                        <select asp-for="Category" class="form-select" asp-items="Html.GetEnumSelectList<AssetCategory>()"></select>
+                        <input type="hidden" asp-for="Category" id="assetCategoryInput" value="@Model.Category" />
+                        <div class="dropdown">
+                            <button class="form-select text-start d-flex justify-content-between align-items-center" type="button" id="assetCategoryDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span id="assetCategoryLabel">@(Model.Category != 0 ? Model.Category.ToString() : "-- Select Category --")</span>
+                                <i class="bi bi-chevron-down text-muted small"></i>
+                            </button>
+                            <div class="dropdown-menu filter-dropdown-menu w-100 shadow border-0 p-2" aria-labelledby="assetCategoryDropdownBtn" style="border-radius: 10px; max-height: 280px;">
+                                <div class="filter-dropdown-search mb-2 px-1">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                        <input type="text" class="form-control filter-dropdown-search-input bg-light border-start-0" placeholder="Type category name (e.g. Laptop, Monitor)..." autocomplete="off" />
+                                    </div>
+                                </div>
+                                <ul class="filter-dropdown-list list-unstyled mb-0" style="max-height: 190px; overflow-y: auto;">
+                                    @foreach (var cat in Enum.GetValues<AssetCategory>())
+                                    {
+                                        <li>
+                                            <a class="dropdown-item rounded-2 py-2 d-flex align-items-center justify-content-between" href="javascript:void(0)" onclick="selectFormDropdown('assetCategoryInput', 'assetCategoryLabel', '@cat', '@cat', 'assetCategoryDropdownBtn')">
+                                                <span>@cat</span>
+                                                @if (Model.Category == cat)
+                                                {
+                                                    <i class="bi bi-check2 text-primary"></i>
+                                                }
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
                         <span asp-validation-for="Category" class="text-danger small"></span>
                     </div>
 

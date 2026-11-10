@@ -138,4 +138,20 @@ public class DesignationsController : Controller
             .Select(d => new SelectListItem(d.Name, d.Id.ToString(), d.Id == selectedId))
             .ToList();
     }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var result = await _designationService.DeleteDesignationAsync(id);
+        if (!result.IsSuccess)
+        {
+            TempData["ErrorMessage"] = result.Error.Message;
+        }
+        else
+        {
+            TempData["SuccessMessage"] = "Designation deleted successfully.";
+        }
+        return RedirectToAction(nameof(Index));
+    }
 }

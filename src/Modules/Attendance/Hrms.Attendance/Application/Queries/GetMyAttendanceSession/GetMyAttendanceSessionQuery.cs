@@ -178,7 +178,18 @@ public class GetMyAttendanceSessionHandler : IGetMyAttendanceSessionHandler
             workedMins = Math.Max(0, totalElapsed - breakMins);
         }
 
-        int overtimeMins = Math.Max(0, workedMins - 480); // standard 8 hours (480 mins)
+        int standardShiftMins = 480;
+        if (shift != null)
+        {
+            var diff = shift.EndTime - shift.StartTime;
+            if (diff < TimeSpan.Zero) diff += TimeSpan.FromHours(24);
+            if (diff.TotalMinutes > 0)
+            {
+                standardShiftMins = (int)diff.TotalMinutes;
+            }
+        }
+
+        int overtimeMins = Math.Max(0, workedMins - standardShiftMins);
 
         return new MyAttendanceSessionDto(
             HasClockedIn: hasClockedIn,

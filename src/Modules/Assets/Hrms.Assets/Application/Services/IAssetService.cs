@@ -14,4 +14,10 @@ public interface IAssetService
     Task<AssetDetailsDto?> GetAssetDetailsAsync(Guid assetId, CancellationToken ct = default);
     Task<IReadOnlyList<AssetAssignmentHistoryDto>> GetAssetHistoryAsync(Guid assetId, CancellationToken ct = default);
     Task<IReadOnlyList<MyAssetDto>> GetMyAssetsAsync(Guid employeeId, CancellationToken ct = default);
+    Task<IReadOnlyList<AssetRequestDto>> GetMyAssetRequestsAsync(Guid employeeId, CancellationToken ct = default);
+    Task<Result<Guid>> ReportAssetIssueAsync(CreateAssetRequestCommand command, CancellationToken ct = default);
+    Task<Result> CancelAssetRequestAsync(Guid requestId, Guid employeeId, CancellationToken ct = default);
+    Task<PagedResult<AssetRequestDto>> GetAssetRequestsAsync(string? search, AssetRequestStatus? status, int page, int pageSize, CancellationToken ct = default);
+    Task<Result> ResolveAssetRequestAsync(ResolveAssetRequestCommand command, CancellationToken ct = default);
+    Task<AssetDashboardMetricsDto> GetAssetDashboardMetricsAsync(CancellationToken ct = default);
 }

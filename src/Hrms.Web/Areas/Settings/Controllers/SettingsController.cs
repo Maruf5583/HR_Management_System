@@ -70,6 +70,73 @@ public class SettingsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemoveLogo(CancellationToken cancellationToken)
+    {
+        var settings = await _settingsService.GetAllSettingsAsync(cancellationToken);
+        var dict = settings.ToDictionary(s => s.SettingKey, s => s);
+
+        if (dict.TryGetValue(SettingKeys.CompanyLogo, out var cl) && !string.IsNullOrWhiteSpace(cl.ValueText))
+        {
+            var relativePath = cl.ValueText.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            var fullPath = Path.Combine(_environment.WebRootPath, relativePath);
+            if (System.IO.File.Exists(fullPath))
+            {
+                try { System.IO.File.Delete(fullPath); } catch { /* ignore */ }
+            }
+        }
+
+        var command = new UpdateSettingsCommand(
+            dict.TryGetValue(SettingKeys.CompanyName, out var cn) ? cn.ValueText : string.Empty,
+            dict.TryGetValue(SettingKeys.CompanyTimezone, out var ct) ? ct.ValueText : "Asia/Dhaka",
+            dict.TryGetValue(SettingKeys.AttendanceHalfDayHours, out var ah) ? ah.ValueText : "4",
+            dict.TryGetValue(SettingKeys.AttendanceHolidayPriority, out var hp) ? hp.ValueText : "Holiday",
+            dict.TryGetValue(SettingKeys.LeaveYearStart, out var ly) ? ly.ValueText : "01-01",
+            dict.TryGetValue(SettingKeys.PayrollPerDayDivisor, out var pd) ? pd.ValueText : "30",
+            dict.TryGetValue(SettingKeys.EmployeeCodeFormat, out var ef) ? ef.ValueText : "EMP-{0:0000}",
+            string.Empty,
+            dict.TryGetValue(SettingKeys.CompanyFavicon, out var cf) ? cf.ValueText : null
+        );
+
+        await _settingsService.UpdateSettingsAsync(command, cancellationToken);
+        TempData["SuccessMessage"] = "Company logo removed successfully.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemoveFavicon(CancellationToken cancellationToken)
+    {
+        var settings = await _settingsService.GetAllSettingsAsync(cancellationToken);
+        var dict = settings.ToDictionary(s => s.SettingKey, s => s);
+
+        if (dict.TryGetValue(SettingKeys.CompanyFavicon, out var cf) && !string.IsNullOrWhiteSpace(cf.ValueText))
+        {
+            var relativePath = cf.ValueText.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            var fullPath = Path.Combine(_environment.WebRootPath, relativePath);
+            if (System.IO.File.Exists(fullPath))
+            {
+                try { System.IO.File.Delete(fullPath); } catch { /* ignore */ }
+            }
+        }
+
+        var command = new UpdateSettingsCommand(
+            dict.TryGetValue(SettingKeys.CompanyName, out var cn) ? cn.ValueText : string.Empty,
+            dict.TryGetValue(SettingKeys.CompanyTimezone, out var ct) ? ct.ValueText : "Asia/Dhaka",
+            dict.TryGetValue(SettingKeys.AttendanceHalfDayHours, out var ah) ? ah.ValueText : "4",
+            dict.TryGetValue(SettingKeys.AttendanceHolidayPriority, out var hp) ? hp.ValueText : "Holiday",
+            dict.TryGetValue(SettingKeys.LeaveYearStart, out var ly) ? ly.ValueText : "01-01",
+            dict.TryGetValue(SettingKeys.PayrollPerDayDivisor, out var pd) ? pd.ValueText : "30",
+            dict.TryGetValue(SettingKeys.EmployeeCodeFormat, out var ef) ? ef.ValueText : "EMP-{0:0000}",
+            dict.TryGetValue(SettingKeys.CompanyLogo, out var cl) ? cl.ValueText : null,
+            string.Empty
+        );
+
+        await _settingsService.UpdateSettingsAsync(command, cancellationToken);
+        TempData["SuccessMessage"] = "Website favicon removed successfully.";
+        return RedirectToAction(nameof(Index));
+    }
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Save(SettingsViewModel model, CancellationToken cancellationToken)
     {
         // 1. Process Logo File

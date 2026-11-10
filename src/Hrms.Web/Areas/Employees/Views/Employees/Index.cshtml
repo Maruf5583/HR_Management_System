@@ -1,167 +1,400 @@
 @model EmployeeIndexViewModel
 @{
     ViewData["Title"] = "Employees";
+    ViewData["Subtitle"] = "Manage your organization's workforce records, roles and employment status.";
+    var isAnyFilterActive = !string.IsNullOrEmpty(Model.Filter.Search) || Model.Filter.DepartmentId.HasValue || Model.Filter.Status.HasValue || Model.Filter.EmploymentType.HasValue;
+    
+    var avatarPalettes = new[] {
+        ("#7c3aed", "#f4f3ff", "#e9d5ff"), // Purple
+        ("#2563eb", "#eff6ff", "#dbeafe"), // Blue
+        ("#059669", "#ecfdf3", "#abefc6"), // Emerald
+        ("#d97706", "#fffbeb", "#fde68a"), // Amber
+        ("#e11d48", "#fff1f2", "#fecdd3")  // Rose
+    };
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h4 class="fw-bold mb-1"><i class="bi bi-people-fill me-2 text-primary"></i>Employees Directory</h4>
-        <p class="text-muted small mb-0">View, search and manage company employee records</p>
+<!-- EmplowHR Top 4 Summary KPI Cards (Linear Style Crisp Surfaces, Clickable Filters) -->
+<div class="row g-2 g-md-3 mb-4">
+    <!-- TOTAL CARD -->
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-xs p-3 h-100 kpi-filter-card" style="border-radius: 12px; background: #ffffff; border: 1px solid #eaecf0 !important; cursor: pointer;" onclick="setEmployeeClientFilter('status', '', 'All Statuses', null)" title="Filter: All Employees">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Total Employees</span>
+                <span class="badge bg-light text-secondary border fw-medium" style="font-size: 0.68rem;">Headcount</span>
+            </div>
+            <div class="fw-bold text-dark mb-1 tabular-nums" style="font-size: 1.65rem; line-height: 1.2;">@Model.TotalCount</div>
+            <div class="text-muted small" style="font-size: 0.74rem;">All registered workforce</div>
+        </div>
     </div>
+
+    <!-- ACTIVE CARD -->
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-xs p-3 h-100 kpi-filter-card @(Model.ActiveCount == 0 ? "opacity-75" : "")" style="border-radius: 12px; background: #ffffff; border: 1px solid #eaecf0 !important; cursor: pointer;" onclick="setEmployeeClientFilter('status', 'Active', 'Active', null)" title="Filter: Active Employees">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Active Status</span>
+                <span class="badge bg-success-subtle text-success border border-success-subtle fw-medium" style="font-size: 0.68rem;">Employed</span>
+            </div>
+            <div class="fw-bold text-success mb-1 tabular-nums" style="font-size: 1.65rem; line-height: 1.2;">@Model.ActiveCount</div>
+            <div class="text-muted small" style="font-size: 0.74rem;">Currently on duty &amp; payroll</div>
+        </div>
+    </div>
+
+    <!-- PROBATION CARD -->
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-xs p-3 h-100 kpi-filter-card @(Model.ProbationCount == 0 ? "opacity-75" : "")" style="border-radius: 12px; background: #ffffff; border: 1px solid #eaecf0 !important; cursor: pointer;" onclick="setEmployeeClientFilter('status', 'Probation', 'Probation', null)" title="Filter: Probation Employees">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Probation</span>
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-medium" style="font-size: 0.68rem;">Review Due</span>
+            </div>
+            <div class="fw-bold text-warning-emphasis mb-1 tabular-nums" style="font-size: 1.65rem; line-height: 1.2;">@Model.ProbationCount</div>
+            <div class="text-muted small" style="font-size: 0.74rem;">In evaluation review period</div>
+        </div>
+    </div>
+
+    <!-- NOTICE CARD -->
+    <div class="col-6 col-xl-3">
+        <div class="card border-0 shadow-xs p-3 h-100 kpi-filter-card @(Model.OnNoticeCount == 0 ? "opacity-75" : "")" style="border-radius: 12px; background: #ffffff; border: 1px solid #eaecf0 !important; cursor: pointer;" onclick="setEmployeeClientFilter('status', 'OnNotice', 'OnNotice', null)" title="Filter: Serving Notice">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-secondary small fw-bold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.05em;">Serving Notice</span>
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-medium" style="font-size: 0.68rem;">Offboarding</span>
+            </div>
+            <div class="fw-bold text-danger mb-1 tabular-nums" style="font-size: 1.65rem; line-height: 1.2;">@Model.OnNoticeCount</div>
+            <div class="text-muted small" style="font-size: 0.74rem;">Handover phase in progress</div>
+        </div>
+    </div>
+</div>
+
+<!-- EmplowHR-Inspired Unified Filter Bar (Clean No-Icon Dropdowns) -->
+<form method="get" class="table-filter-bar mb-3" id="employeesFilterForm">
+    <!-- Search Box -->
+    <div class="table-search-box" style="min-width: 240px;">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" name="Search" id="employeeSearchInput" value="@Model.Filter.Search" class="table-search-input" placeholder="Filter by name, code or email..." oninput="filterEmployeesRealtime()" autocomplete="off" />
+    </div>
+
+    <!-- Hidden Filter Inputs -->
+    <input type="hidden" name="DepartmentId" value="@(Model.Filter.DepartmentId?.ToString() ?? "")" id="filterDepartmentInput" />
+    <input type="hidden" name="Status" value="@(Model.Filter.Status?.ToString() ?? "")" id="filterStatusInput" />
+    <input type="hidden" name="EmploymentType" value="@(Model.Filter.EmploymentType?.ToString() ?? "")" id="filterEmpTypeInput" />
+
+    <!-- Department Dropdown Pill (No Icon) -->
+    @{
+        var selectedDeptText = "All Departments";
+        if (Model.Filter.DepartmentId.HasValue)
+        {
+            var matchDept = Model.DepartmentOptions.FirstOrDefault(d => d.Value == Model.Filter.DepartmentId.Value.ToString());
+            if (matchDept != null) selectedDeptText = matchDept.Text;
+        }
+    }
+    <div class="dropdown">
+        <button class="filter-pill-dropdown @(Model.Filter.DepartmentId.HasValue ? "is-filtered" : "")" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="empDeptBtn">
+            <span>@selectedDeptText</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu shadow-sm" style="min-width: 250px;">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search departments..." autocomplete="off" oninput="filterDropdownMenuOptions(this)" />
+            </div>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                <li>
+                    <a class="dropdown-item @(!Model.Filter.DepartmentId.HasValue ? "active" : "")" href="javascript:void(0)" onclick="setEmployeeClientFilter('dept', '', 'All Departments', this)">
+                        <span>All Departments</span>
+                        @if (!Model.Filter.DepartmentId.HasValue) { <i class="bi bi-check2 ms-auto"></i> }
+                    </a>
+                </li>
+                @foreach (var dept in Model.DepartmentOptions)
+                {
+                    if (!string.IsNullOrEmpty(dept.Value))
+                    {
+                        var isSel = Model.Filter.DepartmentId.HasValue && Model.Filter.DepartmentId.Value.ToString() == dept.Value;
+                        <li>
+                            <a class="dropdown-item @(isSel ? "active" : "")" href="javascript:void(0)" onclick="setEmployeeClientFilter('dept', '@dept.Value', '@dept.Text', this)">
+                                <span>@dept.Text</span>
+                                @if (isSel) { <i class="bi bi-check2 ms-auto"></i> }
+                            </a>
+                        </li>
+                    }
+                }
+            </ul>
+        </div>
+    </div>
+
+    <!-- Status Dropdown Pill (No Icon) -->
+    @{
+        var selectedStatusText = Model.Filter.Status.HasValue ? Model.Filter.Status.Value.ToString() : "All Statuses";
+    }
+    <div class="dropdown">
+        <button class="filter-pill-dropdown @(Model.Filter.Status.HasValue ? "is-filtered" : "")" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="empStatusBtn">
+            <span>@selectedStatusText</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu shadow-sm" style="min-width: 210px;">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search statuses..." autocomplete="off" oninput="filterDropdownMenuOptions(this)" />
+            </div>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                <li>
+                    <a class="dropdown-item @(!Model.Filter.Status.HasValue ? "active" : "")" href="javascript:void(0)" onclick="setEmployeeClientFilter('status', '', 'All Statuses', this)">
+                        <span>All Statuses</span>
+                        @if (!Model.Filter.Status.HasValue) { <i class="bi bi-check2 ms-auto"></i> }
+                    </a>
+                </li>
+                @foreach (var st in Enum.GetValues<EmployeeStatus>())
+                {
+                    var isSel = Model.Filter.Status == st;
+                    <li>
+                        <a class="dropdown-item @(isSel ? "active" : "")" href="javascript:void(0)" onclick="setEmployeeClientFilter('status', '@st', '@st', this)">
+                            <span>@st</span>
+                            @if (isSel) { <i class="bi bi-check2 ms-auto"></i> }
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+
+    <!-- Employment / Payroll Type Dropdown Pill (No Icon) -->
+    @{
+        var selectedEmpTypeText = Model.Filter.EmploymentType.HasValue ? Model.Filter.EmploymentType.Value.ToString() : "All Employment Types";
+    }
+    <div class="dropdown">
+        <button class="filter-pill-dropdown @(Model.Filter.EmploymentType.HasValue ? "is-filtered" : "")" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="empTypeBtn">
+            <span>@selectedEmpTypeText</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu shadow-sm" style="min-width: 220px;">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search employment types..." autocomplete="off" oninput="filterDropdownMenuOptions(this)" />
+            </div>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                <li>
+                    <a class="dropdown-item @(!Model.Filter.EmploymentType.HasValue ? "active" : "")" href="javascript:void(0)" onclick="setEmployeeClientFilter('type', '', 'All Employment Types', this)">
+                        <span>All Employment Types</span>
+                        @if (!Model.Filter.EmploymentType.HasValue) { <i class="bi bi-check2 ms-auto"></i> }
+                    </a>
+                </li>
+                @foreach (var et in Enum.GetValues<EmploymentType>())
+                {
+                    var isSel = Model.Filter.EmploymentType == et;
+                    <li>
+                        <a class="dropdown-item @(isSel ? "active" : "")" href="javascript:void(0)" onclick="setEmployeeClientFilter('type', '@et', '@et', this)">
+                            <span>@et</span>
+                            @if (isSel) { <i class="bi bi-check2 ms-auto"></i> }
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+
+    <!-- Filter Action Button -->
+    <button type="submit" class="btn btn-sm btn-light border fw-semibold px-3 py-1.5 rounded-3 text-secondary d-flex align-items-center gap-1 shadow-xs" style="height: 38px;">
+        <i class="bi bi-funnel"></i>
+        <span>Filter</span>
+    </button>
+
+    <!-- Reset Button -->
+    <a asp-action="Index" id="resetEmployeesFiltersBtn" class="btn btn-sm btn-light border text-secondary px-2.5 py-1.5 rounded-3 shadow-xs @(isAnyFilterActive ? "d-flex" : "d-none") align-items-center gap-1" title="Reset all filters" style="height: 38px;">
+        <i class="bi bi-arrow-counterclockwise"></i>
+        <span>Reset</span>
+    </a>
+
+    <!-- Add Employee CTA -->
     @if (CurrentUser.HasPermission(Permissions.Employees.Manage))
     {
-        <a asp-action="Create" class="btn btn-primary d-flex align-items-center gap-2">
-            <i class="bi bi-person-plus-fill"></i> Add Employee
-        </a>
+        <div class="ms-auto">
+            <a asp-action="Create" class="btn btn-primary px-3 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center gap-1.5" style="height: 40px; font-size: 0.875rem; white-space: nowrap;">
+                <i class="bi bi-plus-lg"></i>
+                <span>Add employee</span>
+            </a>
+        </div>
     }
-</div>
+</form>
 
-<!-- Search and Filter Form -->
-<div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
-    <div class="card-body p-3">
-        <form method="get" class="row g-2 align-items-end">
-            <div class="col-md-3">
-                <label class="form-label small text-muted mb-1">Search</label>
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-                    <input type="text" name="Search" value="@Model.Filter.Search" class="form-control" placeholder="Name, code, email, phone..." />
-                </div>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small text-muted mb-1">Department</label>
-                <select name="DepartmentId" asp-items="Model.DepartmentOptions" class="form-select form-select-sm">
-                    <option value="">-- All --</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small text-muted mb-1">Status</label>
-                <select name="Status" class="form-select form-select-sm">
-                    <option value="">-- All --</option>
-                    @foreach (var status in Enum.GetValues<EmployeeStatus>())
-                    {
-                        <option value="@status" selected="@(Model.Filter.Status == status)">@status</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label small text-muted mb-1">Employment</label>
-                <select name="EmploymentType" class="form-select form-select-sm">
-                    <option value="">-- All --</option>
-                    @foreach (var type in Enum.GetValues<EmploymentType>())
-                    {
-                        <option value="@type" selected="@(Model.Filter.EmploymentType == type)">@type</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-3 d-flex gap-2">
-                <button type="submit" class="btn btn-sm btn-primary w-100">
-                    <i class="bi bi-funnel me-1"></i> Filter
+<!-- Employee List Table Card (EmplowHR Exact Clean Architecture) -->
+<div class="card border-0 shadow-xs" style="border-radius: 14px; border: 1px solid #eaecf0 !important; background: #ffffff;">
+    
+    <!-- EmplowHR Bulk Action Bar (Appears when 1 or more employees are checked) -->
+    <div id="bulkActionsBar" class="d-none align-items-center justify-content-between px-3 py-2 border-bottom" style="background-color: #fafbfc; border-color: #eaecf0 !important;">
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-dark fw-semibold small" id="selectedCountText" style="font-size: 0.82rem;">0 selected</span>
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1.5 px-2.5 py-1 text-dark fw-medium rounded-2 bg-white" onclick="submitBulkAction('activate')" style="font-size: 0.78rem; border-color: #d0d5dd;">
+                    <i class="bi bi-check2 text-success" style="font-size: 0.95rem; font-weight: bold;"></i>
+                    <span>Activate</span>
                 </button>
-                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
-                    Clear
-                </a>
+                <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1.5 px-2.5 py-1 text-dark fw-medium rounded-2 bg-white" onclick="submitBulkAction('probation')" style="font-size: 0.78rem; border-color: #d0d5dd;">
+                    <i class="bi bi-clock text-warning" style="font-size: 0.85rem;"></i>
+                    <span>Set probation</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1.5 px-2.5 py-1 text-danger fw-medium rounded-2 bg-white" onclick="submitBulkAction('deactivate')" style="font-size: 0.78rem; border-color: #d0d5dd;">
+                    <i class="bi bi-trash3" style="font-size: 0.85rem;"></i>
+                    <span>Deactivate</span>
+                </button>
             </div>
-        </form>
+        </div>
+        <a href="javascript:void(0)" onclick="clearAllSelections()" class="text-secondary small fw-medium text-decoration-none" style="font-size: 0.8rem;">Clear</a>
     </div>
-</div>
 
-<!-- Employee List Table -->
-<div class="card border-0 shadow-sm" style="border-radius: 12px;">
+    <!-- Hidden Form for Bulk Operations -->
+    <form id="bulkActionForm" asp-action="BulkAction" method="post" style="display: none;">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="actionType" id="bulkActionType" value="" />
+        <div id="bulkEmployeeIdsContainer"></div>
+    </form>
+
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">Employee</th>
-                        <th>Code</th>
-                        <th>Department & Role</th>
-                        <th>Grade</th>
-                        <th>Type</th>
-                        <th>Status</th>
-                        <th>Join Date</th>
-                        <th class="text-end pe-4">Actions</th>
+        <div class="table-responsive" style="min-height: 250px;">
+            <table class="table table-hover align-middle mb-0 table-sticky-first">
+                <thead style="background-color: #f8fafc; border-bottom: 1px solid #eaecf0;">
+                    <tr class="text-secondary small fw-semibold" style="font-size: 0.78rem; letter-spacing: 0.01em;">
+                        <th class="ps-3 py-2.5" style="width: 40px;">
+                            <input class="form-check-input" type="checkbox" id="selectAllEmployees" />
+                        </th>
+                        <th class="py-2.5" style="min-width: 220px;">Employee</th>
+                        <th class="py-2.5" style="min-width: 150px;">Department</th>
+                        <th class="py-2.5" style="min-width: 140px;">Manager / Role</th>
+                        <th class="py-2.5 text-center" style="width: 110px;">Status</th>
+                        <th class="py-2.5" style="min-width: 130px;">Profile</th>
+                        <th class="text-end pe-4 py-2.5" style="width: 90px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (!Model.PagedEmployees.Items.Any())
                     {
                         <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
-                                <i class="bi bi-people fs-1 d-block mb-2"></i>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-people fs-1 d-block mb-2 text-muted opacity-50"></i>
                                 No employee records found matching criteria.
+                                @if (isAnyFilterActive)
+                                {
+                                    <div class="mt-2">
+                                        <a asp-action="Index" class="btn btn-sm btn-outline-primary">Clear all filters</a>
+                                    </div>
+                                }
                             </td>
                         </tr>
                     }
                     @foreach (var emp in Model.PagedEmployees.Items)
                     {
                         var initials = (emp.FirstName.Length > 0 ? emp.FirstName[..1] : "") + (emp.LastName.Length > 0 ? emp.LastName[..1] : "");
-                        <tr>
-                            <td class="ps-4">
-                                <div class="d-flex align-items-center gap-3">
+                        
+                        var completionPct = 35;
+                        if (!string.IsNullOrWhiteSpace(emp.Email)) completionPct += 20;
+                        if (!string.IsNullOrWhiteSpace(emp.Phone)) completionPct += 15;
+                        if (!string.IsNullOrWhiteSpace(emp.PhotoKey)) completionPct += 15;
+                        if (!string.IsNullOrWhiteSpace(emp.DepartmentName)) completionPct += 15;
+                        if (completionPct > 100) completionPct = 100;
+                        
+                        var barColor = completionPct >= 80 ? "#12b76a" : (completionPct >= 50 ? "#f79009" : "#f04438");
+
+                        var colorIdx = Math.Abs(emp.FullName.GetHashCode()) % avatarPalettes.Length;
+                        var palette = avatarPalettes[colorIdx];
+
+                        var editUrl = Url.Action("Edit", "Employees", new { area = "Employees", id = emp.EmployeeId });
+                        var detailsUrl = Url.Action("Details", "Employees", new { area = "Employees", id = emp.EmployeeId });
+                        var photoUrl = !string.IsNullOrWhiteSpace(emp.PhotoKey) ? "/uploads/" + emp.PhotoKey : "";
+
+                        <tr class="employee-row" style="cursor: pointer;"
+                            data-search="@emp.FullName.ToLowerInvariant() @emp.EmployeeCode.ToLowerInvariant() @(emp.Email?.ToLowerInvariant() ?? "") @(emp.DepartmentName?.ToLowerInvariant() ?? "")"
+                            data-dept="@(emp.DepartmentName?.ToLowerInvariant() ?? "")"
+                            data-status="@emp.Status"
+                            data-type="@emp.EmploymentType"
+                            onclick="handleEmployeeRowClick(event, '@detailsUrl')">
+                            
+                            <td class="ps-3">
+                                <input class="form-check-input employee-checkbox" type="checkbox" value="@emp.EmployeeId" />
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2.5">
                                     @if (!string.IsNullOrWhiteSpace(emp.PhotoKey))
                                     {
-                                        <img src="/uploads/@emp.PhotoKey" alt="@emp.FullName" class="rounded-circle border" style="width: 40px; height: 40px; object-fit: cover;" />
+                                        <img src="/uploads/@emp.PhotoKey" alt="@emp.FullName" class="rounded-circle border" style="width: 36px; height: 36px; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('d-none');" />
+                                        <div class="rounded-circle border d-none align-items-center justify-content-center fw-bold" style="width: 36px; height: 36px; min-width: 36px; background-color: @palette.Item2; color: @palette.Item1; border-color: @palette.Item3 !important; font-size: 0.75rem;">
+                                            @initials.ToUpper()
+                                        </div>
                                     }
                                     else
                                     {
-                                        <div class="rounded-circle bg-primary-subtle text-primary border border-primary-subtle d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px; font-size: 0.85rem;">
+                                        <div class="rounded-circle border d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width: 36px; height: 36px; min-width: 36px; background-color: @palette.Item2; color: @palette.Item1; border-color: @palette.Item3 !important; font-size: 0.75rem;">
                                             @initials.ToUpper()
                                         </div>
                                     }
                                     <div>
-                                        <a asp-action="Details" asp-route-id="@emp.EmployeeId" class="fw-semibold text-dark text-decoration-none d-block">
+                                        <span class="fw-semibold text-dark d-block text-truncate" style="font-size: 0.85rem; max-width: 220px;">
                                             @emp.FullName
-                                        </a>
-                                        <small class="text-muted d-block">@(emp.Email ?? emp.Phone ?? "No contact")</small>
+                                        </span>
+                                        <div class="text-muted d-flex align-items-center gap-1.5 mt-0.5" style="font-size: 0.74rem;">
+                                            <span>@emp.EmployeeCode</span>
+                                            <span>·</span>
+                                            <span class="text-truncate" style="max-width: 170px;">@(emp.Email ?? "No email")</span>
+                                        </div>
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                <span class="badge bg-light text-primary border font-monospace">@emp.EmployeeCode</span>
+                                <div class="text-secondary small fw-normal" style="font-size: 0.84rem;">
+                                    @(string.IsNullOrWhiteSpace(emp.DepartmentName) ? "—" : emp.DepartmentName)
+                                </div>
                             </td>
                             <td>
-                                <div class="fw-medium text-dark">@emp.DesignationTitle</div>
-                                <small class="text-muted">@emp.DepartmentName</small>
+                                <div class="text-secondary small fw-normal" style="font-size: 0.84rem;">
+                                    @(string.IsNullOrWhiteSpace(emp.DesignationTitle) ? "—" : emp.DesignationTitle)
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <partial name="_StatusChip" model="@emp.Status.ToString()" />
                             </td>
                             <td>
-                                <span class="badge bg-light text-dark border">@emp.GradeCode</span>
-                            </td>
-                            <td>
-                                <span class="badge bg-light text-secondary border">@emp.EmploymentType</span>
-                            </td>
-                            <td>
-                                @switch (emp.Status)
-                                {
-                                    case EmployeeStatus.Active:
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
-                                        break;
-                                    case EmployeeStatus.OnNotice:
-                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle">On Notice</span>
-                                        break;
-                                    case EmployeeStatus.Resigned:
-                                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Resigned</span>
-                                        break;
-                                    case EmployeeStatus.Terminated:
-                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Terminated</span>
-                                        break;
-                                }
-                            </td>
-                            <td class="text-muted small">@emp.JoinDate.ToString("dd MMM yyyy")</td>
-                            <td class="text-end pe-4">
-                                <div class="d-inline-flex gap-2">
-                                    <a asp-action="Details" asp-route-id="@emp.EmployeeId" class="btn btn-sm btn-outline-primary" title="View Details">
-                                        <i class="bi bi-eye"></i>
-                                    </a>
-                                    @if (CurrentUser.HasPermission(Permissions.Employees.Manage))
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="progress flex-grow-1" style="height: 4px; background-color: #f2f4f7; border-radius: 9999px;">
+                                        <div class="progress-bar rounded-pill" role="progressbar" style="width: @completionPct%; background-color: @barColor;" aria-valuenow="@completionPct" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    @if (completionPct == 100)
                                     {
-                                        <a asp-action="Edit" asp-route-id="@emp.EmployeeId" class="btn btn-sm btn-outline-secondary" title="Edit">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle fw-medium" style="font-size: 0.68rem;">Complete</span>
                                     }
+                                    else
+                                    {
+                                        <span class="small text-muted tabular-nums" style="font-size: 0.74rem; min-width: 28px;">@completionPct%</span>
+                                    }
+                                </div>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-sm btn-light border-0 px-2 py-1 text-muted" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false" title="Actions">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 py-1" style="border-radius: 10px; min-width: 140px; z-index: 1060;">
+                                        <li>
+                                            <a href="@detailsUrl" class="dropdown-item py-1.5 small d-flex align-items-center gap-2">
+                                                <i class="bi bi-person text-muted"></i>
+                                                <span>View Profile</span>
+                                            </a>
+                                        </li>
+                                        @if (CurrentUser.HasPermission(Permissions.Employees.Manage))
+                                        {
+                                            <li>
+                                                <a href="@editUrl" class="dropdown-item py-1.5 small d-flex align-items-center gap-2">
+                                                    <i class="bi bi-pencil text-muted"></i>
+                                                    <span>Edit</span>
+                                                </a>
+                                            </li>
+                                        }
+                                    </ul>
                                 </div>
                             </td>
                         </tr>
                     }
+                    <tr id="noEmployeeClientResultsRow" class="d-none">
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-search fs-2 d-block mb-2 text-secondary opacity-50"></i>
+                            No employees match your search and filter criteria.
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -169,7 +402,7 @@
         <!-- Pagination Controls -->
         @if (Model.PagedEmployees.TotalPages > 1)
         {
-            <div class="d-flex justify-content-between align-items-center p-3 border-top">
+            <div class="d-flex flex-wrap justify-content-between align-items-center p-3 border-top gap-2">
                 <small class="text-muted">
                     Showing @(((Model.PagedEmployees.PageNumber - 1) * Model.PagedEmployees.PageSize) + (Model.PagedEmployees.Items.Count > 0 ? 1 : 0)) to
                     @(((Model.PagedEmployees.PageNumber - 1) * Model.PagedEmployees.PageSize) + Model.PagedEmployees.Items.Count) of @Model.PagedEmployees.TotalCount employees
@@ -203,3 +436,368 @@
         }
     </div>
 </div>
+
+<!-- Modern SaaS Slide-Over Drawer (Bootstrap 5 Offcanvas) -->
+<div class="offcanvas offcanvas-end border-0 shadow-lg" tabindex="-1" id="employeeDetailsDrawer" aria-labelledby="employeeDetailsDrawerLabel" style="width: 440px; max-width: 92vw; border-left: 1px solid #eaecf0 !important;">
+    <div class="offcanvas-header px-4 py-3 border-bottom" style="border-color: #eaecf0 !important; background: #ffffff;">
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1" style="font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em;">QUICK VIEW</span>
+            <span class="text-secondary small fw-medium" id="employeeDetailsDrawerLabel">Employee Details</span>
+        </div>
+        <button type="button" class="btn-close text-reset small" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body p-4 d-flex flex-column gap-3.5" style="background-color: #ffffff;">
+        <!-- Profile Header -->
+        <div class="d-flex align-items-center gap-3">
+            <div id="drawerAvatarContainer">
+                <div id="drawerAvatarFallback" class="rounded-3 d-flex align-items-center justify-content-center text-white fw-bold shadow-xs" style="width: 58px; height: 58px; font-size: 1.4rem; background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);">
+                    AU
+                </div>
+                <img id="drawerAvatarImg" src="" alt="Avatar" class="rounded-3 shadow-xs d-none" style="width: 58px; height: 58px; object-fit: cover; border: 1px solid #eaecf0;" onerror="this.classList.add('d-none'); document.getElementById('drawerAvatarFallback').classList.remove('d-none');" />
+            </div>
+            <div class="flex-grow-1 min-w-0">
+                <h5 class="fw-semibold text-dark mb-0 text-truncate" id="drawerFullName">Admin User</h5>
+                <div class="text-muted small text-truncate" id="drawerDesignation">System Administrator</div>
+                <div class="d-flex align-items-center gap-2 mt-1">
+                    <span id="drawerStatusBadge" class="badge-status-dot badge-status-active">Active</span>
+                    <span class="badge bg-light text-secondary border font-monospace" id="drawerCode" style="font-size: 0.72rem;">EMP-0001</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions Row -->
+        <div class="row g-2 pt-1">
+            <div class="col-6">
+                <a id="drawerEditLink" href="#" class="btn btn-sm btn-primary w-100 d-inline-flex align-items-center justify-content-center gap-1.5 py-2 fw-semibold rounded-3 shadow-xs">
+                    <i class="bi bi-pencil-square"></i>
+                    <span>Edit Record</span>
+                </a>
+            </div>
+            <div class="col-6">
+                <a id="drawerFullProfileLink" href="#" class="btn btn-sm btn-light border w-100 d-inline-flex align-items-center justify-content-center gap-1.5 py-2 fw-semibold rounded-3 text-secondary shadow-xs">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                    <span>Full Profile</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Information Summary Box -->
+        <div class="card border-0 shadow-xs" style="border: 1px solid #eaecf0 !important; border-radius: 12px; background: #f8fafc;">
+            <div class="card-body p-3 d-flex flex-column gap-2 text-xs" style="font-size: 0.82rem;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Email:</span>
+                    <span class="fw-semibold text-dark text-truncate ms-2" id="drawerEmail">admin@hrms.local</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Phone:</span>
+                    <span class="fw-semibold text-dark" id="drawerPhone">—</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Department:</span>
+                    <span class="fw-semibold text-dark" id="drawerDepartment">Executive Management</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Employment Type:</span>
+                    <span class="fw-semibold text-dark" id="drawerEmploymentType">Full-Time Permanent</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Joining Date:</span>
+                    <span class="fw-semibold text-dark" id="drawerJoinDate">—</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Completion Card -->
+        <div class="card border-0 shadow-xs" style="border: 1px solid #eaecf0 !important; border-radius: 12px; background: #ffffff;">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center mb-1.5">
+                    <span class="fw-semibold text-dark small">Profile Completion</span>
+                    <span class="fw-bold text-primary small" id="drawerCompletionText">85%</span>
+                </div>
+                <div class="progress" style="height: 6px; background-color: #f2f4f7; border-radius: 9999px;">
+                    <div class="progress-bar rounded-pill bg-primary" role="progressbar" id="drawerCompletionBar" style="width: 85%;"></div>
+                </div>
+                <div class="text-muted mt-2" style="font-size: 0.72rem;">Identity and organizational records verified.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function handleEmployeeRowClick(event, url) {
+            if (event.target.closest('.dropdown, .dropdown-menu, button, a, input, label, select, textarea')) {
+                return;
+            }
+            window.location.href = url;
+        }
+
+        function filterDropdownMenuOptions(input) {
+            const query = input.value.trim().toLowerCase();
+            const list = input.closest('.filter-dropdown-menu').querySelector('.filter-dropdown-list');
+            if (!list) return;
+            const items = list.querySelectorAll('li');
+            items.forEach(li => {
+                const text = li.textContent.trim().toLowerCase();
+                if (!query || text.includes(query)) {
+                    li.style.display = '';
+                } else {
+                    li.style.display = 'none';
+                }
+            });
+        }
+
+        let currentDeptText = '';
+        function setEmployeeClientFilter(type, val, label, el) {
+            let inputId = '';
+            let btnId = '';
+
+            if (type === 'dept') {
+                inputId = 'filterDepartmentInput';
+                btnId = 'empDeptBtn';
+                currentDeptText = val ? label.trim().toLowerCase() : '';
+            } else if (type === 'status') {
+                inputId = 'filterStatusInput';
+                btnId = 'empStatusBtn';
+            } else if (type === 'type') {
+                inputId = 'filterEmpTypeInput';
+                btnId = 'empTypeBtn';
+            }
+
+            const input = document.getElementById(inputId);
+            if (input) input.value = val;
+
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                const span = btn.querySelector('span');
+                if (span) span.textContent = label;
+                if (val) {
+                    btn.classList.add('is-filtered');
+                } else {
+                    btn.classList.remove('is-filtered');
+                }
+            }
+
+            if (el) {
+                const parentUl = el.closest('.filter-dropdown-list');
+                if (parentUl) {
+                    parentUl.querySelectorAll('.dropdown-item').forEach(item => {
+                        item.classList.remove('active');
+                        const checkIcon = item.querySelector('.bi-check2');
+                        if (checkIcon) checkIcon.remove();
+                    });
+                    el.classList.add('active');
+                    const check = document.createElement('i');
+                    check.className = 'bi bi-check2 ms-auto';
+                    el.appendChild(check);
+                }
+            }
+
+            filterEmployeesRealtime();
+        }
+
+        function filterEmployeesRealtime() {
+            const query = (document.getElementById('employeeSearchInput')?.value || '').trim().toLowerCase();
+            const deptVal = (document.getElementById('filterDepartmentInput')?.value || '').trim();
+            const statusVal = (document.getElementById('filterStatusInput')?.value || '').trim();
+            const typeVal = (document.getElementById('filterEmpTypeInput')?.value || '').trim();
+
+            if (deptVal && !currentDeptText) {
+                const btnSpan = document.querySelector('#empDeptBtn span');
+                if (btnSpan && btnSpan.textContent.trim() !== 'All Departments') {
+                    currentDeptText = btnSpan.textContent.trim().toLowerCase();
+                }
+            }
+
+            const rows = document.querySelectorAll('tbody tr.employee-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const searchData = (row.getAttribute('data-search') || '').toLowerCase();
+                const rowDept = (row.getAttribute('data-dept') || '').toLowerCase();
+                const rowStatus = row.getAttribute('data-status') || '';
+                const rowType = row.getAttribute('data-type') || '';
+
+                const matchesSearch = !query || searchData.includes(query);
+                const matchesDept = !deptVal || !currentDeptText || rowDept === currentDeptText;
+                const matchesStatus = !statusVal || rowStatus === statusVal;
+                const matchesType = !typeVal || rowType === typeVal;
+
+                if (matchesSearch && matchesDept && matchesStatus && matchesType) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const noResultsRow = document.getElementById('noEmployeeClientResultsRow');
+            if (noResultsRow) {
+                if (visibleCount === 0 && rows.length > 0) {
+                    noResultsRow.classList.remove('d-none');
+                } else {
+                    noResultsRow.classList.add('d-none');
+                }
+            }
+
+            const counterEl = document.getElementById('employeesRecordsCounter');
+            if (counterEl) {
+                counterEl.textContent = visibleCount;
+            }
+
+            const resetBtn = document.getElementById('resetEmployeesFiltersBtn');
+            if (resetBtn) {
+                const isFiltered = query || deptVal || statusVal || typeVal;
+                if (isFiltered) {
+                    resetBtn.classList.remove('d-none');
+                    resetBtn.classList.add('d-flex');
+                } else {
+                    resetBtn.classList.remove('d-flex');
+                    resetBtn.classList.add('d-none');
+                }
+            }
+        }
+
+        // Interactive Slide-Over Drawer
+        function showEmployeeDrawer(name, code, email, phone, dept, designation, status, empType, joinDate, completionPct, photoUrl, editUrl, detailsUrl) {
+            document.getElementById('drawerFullName').textContent = name;
+            document.getElementById('drawerCode').textContent = code;
+            document.getElementById('drawerEmail').textContent = email;
+            document.getElementById('drawerPhone').textContent = phone;
+            document.getElementById('drawerDepartment').textContent = dept;
+            document.getElementById('drawerDesignation').textContent = designation;
+            document.getElementById('drawerEmploymentType').textContent = empType;
+            document.getElementById('drawerJoinDate').textContent = joinDate;
+            document.getElementById('drawerCompletionText').textContent = completionPct + '%';
+            document.getElementById('drawerCompletionBar').style.width = completionPct + '%';
+
+            // Edit & Details Links
+            document.getElementById('drawerEditLink').href = editUrl;
+            document.getElementById('drawerFullProfileLink').href = detailsUrl;
+
+            // Status Badge
+            const statusBadge = document.getElementById('drawerStatusBadge');
+            statusBadge.className = 'badge-status-dot';
+            if (status === 'Active') {
+                statusBadge.classList.add('badge-status-active');
+            } else if (status === 'Probation' || status === 'OnNotice') {
+                statusBadge.classList.add('badge-status-warning');
+            } else if (status === 'Terminated') {
+                statusBadge.classList.add('badge-status-danger');
+            } else {
+                statusBadge.classList.add('badge-status-neutral');
+            }
+            statusBadge.textContent = status;
+
+            // Avatar
+            const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+            const fallback = document.getElementById('drawerAvatarFallback');
+            const img = document.getElementById('drawerAvatarImg');
+
+            fallback.textContent = initials;
+            if (photoUrl) {
+                img.src = photoUrl;
+                img.classList.remove('d-none');
+                fallback.classList.add('d-none');
+            } else {
+                img.classList.add('d-none');
+                fallback.classList.remove('d-none');
+            }
+
+            // Open Bootstrap Offcanvas
+            const drawerEl = document.getElementById('employeeDetailsDrawer');
+            if (drawerEl && typeof bootstrap !== 'undefined') {
+                const offcanvas = bootstrap.Offcanvas.getOrCreateInstance(drawerEl);
+                offcanvas.show();
+            }
+        }
+
+        function updateBulkToolbar() {
+            const checkedBoxes = document.querySelectorAll('.employee-checkbox:checked');
+            const allBoxes = document.querySelectorAll('.employee-checkbox');
+            const count = checkedBoxes.length;
+            const bar = document.getElementById('bulkActionsBar');
+            const countText = document.getElementById('selectedCountText');
+            const selectAll = document.getElementById('selectAllEmployees');
+
+            if (bar && countText) {
+                if (count > 0) {
+                    bar.classList.remove('d-none');
+                    bar.classList.add('d-flex');
+                    countText.textContent = count + ' selected';
+                } else {
+                    bar.classList.add('d-none');
+                    bar.classList.remove('d-flex');
+                }
+            }
+
+            if (selectAll) {
+                if (allBoxes.length > 0 && count === allBoxes.length) {
+                    selectAll.checked = true;
+                    selectAll.indeterminate = false;
+                } else if (count > 0 && count < allBoxes.length) {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = true;
+                } else {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = false;
+                }
+            }
+        }
+
+        function clearAllSelections() {
+            document.querySelectorAll('.employee-checkbox').forEach(cb => cb.checked = false);
+            const selectAll = document.getElementById('selectAllEmployees');
+            if (selectAll) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            }
+            updateBulkToolbar();
+        }
+
+        function submitBulkAction(actionType) {
+            const checkedBoxes = document.querySelectorAll('.employee-checkbox:checked');
+            if (checkedBoxes.length === 0) return;
+
+            const performSubmit = () => {
+                const form = document.getElementById('bulkActionForm');
+                document.getElementById('bulkActionType').value = actionType;
+                const container = document.getElementById('bulkEmployeeIdsContainer');
+                container.innerHTML = '';
+                checkedBoxes.forEach(cb => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'employeeIds';
+                    input.value = cb.value;
+                    container.appendChild(input);
+                });
+                form.submit();
+            };
+
+            if (actionType === 'deactivate') {
+                window.hrmsConfirm(`Are you sure you want to deactivate <strong>${checkedBoxes.length}</strong> selected employee(s)?`, performSubmit, {
+                    title: 'Deactivate Employees',
+                    btnText: 'Confirm Deactivation'
+                });
+            } else {
+                performSubmit();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const selectAll = document.getElementById('selectAllEmployees');
+            if (selectAll) {
+                selectAll.addEventListener('change', function () {
+                    document.querySelectorAll('.employee-checkbox').forEach(cb => {
+                        cb.checked = selectAll.checked;
+                    });
+                    updateBulkToolbar();
+                });
+            }
+
+            document.querySelectorAll('.employee-checkbox').forEach(cb => {
+                cb.addEventListener('change', updateBulkToolbar);
+            });
+        });
+    </script>
+}

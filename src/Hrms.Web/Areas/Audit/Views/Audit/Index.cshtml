@@ -1,6 +1,7 @@
 @model AuditLogIndexViewModel
 @{
     ViewData["Title"] = "Audit Logs";
+    ViewData["Subtitle"] = "Append-only compliance log tracking security events, entity mutations, and operational activities";
 }
 @functions {
     public static string DisplayIp(string? ip)
@@ -12,17 +13,6 @@
     }
 }
 
-<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-2">
-    <div>
-        <h4 class="fw-bold mb-1"><i class="bi bi-clock-history me-2 text-primary"></i>Audit Trail</h4>
-        <p class="text-muted small mb-0">Append-only compliance log tracking security events, entity mutations, and operational activities.</p>
-    </div>
-    <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">
-            <i class="bi bi-shield-lock-fill me-1"></i> Total Records: @Model.Logs.TotalCount
-        </span>
-    </div>
-</div>
 
 <!-- Search and Filter Form -->
 <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
@@ -65,7 +55,13 @@
 </div>
 
 <!-- Audit Log Table -->
-<div class="card border-0 shadow-sm" style="border-radius: 12px;">
+<div class="card border-0 shadow-sm" style="border-radius: 12px; overflow: hidden; border: 1px solid #eaecf0 !important;">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <span class="text-secondary small fw-semibold">Audit Events History</span>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1.5 rounded-pill fw-semibold">
+            Total Records: @Model.Logs.TotalCount
+        </span>
+    </div>
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">

@@ -1,91 +1,204 @@
 @model IReadOnlyList<DepartmentDto>
 @{
     ViewData["Title"] = "Departments";
+    ViewData["Subtitle"] = "Manage organization departments and organizational structure";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h4 class="fw-bold mb-1"><i class="bi bi-building me-2 text-primary"></i>Departments</h4>
-        <p class="text-muted small mb-0">Manage organization departments and organizational structure</p>
+
+
+<!-- EmplowHR-Inspired Unified Filter Bar -->
+<div class="table-filter-bar mb-3">
+    <div class="table-search-box">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" id="deptSearchInput" class="table-search-input" placeholder="Search departments by name..." oninput="filterDepartments()" />
     </div>
-    <a asp-action="Create" class="btn btn-primary d-flex align-items-center gap-2">
-        <i class="bi bi-plus-lg"></i> Add Department
-    </a>
+
+    <div class="dropdown">
+        <button class="filter-pill-dropdown" id="statusFilterBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span id="selectedStatusText">All Statuses</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search statuses..." autocomplete="off" />
+            </div>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                <li>
+                    <a class="dropdown-item active" href="javascript:void(0)" onclick="setStatusFilter('', 'All Statuses', this)">
+                        <span>All Statuses</span>
+                        <i class="bi bi-check2"></i>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="javascript:void(0)" onclick="setStatusFilter('Active', 'Active', this)">
+                        <span>Active</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="javascript:void(0)" onclick="setStatusFilter('Inactive', 'Inactive', this)">
+                        <span>Inactive</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <button type="button" class="btn-reset-filters d-none" id="resetFiltersBtn" onclick="resetAllFilters()" title="Reset all filters">
+        <i class="bi bi-arrow-counterclockwise"></i>
+        <span>Reset</span>
+    </button>
+
+    <div class="d-flex align-items-center gap-2.5 ms-auto">
+        <!-- Table / Cards View Switcher -->
+        <div class="btn-group p-0.5 bg-light rounded-3 border shadow-xs" role="group" aria-label="View switch">
+            <button type="button" class="btn btn-sm btn-white active px-2.5 py-1 fw-medium" id="viewModeTableBtn" onclick="switchViewMode('table')" title="Table View">
+                <i class="bi bi-list-ul"></i>
+            </button>
+            <button type="button" class="btn btn-sm text-muted px-2.5 py-1 fw-medium" id="viewModeCardsBtn" onclick="switchViewMode('cards')" title="Cards View">
+                <i class="bi bi-grid"></i>
+            </button>
+        </div>
+
+        <a asp-action="Create" class="btn btn-primary px-3 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center gap-1.5" style="height: 40px; font-size: 0.875rem; white-space: nowrap;">
+            <i class="bi bi-plus-lg"></i>
+            <span>Add department</span>
+        </a>
+    </div>
 </div>
 
-<div class="card border-0 shadow-sm" style="border-radius: 12px;">
+<!-- Table View Container -->
+<div class="card border-0 shadow-sm" id="deptTableView" style="border-radius: 14px; border: 1px solid #eaecf0 !important;">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">Department Name</th>
-                        <th>Designations</th>
-                        <th>Employees</th>
-                        <th>Status</th>
-                        <th>Created Date</th>
-                        <th class="text-end pe-4">Actions</th>
+            <table class="table table-hover align-middle mb-0" id="departmentsTable">
+                <thead style="background-color: #f8fafc; border-bottom: 1px solid #eaecf0;">
+                    <tr class="text-secondary small fw-semibold" style="font-size: 0.78rem; letter-spacing: 0.01em;">
+                        <th class="ps-4 py-2.5">Department Name</th>
+                        <th class="py-2.5">Designations</th>
+                        <th class="py-2.5">Employees</th>
+                        <th class="py-2.5">Status</th>
+                        <th class="py-2.5">Created Date</th>
+                        <th class="text-end pe-4 py-2.5">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (!Model.Any())
                     {
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <i class="bi bi-folder-x fs-1 d-block mb-2"></i>
-                                No departments found. Click "Add Department" to create one.
+                            <td colspan="6" class="p-0">
+                                <partial name="_EmptyState" model='new Hrms.Web.Models.EmptyStateViewModel { Message = "No departments found yet.", Subtitle = "Create your first department to structure employee roles.", ActionText = "+ Add department", ActionUrl = Url.Action("Create") }' />
                             </td>
                         </tr>
                     }
                     @foreach (var dept in Model)
                     {
-                        <tr>
+                        var statusStr = dept.Status == EntityStatus.Active ? "Active" : "Inactive";
+                        <tr class="dept-row" data-name="@dept.Name.ToLowerInvariant()" data-status="@statusStr">
                             <td class="ps-4 fw-semibold text-dark">
-                                <i class="bi bi-diagram-3 me-2 text-muted"></i>@dept.Name
+                                <div class="d-flex align-items-center gap-2.5">
+                                    <div class="rounded-3 bg-light border p-2 text-primary d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                        <i class="bi bi-building"></i>
+                                    </div>
+                                    <span class="dept-name-text">@dept.Name</span>
+                                </div>
                             </td>
                             <td>
-                                <span class="badge bg-light text-dark border">
-                                    <i class="bi bi-award me-1 text-primary"></i>@dept.DesignationCount
+                                <span class="badge bg-light text-dark border tabular-nums">
+                                    <i class="bi bi-award me-1 text-primary"></i>@dept.DesignationCount roles
                                 </span>
                             </td>
                             <td>
-                                <span class="badge bg-light text-dark border">
-                                    <i class="bi bi-people me-1 text-primary"></i>@dept.EmployeeCount
+                                <span class="badge bg-light text-dark border tabular-nums">
+                                    <i class="bi bi-people me-1 text-primary"></i>@dept.EmployeeCount staff
                                 </span>
                             </td>
                             <td>
-                                @if (dept.Status == EntityStatus.Active)
-                                {
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Active</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">Inactive</span>
-                                }
+                                <partial name="_StatusChip" model="@statusStr" />
                             </td>
                             <td class="text-muted small">@dept.CreatedAtUtc.ToString("dd MMM yyyy")</td>
                             <td class="text-end pe-4">
-                                <div class="d-inline-flex gap-2">
-                                    <a asp-action="Edit" asp-route-id="@dept.Id" class="btn btn-sm btn-outline-secondary" title="Edit">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <form asp-action="ToggleStatus" method="post" class="d-inline">
-                                        <input type="hidden" name="id" value="@dept.Id" />
-                                        @if (dept.Status == EntityStatus.Active)
-                                        {
-                                            <input type="hidden" name="status" value="@EntityStatus.Inactive" />
-                                            <button type="submit" class="btn btn-sm btn-outline-warning" title="Deactivate" onclick="return confirm('Deactivate department \'@dept.Name\'?');">
-                                                <i class="bi bi-slash-circle"></i>
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-sm btn-light border-0 px-2 py-1 text-muted" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false" title="Actions">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 py-1" style="border-radius: 10px; min-width: 140px;">
+                                        <li>
+                                            <button type="button" class="dropdown-item py-1.5 small d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#viewDeptModal-@dept.Id">
+                                                <i class="bi bi-eye text-muted"></i>
+                                                <span>View Details</span>
                                             </button>
-                                        }
-                                        else
-                                        {
-                                            <input type="hidden" name="status" value="@EntityStatus.Active" />
-                                            <button type="submit" class="btn btn-sm btn-outline-success" title="Activate">
-                                                <i class="bi bi-check-circle"></i>
-                                            </button>
-                                        }
-                                    </form>
+                                        </li>
+                                        <li>
+                                            <a asp-action="Edit" asp-route-id="@dept.Id" class="dropdown-item py-1.5 small d-flex align-items-center gap-2">
+                                                <i class="bi bi-pencil text-muted"></i>
+                                                <span>Edit</span>
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider my-1"></li>
+                                        <li>
+                                            <form asp-action="Delete" asp-route-id="@dept.Id" method="post" data-confirm="Are you sure you want to delete department <strong>'@dept.Name'</strong>? This action cannot be undone." data-confirm-title="Delete Department" data-confirm-btn="Delete Department">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="dropdown-item py-1.5 small text-danger d-flex align-items-center gap-2">
+                                                    <i class="bi bi-trash"></i>
+                                                    <span>Delete</span>
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <!-- View Department Modal -->
+                                <div class="modal fade text-start" id="viewDeptModal-@dept.Id" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content border-0 shadow" style="border-radius: 14px;">
+                                            <div class="modal-header border-bottom py-3">
+                                                <h5 class="modal-title fw-bold text-dark">
+                                                    <i class="bi bi-building text-primary me-2"></i>Department Overview
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body p-4">
+                                                <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded-3 mb-3 border">
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <div class="rounded-3 bg-white border p-2 text-primary" style="width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;">
+                                                            <i class="bi bi-building fs-5"></i>
+                                                        </div>
+                                                        <div>
+                                                            <h5 class="fw-bold text-dark mb-0">@dept.Name</h5>
+                                                            <small class="text-muted">Registered Department</small>
+                                                        </div>
+                                                    </div>
+                                                    <partial name="_StatusChip" model="@statusStr" />
+                                                </div>
+
+                                                <dl class="row g-2 small mb-0">
+                                                    <dt class="col-sm-5 text-muted">Total Designations:</dt>
+                                                    <dd class="col-sm-7 fw-semibold text-dark tabular-nums">@dept.DesignationCount roles mapped</dd>
+
+                                                    <dt class="col-sm-5 text-muted">Active Workforce:</dt>
+                                                    <dd class="col-sm-7 fw-semibold text-dark tabular-nums">@dept.EmployeeCount staff members</dd>
+
+                                                    <dt class="col-sm-5 text-muted">Created Date:</dt>
+                                                    <dd class="col-sm-7 text-dark">@dept.CreatedAtUtc.ToString("dd MMMM yyyy, hh:mm tt")</dd>
+                                                </dl>
+                                            </div>
+                                            <div class="modal-footer border-top py-2 d-flex justify-content-between">
+                                                <form asp-action="Delete" asp-route-id="@dept.Id" method="post" class="d-inline" data-confirm="Are you sure you want to delete department <strong>'@dept.Name'</strong>? This action cannot be undone." data-confirm-title="Delete Department" data-confirm-btn="Delete Department">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                        <i class="bi bi-trash me-1"></i> Delete
+                                                    </button>
+                                                </form>
+                                                <div class="d-flex gap-2">
+                                                    <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Close</button>
+                                                    <a asp-action="Edit" asp-route-id="@dept.Id" class="btn btn-primary btn-sm">
+                                                        <i class="bi bi-pencil me-1"></i> Edit
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
@@ -94,4 +207,189 @@
             </table>
         </div>
     </div>
+    <!-- Clean Table Footer with Count -->
+    <div class="d-flex justify-content-between align-items-center px-4 py-2.5 bg-white border-top text-muted small" style="border-color: #eaecf0 !important;">
+        <span>Showing <strong class="text-dark tabular-nums" id="visibleDeptCount">@Model.Count</strong> of <strong class="text-dark tabular-nums">@Model.Count</strong> departments</span>
+    </div>
 </div>
+
+<!-- Cards View Grid Container (Initially Hidden) -->
+<div class="row g-3 d-none" id="deptCardsView">
+    @if (!Model.Any())
+    {
+        <div class="col-12">
+            <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 14px; border: 1px solid #eaecf0 !important;">
+                <partial name="_EmptyState" model='new Hrms.Web.Models.EmptyStateViewModel { Message = "No departments found yet.", Subtitle = "Create your first department to structure employee roles.", ActionText = "+ Add department", ActionUrl = Url.Action("Create") }' />
+            </div>
+        </div>
+    }
+    @foreach (var dept in Model)
+    {
+        var statusStr = dept.Status == EntityStatus.Active ? "Active" : "Inactive";
+        <div class="col-md-6 col-lg-4 dept-card-item" data-name="@dept.Name.ToLowerInvariant()" data-status="@statusStr">
+            <div class="card border-0 shadow-xs h-100 p-3.5" style="border-radius: 14px; border: 1px solid #eaecf0 !important; background: #ffffff;">
+                <div class="d-flex justify-content-between align-items-start mb-2.5">
+                    <div class="d-flex align-items-center gap-2.5">
+                        <div class="rounded-3 bg-light border p-2 text-primary d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="bi bi-building fs-5"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-semibold text-dark mb-0">@dept.Name</h6>
+                            <span class="text-muted small" style="font-size: 0.75rem;">Created @dept.CreatedAtUtc.ToString("dd MMM yyyy")</span>
+                        </div>
+                    </div>
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-sm btn-light border-0 px-2 py-1 text-muted" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false" title="Actions">
+                            <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 py-1" style="border-radius: 10px; min-width: 140px;">
+                            <li>
+                                <button type="button" class="dropdown-item py-1.5 small d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#viewDeptModal-@dept.Id">
+                                    <i class="bi bi-eye text-muted"></i>
+                                    <span>View Details</span>
+                                </button>
+                            </li>
+                            <li>
+                                <a asp-action="Edit" asp-route-id="@dept.Id" class="dropdown-item py-1.5 small d-flex align-items-center gap-2">
+                                    <i class="bi bi-pencil text-muted"></i>
+                                    <span>Edit</span>
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li>
+                                <form asp-action="Delete" asp-route-id="@dept.Id" method="post" data-confirm="Are you sure you want to delete department <strong>'@dept.Name'</strong>? This action cannot be undone." data-confirm-title="Delete Department" data-confirm-btn="Delete Department">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="dropdown-item py-1.5 small text-danger d-flex align-items-center gap-2">
+                                        <i class="bi bi-trash"></i>
+                                        <span>Delete</span>
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center p-2.5 rounded-3 bg-light mb-2.5 border" style="font-size: 0.8125rem;">
+                    <div>
+                        <span class="text-muted d-block" style="font-size: 0.72rem; text-transform: uppercase;">Staff</span>
+                        <strong class="text-dark tabular-nums">@(dept.EmployeeCount > 0 ? $"{dept.EmployeeCount} employees" : "No employees yet")</strong>
+                    </div>
+                    <div class="text-end">
+                        <span class="text-muted d-block" style="font-size: 0.72rem; text-transform: uppercase;">Designations</span>
+                        <strong class="text-dark tabular-nums">@dept.DesignationCount roles</strong>
+                    </div>
+                </div>
+
+                <div class="mt-auto d-flex justify-content-between align-items-center pt-1">
+                    <partial name="_StatusChip" model="@statusStr" />
+                    <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 text-primary small fw-medium" data-bs-toggle="modal" data-bs-target="#viewDeptModal-@dept.Id">
+                        Details <i class="bi bi-chevron-right small"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        let currentStatusFilter = '';
+        let currentViewMode = 'table';
+
+        function switchViewMode(mode) {
+            currentViewMode = mode;
+            const tableView = document.getElementById('deptTableView');
+            const cardsView = document.getElementById('deptCardsView');
+            const tableBtn = document.getElementById('viewModeTableBtn');
+            const cardsBtn = document.getElementById('viewModeCardsBtn');
+
+            if (mode === 'cards') {
+                tableView.classList.add('d-none');
+                cardsView.classList.remove('d-none');
+                cardsBtn.classList.add('active', 'btn-white');
+                cardsBtn.classList.remove('text-muted');
+                tableBtn.classList.remove('active', 'btn-white');
+                tableBtn.classList.add('text-muted');
+            } else {
+                cardsView.classList.add('d-none');
+                tableView.classList.remove('d-none');
+                tableBtn.classList.add('active', 'btn-white');
+                tableBtn.classList.remove('text-muted');
+                cardsBtn.classList.remove('active', 'btn-white');
+                cardsBtn.classList.add('text-muted');
+            }
+        }
+
+        function setStatusFilter(status, label, el) {
+            currentStatusFilter = status;
+            document.getElementById('selectedStatusText').innerText = label;
+            const btn = document.getElementById('statusFilterBtn');
+            if (status) {
+                btn.classList.add('is-filtered');
+            } else {
+                btn.classList.remove('is-filtered');
+            }
+
+            el.closest('.dropdown-menu').querySelectorAll('.dropdown-item').forEach(item => {
+                item.classList.remove('active');
+                const chk = item.querySelector('.bi-check2');
+                if (chk) chk.remove();
+            });
+            el.classList.add('active');
+            el.insertAdjacentHTML('beforeend', '<i class="bi bi-check2"></i>');
+
+            filterDepartments();
+        }
+
+        function filterDepartments() {
+            const query = (document.getElementById('deptSearchInput').value || '').toLowerCase().trim();
+            const rows = document.querySelectorAll('.dept-row');
+            const cards = document.querySelectorAll('.dept-card-item');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const name = row.getAttribute('data-name') || '';
+                const status = row.getAttribute('data-status') || '';
+
+                const matchesQuery = !query || name.includes(query);
+                const matchesStatus = !currentStatusFilter || status === currentStatusFilter;
+
+                if (matchesQuery && matchesStatus) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            cards.forEach(card => {
+                const name = card.getAttribute('data-name') || '';
+                const status = card.getAttribute('data-status') || '';
+
+                const matchesQuery = !query || name.includes(query);
+                const matchesStatus = !currentStatusFilter || status === currentStatusFilter;
+
+                card.style.display = (matchesQuery && matchesStatus) ? '' : 'none';
+            });
+
+            const countEl = document.getElementById('visibleDeptCount');
+            if (countEl) countEl.innerText = visibleCount;
+
+            const resetBtn = document.getElementById('resetFiltersBtn');
+            if (query || currentStatusFilter) {
+                resetBtn.classList.remove('d-none');
+            } else {
+                resetBtn.classList.add('d-none');
+            }
+        }
+
+        function resetAllFilters() {
+            document.getElementById('deptSearchInput').value = '';
+            const allItem = document.querySelector('.filter-dropdown-menu .dropdown-item');
+            if (allItem) {
+                setStatusFilter('', 'All Statuses', allItem);
+            }
+            filterDepartments();
+        }
+    </script>
+}

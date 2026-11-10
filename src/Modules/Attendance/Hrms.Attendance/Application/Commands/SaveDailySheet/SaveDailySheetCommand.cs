@@ -99,6 +99,10 @@ public class SaveDailySheetHandler : ISaveDailySheetHandler
                 }
             }
 
+            // HalfDay penalty applies only on completed workdays (past date or checkout supplied).
+            var todayLocal = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(now, timeZone));
+            bool isWorkdayComplete = workDate < todayLocal || outUtc.HasValue;
+
             var calc = AttendanceStatusCalculator.Calculate(
                 workDate: workDate,
                 isHoliday: isHoliday,
@@ -112,7 +116,8 @@ public class SaveDailySheetHandler : ISaveDailySheetHandler
                 graceMinutes: shift?.GraceMinutes ?? 0,
                 breakMinutes: shift?.BreakMinutes ?? 0,
                 halfDayHours: halfDayHours,
-                timeZone: timeZone
+                timeZone: timeZone,
+                isWorkdayComplete: isWorkdayComplete
             );
 
             if (existingRecords.TryGetValue(item.EmployeeId, out var record))

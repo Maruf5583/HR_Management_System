@@ -1,0 +1,31 @@
+@model Hrms.Web.Models.PaginationViewModel
+@{
+    var startItem = Model.TotalCount == 0 ? 0 : ((Model.CurrentPage - 1) * Model.PageSize) + 1;
+    var endItem = Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalCount);
+}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 px-3 py-2.5 bg-white border-top text-muted small" style="border-color: #eaecf0 !important; font-size: 0.8125rem;">
+    <div>
+        <span>Showing <strong class="text-dark tabular-nums">@startItem</strong> to <strong class="text-dark tabular-nums">@endItem</strong> of <strong class="text-dark tabular-nums">@Model.TotalCount</strong> entries</span>
+    </div>
+    @if (Model.TotalPages > 1)
+    {
+        <ul class="pagination pagination-sm mb-0 gap-1">
+            <li class="page-item @(Model.CurrentPage <= 1 ? "disabled" : "")">
+                <a class="page-link rounded-2 border px-2.5" href="@(Model.CurrentPage <= 1 ? "#" : $"{Model.BaseUrl}?page={Model.CurrentPage - 1}")" aria-label="Previous">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            @for (int p = 1; p <= Model.TotalPages; p++)
+            {
+                <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
+                    <a class="page-link rounded-2 border px-2.5 tabular-nums" href="@($"{Model.BaseUrl}?page={p}")">@p</a>
+                </li>
+            }
+            <li class="page-item @(Model.CurrentPage >= Model.TotalPages ? "disabled" : "")">
+                <a class="page-link rounded-2 border px-2.5" href="@(Model.CurrentPage >= Model.TotalPages ? "#" : $"{Model.BaseUrl}?page={Model.CurrentPage + 1}")" aria-label="Next">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        </ul>
+    }
+</div>

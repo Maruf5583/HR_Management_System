@@ -20,10 +20,9 @@ public class LoginViewModel
 
 public class ChangePasswordViewModel
 {
-    [Required(ErrorMessage = "Current password is required.")]
     [DataType(DataType.Password)]
     [Display(Name = "Current Password")]
-    public string CurrentPassword { get; set; } = string.Empty;
+    public string? CurrentPassword { get; set; }
 
     [Required(ErrorMessage = "New password is required.")]
     [StringLength(100, MinimumLength = 6, ErrorMessage = "Password must be at least 6 characters.")]
@@ -103,4 +102,23 @@ public class EditRoleViewModel
     public bool IsAdminRole => string.Equals(Name, "Admin", StringComparison.OrdinalIgnoreCase);
 
     public List<string> SelectedPermissions { get; set; } = new();
+}
+
+public class EmptyStateViewModel
+{
+    public string Message { get; set; } = "No records found.";
+    public string? Subtitle { get; set; }
+    public string Icon { get; set; } = "bi-inbox";
+    public string? ActionText { get; set; }
+    public string? ActionUrl { get; set; }
+    public string? ActionPermission { get; set; }
+}
+
+public class PaginationViewModel
+{
+    public int CurrentPage { get; set; } = 1;
+    public int TotalPages { get; set; } = 1;
+    public int TotalCount { get; set; } = 0;
+    public int PageSize { get; set; } = 10;
+    public string BaseUrl { get; set; } = string.Empty;
 }

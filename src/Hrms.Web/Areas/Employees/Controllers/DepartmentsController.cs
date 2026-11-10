@@ -13,10 +13,17 @@ namespace Hrms.Web.Areas.Employees.Controllers;
 public class DepartmentsController : Controller
 {
     private readonly IDepartmentService _departmentService;
+    private readonly IDesignationService _designationService;
+    private readonly IEmployeeService _employeeService;
 
-    public DepartmentsController(IDepartmentService departmentService)
+    public DepartmentsController(
+        IDepartmentService departmentService,
+        IDesignationService designationService,
+        IEmployeeService employeeService)
     {
         _departmentService = departmentService;
+        _designationService = designationService;
+        _employeeService = employeeService;
     }
 
     [HttpGet]
@@ -105,6 +112,22 @@ public class DepartmentsController : Controller
             TempData["SuccessMessage"] = $"Department status changed to {status}.";
         }
 
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var result = await _departmentService.DeleteDepartmentAsync(id);
+        if (!result.IsSuccess)
+        {
+            TempData["ErrorMessage"] = result.Error.Message;
+        }
+        else
+        {
+            TempData["SuccessMessage"] = "Department deleted successfully.";
+        }
         return RedirectToAction(nameof(Index));
     }
 }

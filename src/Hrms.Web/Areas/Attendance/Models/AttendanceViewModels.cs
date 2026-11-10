@@ -12,6 +12,7 @@ public class DailySheetViewModel
     public string? HolidayName { get; set; }
     public bool IsWeeklyOff { get; set; }
     public bool CanManage { get; set; }
+    public AttendanceStatus? FilterStatus { get; set; }
     public List<DailySheetRowViewModel> Items { get; set; } = new();
 }
 

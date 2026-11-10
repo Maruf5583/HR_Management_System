@@ -1,126 +1,292 @@
 @model IReadOnlyList<DesignationDto>
 @{
     ViewData["Title"] = "Designations";
+    ViewData["Subtitle"] = "Manage job titles, department mappings, and organizational roles";
     var departments = ViewBag.Departments as List<SelectListItem> ?? new List<SelectListItem>();
     var selectedDept = ViewBag.SelectedDepartmentId as Guid?;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h4 class="fw-bold mb-1"><i class="bi bi-person-badge me-2 text-primary"></i>Designations</h4>
-        <p class="text-muted small mb-0">Manage job titles and department roles</p>
-    </div>
-    <a asp-action="Create" asp-route-departmentId="@selectedDept" class="btn btn-primary d-flex align-items-center gap-2">
-        <i class="bi bi-plus-lg"></i> Add Designation
-    </a>
-</div>
 
-<div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
-    <div class="card-body p-3">
-        <form method="get" class="row g-2 align-items-center">
-            <div class="col-md-4">
-                <label class="form-label small text-muted mb-1">Filter by Department</label>
-                <select name="departmentId" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="">-- All Departments --</option>
-                    @foreach (var dept in departments)
-                    {
-                        <option value="@dept.Value" selected="@dept.Selected">@dept.Text</option>
-                    }
-                </select>
+<!-- EmplowHR-Inspired Unified Filter Bar -->
+<div class="table-filter-bar">
+    <!-- Instant Search Input -->
+    <div class="table-search-box">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" id="designationSearchInput" class="table-search-input" placeholder="Search designations by title or code..." oninput="filterDesignationsTable()" />
+    </div>
+
+    <!-- Department Pill Dropdown -->
+    <div class="dropdown">
+        <button class="filter-pill-dropdown" id="deptFilterBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span id="selectedDeptText">All Departments</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search departments..." autocomplete="off" />
             </div>
-            @if (selectedDept.HasValue)
-            {
-                <div class="col-md-2 mt-4">
-                    <a asp-action="Index" class="btn btn-sm btn-outline-secondary">Clear Filter</a>
-                </div>
-            }
-        </form>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                <li>
+                    <a class="dropdown-item active" href="javascript:void(0)" onclick="setDeptFilter('', 'All Departments', this)">
+                        <span>All Departments</span>
+                        <i class="bi bi-check2"></i>
+                    </a>
+                </li>
+                @foreach (var dept in departments)
+                {
+                    <li>
+                        <a class="dropdown-item" href="javascript:void(0)" onclick="setDeptFilter('@dept.Text', '@dept.Text', this)">
+                            <span>@dept.Text</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+
+    <!-- Status Pill Dropdown -->
+    <div class="dropdown">
+        <button class="filter-pill-dropdown" id="statusFilterBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span id="selectedStatusText">All Statuses</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search statuses..." autocomplete="off" />
+            </div>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                <li>
+                    <a class="dropdown-item active" href="javascript:void(0)" onclick="setStatusFilter('', 'All Statuses', this)">
+                        <span>All Statuses</span>
+                        <i class="bi bi-check2"></i>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="javascript:void(0)" onclick="setStatusFilter('Active', 'Active', this)">
+                        <span>Active</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="javascript:void(0)" onclick="setStatusFilter('Inactive', 'Inactive', this)">
+                        <span>Inactive</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Reset Filter Button -->
+    <button type="button" class="btn-reset-filters d-none" id="resetFiltersBtn" onclick="resetAllFilters()" title="Reset all filters">
+        <i class="bi bi-arrow-counterclockwise"></i>
+        <span>Reset</span>
+    </button>
+
+    <div class="d-flex align-items-center gap-3 ms-auto">
+        <a asp-action="Create" asp-route-departmentId="@selectedDept" class="btn btn-primary px-3 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center gap-1.5" style="height: 40px; font-size: 0.875rem; white-space: nowrap;">
+            <i class="bi bi-plus-lg"></i>
+            <span>Add designation</span>
+        </a>
     </div>
 </div>
 
-<div class="card border-0 shadow-sm" style="border-radius: 12px;">
+<!-- Main Designations Table Card -->
+<div class="card border-0 shadow-sm" style="border-radius: 14px; border: 1px solid #eaecf0 !important;">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">Designation Title</th>
-                        <th>Department</th>
-                        <th>Grades</th>
-                        <th>Employees</th>
-                        <th>Status</th>
-                        <th>Created Date</th>
-                        <th class="text-end pe-4">Actions</th>
+            <table class="table table-hover align-middle mb-0" id="designationsTable">
+                <thead style="background-color: #f8fafc; border-bottom: 1px solid #eaecf0;">
+                    <tr class="text-secondary small fw-semibold" style="font-size: 0.78rem; letter-spacing: 0.01em;">
+                        <th class="ps-4 py-2.5">Designation Title</th>
+                        <th class="py-2.5">Department</th>
+                        <th class="py-2.5">Grades</th>
+                        <th class="py-2.5">Employees</th>
+                        <th class="py-2.5">Status</th>
+                        <th class="py-2.5">Created Date</th>
+                        <th class="text-end pe-4 py-2.5">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="bi bi-award fs-1 d-block mb-2"></i>
-                                No designations found.
+                        <tr id="emptyRow">
+                            <td colspan="7" class="p-0">
+                                <partial name="_EmptyState" model='new Hrms.Web.Models.EmptyStateViewModel { Message = "No designations found yet.", Subtitle = "Create designations to assign job titles to staff.", ActionText = "+ Add designation", ActionUrl = Url.Action("Create") }' />
                             </td>
                         </tr>
                     }
                     @foreach (var item in Model)
                     {
-                        <tr>
+                        var statusStr = item.Status == EntityStatus.Active ? "Active" : "Inactive";
+                        <tr class="designation-row" data-title="@item.Title.ToLowerInvariant()" data-dept="@item.DepartmentName" data-status="@statusStr">
                             <td class="ps-4 fw-semibold text-dark">
-                                <i class="bi bi-briefcase me-2 text-muted"></i>@item.Title
+                                <div class="d-flex align-items-center gap-2.5">
+                                    <div class="rounded-3 bg-light border p-2 text-primary d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                        <i class="bi bi-briefcase"></i>
+                                    </div>
+                                    <span>@item.Title</span>
+                                </div>
                             </td>
                             <td>
-                                <span class="badge bg-light text-primary border">@item.DepartmentName</span>
+                                <span class="badge bg-light text-primary border px-2 py-1">
+                                    <i class="bi bi-building me-1"></i>@item.DepartmentName
+                                </span>
                             </td>
                             <td>
-                                <span class="badge bg-light text-dark border">
+                                <span class="badge bg-light text-dark border tabular-nums">
                                     <i class="bi bi-sort-numeric-up me-1 text-primary"></i>@item.GradeCount
                                 </span>
                             </td>
                             <td>
-                                <span class="badge bg-light text-dark border">
+                                <span class="badge bg-light text-dark border tabular-nums">
                                     <i class="bi bi-people me-1 text-primary"></i>@item.EmployeeCount
                                 </span>
                             </td>
                             <td>
-                                @if (item.Status == EntityStatus.Active)
-                                {
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Active</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">Inactive</span>
-                                }
+                                <partial name="_StatusChip" model="@statusStr" />
                             </td>
                             <td class="text-muted small">@item.CreatedAtUtc.ToString("dd MMM yyyy")</td>
                             <td class="text-end pe-4">
-                                <div class="d-inline-flex gap-2">
-                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary" title="Edit">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <form asp-action="ToggleStatus" method="post" class="d-inline">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        @if (item.Status == EntityStatus.Active)
-                                        {
-                                            <input type="hidden" name="status" value="@EntityStatus.Inactive" />
-                                            <button type="submit" class="btn btn-sm btn-outline-warning" title="Deactivate" onclick="return confirm('Deactivate designation \'@item.Title\'?');">
-                                                <i class="bi bi-slash-circle"></i>
-                                            </button>
-                                        }
-                                        else
-                                        {
-                                            <input type="hidden" name="status" value="@EntityStatus.Active" />
-                                            <button type="submit" class="btn btn-sm btn-outline-success" title="Activate">
-                                                <i class="bi bi-check-circle"></i>
-                                            </button>
-                                        }
-                                    </form>
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-sm btn-light border-0 px-2 py-1 text-muted" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false" title="Actions">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 py-1" style="border-radius: 10px; min-width: 130px;">
+                                        <li>
+                                            <a asp-action="Edit" asp-route-id="@item.Id" class="dropdown-item py-1.5 small d-flex align-items-center gap-2">
+                                                <i class="bi bi-pencil text-muted"></i>
+                                                <span>Edit</span>
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider my-1"></li>
+                                        <li>
+                                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" data-confirm="Are you sure you want to delete designation <strong>'@item.Title'</strong>? This action cannot be undone." data-confirm-title="Delete Designation" data-confirm-btn="Delete Designation">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="dropdown-item py-1.5 small text-danger d-flex align-items-center gap-2">
+                                                    <i class="bi bi-trash"></i>
+                                                    <span>Delete</span>
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
                                 </div>
                             </td>
                         </tr>
                     }
+                    <tr id="noResultsRow" class="d-none">
+                        <td colspan="7" class="text-center py-4 text-muted small">
+                            <i class="bi bi-search fs-3 d-block mb-1 text-secondary opacity-50"></i>
+                            No designations match your current search and filter criteria.
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
+    <!-- Clean Table Footer with Count -->
+    <div class="d-flex justify-content-between align-items-center px-4 py-2.5 bg-white border-top text-muted small" style="border-color: #eaecf0 !important;">
+        <span>Showing <strong class="text-dark tabular-nums" id="recordsCounter">@Model.Count</strong> of <strong class="text-dark tabular-nums">@Model.Count</strong> designations</span>
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        let currentDeptFilter = '';
+        let currentStatusFilter = '';
+
+        function setDeptFilter(deptName, displayText, element) {
+            currentDeptFilter = deptName.toLowerCase();
+            document.getElementById('selectedDeptText').textContent = displayText;
+            document.querySelectorAll('#deptFilterBtn + .dropdown-menu .dropdown-item').forEach(el => {
+                el.classList.remove('active');
+                const check = el.querySelector('.bi-check2');
+                if (check) check.remove();
+            });
+            element.classList.add('active');
+            if (!element.querySelector('.bi-check2')) {
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-check2';
+                element.appendChild(icon);
+            }
+            filterDesignationsTable();
+        }
+
+        function setStatusFilter(status, displayText, element) {
+            currentStatusFilter = status;
+            document.getElementById('selectedStatusText').textContent = displayText;
+            document.querySelectorAll('#statusFilterBtn + .dropdown-menu .dropdown-item').forEach(el => {
+                el.classList.remove('active');
+                const check = el.querySelector('.bi-check2');
+                if (check) check.remove();
+            });
+            element.classList.add('active');
+            if (!element.querySelector('.bi-check2')) {
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-check2';
+                element.appendChild(icon);
+            }
+            filterDesignationsTable();
+        }
+
+        function filterDesignationsTable() {
+            const searchInput = document.getElementById('designationSearchInput');
+            const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            const rows = document.querySelectorAll('.designation-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const title = row.getAttribute('data-title') || '';
+                const dept = (row.getAttribute('data-dept') || '').toLowerCase();
+                const status = row.getAttribute('data-status') || '';
+
+                const matchesSearch = !query || title.includes(query) || dept.includes(query);
+                const matchesDept = !currentDeptFilter || dept === currentDeptFilter;
+                const matchesStatus = !currentStatusFilter || status === currentStatusFilter;
+
+                if (matchesSearch && matchesDept && matchesStatus) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const resetBtn = document.getElementById('resetFiltersBtn');
+            if (resetBtn) {
+                if (query || currentDeptFilter || currentStatusFilter) {
+                    resetBtn.classList.remove('d-none');
+                } else {
+                    resetBtn.classList.add('d-none');
+                }
+            }
+
+            const counter = document.getElementById('recordsCounter');
+            if (counter) {
+                counter.innerHTML = `<strong>${visibleCount}</strong> designations`;
+            }
+
+            const noResults = document.getElementById('noResultsRow');
+            if (noResults) {
+                if (visibleCount === 0 && rows.length > 0) {
+                    noResults.classList.remove('d-none');
+                } else {
+                    noResults.classList.add('d-none');
+                }
+            }
+        }
+
+        function resetAllFilters() {
+            const searchInput = document.getElementById('designationSearchInput');
+            if (searchInput) searchInput.value = '';
+
+            const firstDeptItem = document.querySelector('#deptFilterBtn + .dropdown-menu .dropdown-item');
+            if (firstDeptItem) setDeptFilter('', 'All Departments', firstDeptItem);
+
+            const firstStatusItem = document.querySelector('#statusFilterBtn + .dropdown-menu .dropdown-item');
+            if (firstStatusItem) setStatusFilter('', 'All Statuses', firstStatusItem);
+
+            filterDesignationsTable();
+        }
+    </script>
+}

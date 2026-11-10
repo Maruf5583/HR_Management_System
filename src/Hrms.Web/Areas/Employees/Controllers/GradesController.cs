@@ -140,4 +140,20 @@ public class GradesController : Controller
             .Select(d => new SelectListItem($"{d.Title} ({d.DepartmentName})", d.Id.ToString(), d.Id == selectedId))
             .ToList();
     }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var result = await _gradeService.DeleteGradeAsync(id);
+        if (!result.IsSuccess)
+        {
+            TempData["ErrorMessage"] = result.Error.Message;
+        }
+        else
+        {
+            TempData["SuccessMessage"] = "Grade deleted successfully.";
+        }
+        return RedirectToAction(nameof(Index));
+    }
 }

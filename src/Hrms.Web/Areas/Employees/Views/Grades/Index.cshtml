@@ -1,129 +1,356 @@
 @model IReadOnlyList<GradeDto>
 @{
-    ViewData["Title"] = "Grades";
+    ViewData["Title"] = "Grades & Salary Scales";
+    ViewData["Subtitle"] = "Manage designation grade levels, codes, and base compensation tiers";
     var designations = ViewBag.Designations as List<SelectListItem> ?? new List<SelectListItem>();
     var selectedDesig = ViewBag.SelectedDesignationId as Guid?;
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h4 class="fw-bold mb-1"><i class="bi bi-sort-numeric-up me-2 text-primary"></i>Grades & Salary Scales</h4>
-        <p class="text-muted small mb-0">Manage designation grade levels, codes, and base compensation</p>
-    </div>
-    <a asp-action="Create" asp-route-designationId="@selectedDesig" class="btn btn-primary d-flex align-items-center gap-2">
-        <i class="bi bi-plus-lg"></i> Add Grade
-    </a>
-</div>
 
-<div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
-    <div class="card-body p-3">
-        <form method="get" class="row g-2 align-items-center">
-            <div class="col-md-5">
-                <label class="form-label small text-muted mb-1">Filter by Designation</label>
-                <select name="designationId" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="">-- All Designations --</option>
-                    @foreach (var desig in designations)
-                    {
-                        <option value="@desig.Value" selected="@desig.Selected">@desig.Text</option>
-                    }
-                </select>
+<!-- EmplowHR-Inspired Unified Filter Bar -->
+<div class="table-filter-bar">
+    <!-- Instant Search Input -->
+    <div class="table-search-box">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" id="gradeSearchInput" class="table-search-input" placeholder="Search by grade code, title or department..." oninput="filterGradesTable()" />
+    </div>
+
+    <!-- Designation Pill Dropdown -->
+    <div class="dropdown">
+        <button class="filter-pill-dropdown" id="desigFilterBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span id="selectedDesigText">All Designations</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search designations..." autocomplete="off" />
             </div>
-            @if (selectedDesig.HasValue)
-            {
-                <div class="col-md-2 mt-4">
-                    <a asp-action="Index" class="btn btn-sm btn-outline-secondary">Clear Filter</a>
-                </div>
-            }
-        </form>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                <li>
+                    <a class="dropdown-item active" href="javascript:void(0)" onclick="setDesigFilter('', 'All Designations', this)">
+                        <span>All Designations</span>
+                        <i class="bi bi-check2"></i>
+                    </a>
+                </li>
+                @foreach (var desig in designations)
+                {
+                    <li>
+                        <a class="dropdown-item" href="javascript:void(0)" onclick="setDesigFilter('@desig.Text', '@desig.Text', this)">
+                            <span>@desig.Text</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+
+    <!-- Status Pill Dropdown -->
+    <div class="dropdown">
+        <button class="filter-pill-dropdown" id="statusFilterBtn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span id="selectedStatusText">All Statuses</span>
+            <i class="bi bi-chevron-down chevron-icon ms-1"></i>
+        </button>
+        <div class="dropdown-menu filter-dropdown-menu">
+            <div class="filter-dropdown-search">
+                <i class="bi bi-search"></i>
+                <input type="text" class="filter-dropdown-search-input" placeholder="Search statuses..." autocomplete="off" />
+            </div>
+            <ul class="filter-dropdown-list list-unstyled mb-0">
+                <li>
+                    <a class="dropdown-item active" href="javascript:void(0)" onclick="setStatusFilter('', 'All Statuses', this)">
+                        <span>All Statuses</span>
+                        <i class="bi bi-check2"></i>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="javascript:void(0)" onclick="setStatusFilter('Active', 'Active', this)">
+                        <span>Active</span>
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="javascript:void(0)" onclick="setStatusFilter('Inactive', 'Inactive', this)">
+                        <span>Inactive</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Reset Filter Button -->
+    <button type="button" class="btn-reset-filters d-none" id="resetFiltersBtn" onclick="resetAllFilters()" title="Reset all filters">
+        <i class="bi bi-arrow-counterclockwise"></i>
+        <span>Reset</span>
+    </button>
+
+    <div class="d-flex align-items-center gap-3 ms-auto">
+        <a asp-action="Create" asp-route-designationId="@selectedDesig" class="btn btn-primary px-3 fw-semibold rounded-3 shadow-xs d-inline-flex align-items-center gap-1.5" style="height: 40px; font-size: 0.875rem; white-space: nowrap;">
+            <i class="bi bi-plus-lg"></i>
+            <span>Add grade</span>
+        </a>
     </div>
 </div>
 
-<div class="card border-0 shadow-sm" style="border-radius: 12px;">
+<!-- Main Grades Table Card -->
+<div class="card border-0 shadow-sm" style="border-radius: 14px; border: 1px solid #eaecf0 !important;">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">Grade Code</th>
-                        <th>Level</th>
-                        <th>Designation & Department</th>
-                        <th>Base Salary</th>
-                        <th>Employees</th>
-                        <th>Status</th>
-                        <th>Created Date</th>
-                        <th class="text-end pe-4">Actions</th>
+            <table class="table table-hover align-middle mb-0" id="gradesTable">
+                <thead style="background-color: #f8fafc; border-bottom: 1px solid #eaecf0;">
+                    <tr class="text-secondary small fw-semibold" style="font-size: 0.78rem; letter-spacing: 0.01em;">
+                        <th class="ps-4 py-2.5">Grade Code</th>
+                        <th class="py-2.5">Level</th>
+                        <th class="py-2.5">Designation & Department</th>
+                        <th class="py-2.5">Base Salary</th>
+                        <th class="py-2.5">Employees</th>
+                        <th class="py-2.5">Status</th>
+                        <th class="py-2.5">Created Date</th>
+                        <th class="text-end pe-4 py-2.5">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (!Model.Any())
                     {
-                        <tr>
-                            <td colspan="8" class="text-center py-5 text-muted">
-                                <i class="bi bi-cash-stack fs-1 d-block mb-2"></i>
-                                No grades found.
+                        <tr id="emptyRow">
+                            <td colspan="8" class="p-0">
+                                <partial name="_EmptyState" model='new Hrms.Web.Models.EmptyStateViewModel { Message = "No grades found yet.", Subtitle = "Create salary grades to attach to designations.", ActionText = "+ Add grade", ActionUrl = Url.Action("Create") }' />
                             </td>
                         </tr>
                     }
                     @foreach (var item in Model)
                     {
-                        <tr>
+                        var statusStr = item.Status == EntityStatus.Active ? "Active" : "Inactive";
+                        <tr class="grade-row" data-code="@item.Code.ToLowerInvariant()" data-desig="@item.DesignationTitle" data-dept="@item.DepartmentName" data-status="@statusStr">
                             <td class="ps-4 fw-bold text-dark">
-                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace px-2 py-1">
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace px-2 py-1 tabular-nums">
                                     @item.Code
                                 </span>
                             </td>
-                            <td class="fw-semibold">@item.Level</td>
+                            <td class="fw-semibold text-dark tabular-nums">@item.Level</td>
                             <td>
-                                <div>@item.DesignationTitle</div>
-                                <small class="text-muted">@item.DepartmentName</small>
+                                <div class="fw-medium text-dark">@item.DesignationTitle</div>
+                                <small class="text-muted"><i class="bi bi-building me-1"></i>@item.DepartmentName</small>
                             </td>
-                            <td class="fw-bold text-success font-monospace">
+                            <td class="fw-bold text-success tabular-nums">
                                 @item.Salary.ToString("C2")
                             </td>
                             <td>
-                                <span class="badge bg-light text-dark border">
+                                <span class="badge bg-light text-dark border tabular-nums">
                                     <i class="bi bi-people me-1 text-primary"></i>@item.EmployeeCount
                                 </span>
                             </td>
                             <td>
-                                @if (item.Status == EntityStatus.Active)
-                                {
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Active</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">Inactive</span>
-                                }
+                                <partial name="_StatusChip" model="@statusStr" />
                             </td>
                             <td class="text-muted small">@item.CreatedAtUtc.ToString("dd MMM yyyy")</td>
                             <td class="text-end pe-4">
-                                <div class="d-inline-flex gap-2">
-                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary" title="Edit">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <form asp-action="ToggleStatus" method="post" class="d-inline">
-                                        <input type="hidden" name="id" value="@item.Id" />
-                                        @if (item.Status == EntityStatus.Active)
-                                        {
-                                            <input type="hidden" name="status" value="@EntityStatus.Inactive" />
-                                            <button type="submit" class="btn btn-sm btn-outline-warning" title="Deactivate" onclick="return confirm('Deactivate grade \'@item.Code\'?');">
-                                                <i class="bi bi-slash-circle"></i>
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-sm btn-light border-0 px-2 py-1 text-muted" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-expanded="false" title="Actions">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 py-1" style="border-radius: 10px; min-width: 140px;">
+                                        <li>
+                                            <button type="button" class="dropdown-item py-1.5 small d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#viewGradeModal-@item.Id">
+                                                <i class="bi bi-eye text-muted"></i>
+                                                <span>View Details</span>
                                             </button>
-                                        }
-                                        else
-                                        {
-                                            <input type="hidden" name="status" value="@EntityStatus.Active" />
-                                            <button type="submit" class="btn btn-sm btn-outline-success" title="Activate">
-                                                <i class="bi bi-check-circle"></i>
-                                            </button>
-                                        }
-                                    </form>
+                                        </li>
+                                        <li>
+                                            <a asp-action="Edit" asp-route-id="@item.Id" class="dropdown-item py-1.5 small d-flex align-items-center gap-2">
+                                                <i class="bi bi-pencil text-muted"></i>
+                                                <span>Edit</span>
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider my-1"></li>
+                                        <li>
+                                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" data-confirm="Are you sure you want to delete grade <strong>'@item.Code'</strong>? This action cannot be undone." data-confirm-title="Delete Grade" data-confirm-btn="Delete Grade">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="dropdown-item py-1.5 small text-danger d-flex align-items-center gap-2">
+                                                    <i class="bi bi-trash"></i>
+                                                    <span>Delete</span>
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <!-- View Grade Modal with Edit & Delete Options -->
+                                <div class="modal fade text-start" id="viewGradeModal-@item.Id" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content border-0 shadow" style="border-radius: 14px;">
+                                            <div class="modal-header border-bottom py-3">
+                                                <h5 class="modal-title fw-bold text-dark">
+                                                    <i class="bi bi-sort-numeric-up text-primary me-2"></i>Grade Details
+                                                </h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body p-4">
+                                                <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded-3 mb-3 border">
+                                                    <div>
+                                                        <span class="badge bg-primary font-monospace px-2 py-1 mb-1">@item.Code</span>
+                                                        <h5 class="fw-bold text-dark mb-0">@item.Level</h5>
+                                                    </div>
+                                                    @if (item.Status == EntityStatus.Active)
+                                                    {
+                                                        <span class="status-badge-dot status-active">Active</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="status-badge-dot status-neutral">Inactive</span>
+                                                    }
+                                                </div>
+
+                                                <dl class="row g-2 small mb-0">
+                                                    <dt class="col-sm-5 text-muted">Designation:</dt>
+                                                    <dd class="col-sm-7 fw-semibold text-dark">@item.DesignationTitle</dd>
+
+                                                    <dt class="col-sm-5 text-muted">Department:</dt>
+                                                    <dd class="col-sm-7 text-dark"><i class="bi bi-building me-1 text-primary"></i>@item.DepartmentName</dd>
+
+                                                    <dt class="col-sm-5 text-muted">Standard Salary:</dt>
+                                                    <dd class="col-sm-7 fw-bold text-success font-monospace">@item.Salary.ToString("C2")</dd>
+
+                                                    <dt class="col-sm-5 text-muted">Assigned Employees:</dt>
+                                                    <dd class="col-sm-7 fw-semibold text-dark">@item.EmployeeCount active staff</dd>
+
+                                                    <dt class="col-sm-5 text-muted">Created Date:</dt>
+                                                    <dd class="col-sm-7 text-dark">@item.CreatedAtUtc.ToString("dd MMMM yyyy, hh:mm tt")</dd>
+                                                </dl>
+                                            </div>
+                                            <div class="modal-footer border-top py-2 d-flex justify-content-between">
+                                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" data-confirm="Are you sure you want to delete grade <strong>'@item.Code'</strong>? This action cannot be undone." data-confirm-title="Delete Grade" data-confirm-btn="Delete Grade">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                        <i class="bi bi-trash me-1"></i> Delete Grade
+                                                    </button>
+                                                </form>
+                                                <div class="d-flex gap-2">
+                                                    <button type="button" class="btn btn-secondary-modern btn-sm" data-bs-dismiss="modal">Close</button>
+                                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-primary-modern btn-sm">
+                                                        <i class="bi bi-pencil me-1"></i> Edit Grade
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
                     }
+                    <tr id="noResultsRow" class="d-none">
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-search fs-2 d-block mb-2 text-muted"></i>
+                            No grades match your current search and filter criteria.
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
+    <!-- Clean Table Footer with Count -->
+    <div class="d-flex justify-content-between align-items-center px-4 py-2.5 bg-white border-top text-muted small" style="border-color: #eaecf0 !important;">
+        <span>Showing <strong class="text-dark tabular-nums" id="recordsCounter">@Model.Count</strong> of <strong class="text-dark tabular-nums">@Model.Count</strong> grades</span>
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        let currentDesigFilter = '';
+        let currentStatusFilter = '';
+
+        function setDesigFilter(desigName, displayText, element) {
+            currentDesigFilter = desigName.toLowerCase();
+            document.getElementById('selectedDesigText').textContent = displayText;
+            document.querySelectorAll('#desigFilterBtn + .dropdown-menu .dropdown-item').forEach(el => {
+                el.classList.remove('active');
+                const check = el.querySelector('.bi-check2');
+                if (check) check.remove();
+            });
+            element.classList.add('active');
+            if (!element.querySelector('.bi-check2')) {
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-check2';
+                element.appendChild(icon);
+            }
+            filterGradesTable();
+        }
+
+        function setStatusFilter(status, displayText, element) {
+            currentStatusFilter = status;
+            document.getElementById('selectedStatusText').textContent = displayText;
+            document.querySelectorAll('#statusFilterBtn + .dropdown-menu .dropdown-item').forEach(el => {
+                el.classList.remove('active');
+                const check = el.querySelector('.bi-check2');
+                if (check) check.remove();
+            });
+            element.classList.add('active');
+            if (!element.querySelector('.bi-check2')) {
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-check2';
+                element.appendChild(icon);
+            }
+            filterGradesTable();
+        }
+
+        function filterGradesTable() {
+            const searchInput = document.getElementById('gradeSearchInput');
+            const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+            const rows = document.querySelectorAll('.grade-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const code = row.getAttribute('data-code') || '';
+                const desig = (row.getAttribute('data-desig') || '').toLowerCase();
+                const dept = (row.getAttribute('data-dept') || '').toLowerCase();
+                const status = row.getAttribute('data-status') || '';
+
+                const matchesSearch = !query || code.includes(query) || desig.includes(query) || dept.includes(query);
+                const matchesDesig = !currentDesigFilter || desig === currentDesigFilter;
+                const matchesStatus = !currentStatusFilter || status === currentStatusFilter;
+
+                if (matchesSearch && matchesDesig && matchesStatus) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const resetBtn = document.getElementById('resetFiltersBtn');
+            if (resetBtn) {
+                if (query || currentDesigFilter || currentStatusFilter) {
+                    resetBtn.classList.remove('d-none');
+                } else {
+                    resetBtn.classList.add('d-none');
+                }
+            }
+
+            const counter = document.getElementById('recordsCounter');
+            if (counter) {
+                counter.innerHTML = `<strong>${visibleCount}</strong> grades`;
+            }
+
+            const noResults = document.getElementById('noResultsRow');
+            if (noResults) {
+                if (visibleCount === 0 && rows.length > 0) {
+                    noResults.classList.remove('d-none');
+                } else {
+                    noResults.classList.add('d-none');
+                }
+            }
+        }
+
+        function resetAllFilters() {
+            const searchInput = document.getElementById('gradeSearchInput');
+            if (searchInput) searchInput.value = '';
+
+            const firstDesigItem = document.querySelector('#desigFilterBtn + .dropdown-menu .dropdown-item');
+            if (firstDesigItem) setDesigFilter('', 'All Designations', firstDesigItem);
+
+            const firstStatusItem = document.querySelector('#statusFilterBtn + .dropdown-menu .dropdown-item');
+            if (firstStatusItem) setStatusFilter('', 'All Statuses', firstStatusItem);
+
+            filterGradesTable();
+        }
+    </script>
+}
